@@ -1158,12 +1158,22 @@ class DiscordRPC:
                         "pid": os.getpid(),
                         "activity": {
                             "details": f"Watching {title[:120]}",
-                            "state": f"Episode {ep_num}",
+                            "state": f"Episode {ep_num} • 64x Turbo Speed",
                             "timestamps": {"start": int(time.time())},
                             "assets": {
                                 "large_image": "ani_sync_logo",
-                                "large_text": "ani-sync",
+                                "large_text": "ani-sync: Zero-Buffering Terminal Player",
                             },
+                            "buttons": [
+                                {
+                                    "label": "⚡ Get ani-sync CLI",
+                                    "url": "https://github.com/idrisharis12/ani-sync",
+                                },
+                                {
+                                    "label": "⭐ Star on GitHub",
+                                    "url": "https://github.com/idrisharis12/ani-sync",
+                                },
+                            ],
                         },
                     },
                     "nonce": str(time.time()),
@@ -1900,42 +1910,53 @@ def play_loop(
 
         # Interactive post-playback controls
         while True:
-            print(
-                f"\n{C_MAGENTA}{C_BOLD}------------------- Playback Controls -------------------{C_RESET}"
-            )
             has_next = (current_idx + 1) < len(episodes)
             has_prev = (current_idx - 1) >= 0
+            next_num = (
+                episodes[current_idx + 1].get("number", current_idx + 2)
+                if has_next
+                else None
+            )
 
-            controls = []
+            print(
+                f"\n{C_CYAN}╭────────────────────────────────────────────────────────────╮{C_RESET}"
+            )
+            print(
+                f"{C_CYAN}│{C_RESET}  {C_MAGENTA}{C_BOLD}🎬 Episode {ep_num} Completed{C_RESET} • {C_GREEN}Tracked to MAL / AniList / Kitsu{C_RESET}  {C_CYAN}│{C_RESET}"
+            )
+            print(
+                f"{C_CYAN}╰────────────────────────────────────────────────────────────╯{C_RESET}"
+            )
+
+            controls_hint = []
             if has_next:
-                controls.append(
-                    f"{C_GREEN}[n] Next Ep ({episodes[current_idx+1].get('number')}){C_RESET}"
+                controls_hint.append(
+                    f"{C_GREEN}{C_BOLD}[Enter/n]{C_RESET} Next (Ep {next_num})"
                 )
-            controls.append(f"{C_CYAN}[r] Replay Ep {ep_num}{C_RESET}")
+            controls_hint.append(f"{C_CYAN}[r]{C_RESET} Replay")
             if has_prev:
-                controls.append(
-                    f"{C_BLUE}[p] Previous Ep ({episodes[current_idx-1].get('number')}){C_RESET}"
-                )
-            controls.append(f"{C_YELLOW}[s] Select Episode{C_RESET}")
-            controls.append(f"{C_YELLOW}[q] Change Quality{C_RESET}")
+                controls_hint.append(f"{C_BLUE}[p]{C_RESET} Previous")
+            controls_hint.append(f"{C_YELLOW}[s]{C_RESET} Select Ep")
+            controls_hint.append(f"{C_YELLOW}[q]{C_RESET} Quality")
             if seasons:
-                controls.append(f"{C_YELLOW}[S] Change Season/Movie{C_RESET}")
-            controls.append(f"{C_RED}[x] Quit{C_RESET}")
+                controls_hint.append(f"{C_YELLOW}[S]{C_RESET} Season")
+            controls_hint.append(f"{C_MAGENTA}[m]{C_RESET} Menu (FZF)")
+            controls_hint.append(f"{C_RED}[x]{C_RESET} Quit")
 
-            print("  " + "  |  ".join(controls))
+            print("  " + "  •  ".join(controls_hint))
 
             try:
-                cmd = input(f"{C_BOLD}Choice: {C_RESET}").strip()
+                cmd = input(f"\n{C_BOLD}Choice ❯ {C_RESET}").strip()
             except (KeyboardInterrupt, EOFError):
                 print("\n")
                 return
 
-            if not cmd and has_next:
-                current_idx += 1
-                break
-            elif cmd.lower() in ("n", "next") and has_next:
-                current_idx += 1
-                break
+            if (not cmd and has_next) or cmd.lower() in ("n", "next"):
+                if has_next:
+                    current_idx += 1
+                    break
+                else:
+                    print(f"{C_YELLOW}No more episodes available.{C_RESET}")
             elif cmd.lower() in ("r", "replay"):
                 break  # loops same ep
             elif cmd.lower() in ("p", "prev", "previous") and has_prev:
@@ -1965,12 +1986,86 @@ def play_loop(
                     player=player,
                     direct=direct,
                     download_only=download_only,
+                    auto_skip=auto_skip,
                 )
+            elif cmd.lower() in ("m", "menu", "fzf"):
+                menu_opts = []
+                actions = []
+                if has_next:
+                    menu_opts.append(f"▶  Play Next Episode (Episode {next_num})")
+                    actions.append("next")
+                menu_opts.append(f"🔄 Replay Current Episode (Episode {ep_num})")
+                actions.append("replay")
+                if has_prev:
+                    menu_opts.append("⏮  Play Previous Episode")
+                    actions.append("prev")
+                menu_opts.append("📋 Select Different Episode (FZF)")
+                actions.append("select")
+                menu_opts.append(f"🎯 Change Video Quality (Currently: {quality_used})")
+                actions.append("quality")
+                if seasons:
+                    menu_opts.append("🎬 Switch Season / Movie in Franchise")
+                    actions.append("season")
+                menu_opts.append("📥 Sync & Update Watch Library")
+                actions.append("sync")
+                menu_opts.append("❌ Exit ani-sync")
+                actions.append("quit")
+
+                selected_action_idx = pick_option(
+                    "Playback Actions Menu:", menu_opts, default_idx=0
+                )
+                action = actions[selected_action_idx]
+                if action == "next":
+                    current_idx += 1
+                    break
+                elif action == "replay":
+                    break
+                elif action == "prev":
+                    current_idx -= 1
+                    break
+                elif action == "select":
+                    ep_options = [
+                        f"Episode {e.get('number', i+1)}"
+                        for i, e in enumerate(episodes)
+                    ]
+                    current_idx = pick_option(
+                        "Select Episode:", ep_options, default_idx=current_idx
+                    )
+                    break
+                elif action == "quality":
+                    q_options = list(streams.keys())
+                    q_idx = pick_option("Select Quality:", q_options, default_idx=0)
+                    preferred_quality = q_options[q_idx]
+                    break
+                elif action == "season":
+                    s_options = [s["title"] for s in seasons]
+                    s_idx = pick_option(
+                        "Select Season / Movie:", s_options, default_idx=0
+                    )
+                    return play_loop(
+                        seasons[s_idx],
+                        initial_ep_idx=0,
+                        preferred_quality=preferred_quality,
+                        mode=mode,
+                        player=player,
+                        direct=direct,
+                        download_only=download_only,
+                        auto_skip=auto_skip,
+                    )
+                elif action == "sync":
+                    sync_all_libraries()
+                elif action == "quit":
+                    print(
+                        f"{C_GREEN}Thanks for using ani-sync! Sayonara! 👋{C_RESET}\n"
+                    )
+                    return
             elif cmd.lower() in ("x", "quit", "exit"):
                 print(f"{C_GREEN}Thanks for using ani-sync! Sayonara! 👋{C_RESET}\n")
                 return
             else:
-                print(f"{C_RED}Invalid option.{C_RESET}")
+                print(
+                    f"{C_RED}Invalid option. Press [Enter] for Next, [r] to Replay, or [m] for Menu.{C_RESET}"
+                )
 
 
 # ----------------------------------------------------------------------
