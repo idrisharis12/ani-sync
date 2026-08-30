@@ -445,7 +445,7 @@ def get_episode_streams(episode_id, mode="sub"):
 # Player Launch & Playback Management
 # ----------------------------------------------------------------------
 def launch_player(stream_url, title, ep_num, player="mpv"):
-    """Launch the chosen media player with title, stream, 500MB buffer cache, and anti-throttling headers."""
+    """Launch the chosen media player with title, stream, instant-start buffer cache, and anti-throttling headers."""
     media_title = f"{title} - Episode {ep_num}"
     cmd = []
     if player == "mpv":
@@ -460,13 +460,11 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
             "--audio-buffer=0.8",
             "--video-sync=audio",
             "--cache=yes",
-            "--demuxer-max-bytes=500M",
-            "--demuxer-max-back-bytes=150M",
-            "--demuxer-readahead-secs=180",
-            "--cache-secs=180",
-            "--stream-buffer-size=8MiB",
-            "--network-timeout=15",
             "--cache-pause=no",
+            "--cache-pause-initial=no",
+            "--demuxer-max-bytes=100M",
+            "--demuxer-max-back-bytes=30M",
+            "--demuxer-readahead-secs=20",
             "--force-seekable=yes",
             "--hr-seek=yes",
             "--hls-bitrate=max",
@@ -480,7 +478,7 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
             f"--meta-title={media_title}",
             f"--http-user-agent={USER_AGENT}",
             "--http-referrer=https://anidb.app/",
-            "--network-caching=5000",
+            "--network-caching=1500",
             stream_url,
         ]
     elif player == "iina":
@@ -490,8 +488,8 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
             f"--mpv-user-agent={USER_AGENT}",
             "--mpv-referrer=https://anidb.app/",
             "--mpv-cache=yes",
-            "--mpv-demuxer-max-bytes=500M",
-            "--mpv-demuxer-readahead-secs=180",
+            "--mpv-demuxer-max-bytes=100M",
+            "--mpv-demuxer-readahead-secs=20",
             stream_url,
         ]
     else:
@@ -499,7 +497,7 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
 
     print(f"\n{C_BOLD}▶️  Now Playing:{C_RESET} {C_CYAN}{media_title}{C_RESET}")
     print(
-        f"{C_DIM}Player: {player} | Ultra-fast buffer enabled (500MB, 3-min pre-cache){C_RESET}\n"
+        f"{C_DIM}Player: {player} | Instant-start smooth streaming enabled{C_RESET}\n"
     )
 
     proc = subprocess.run(cmd)
@@ -584,14 +582,18 @@ def play_loop(
         if preferred_quality and preferred_quality in streams:
             selected_url = streams[preferred_quality]
             quality_used = preferred_quality
+        elif "720p" in streams:
+            # 720p is optimal for zero-buffering instant start on any Wi-Fi
+            selected_url = streams["720p"]
+            quality_used = "720p"
         else:
-            # Pick highest quality available (or prompt if multiple)
+            # Fallback to available quality
             qualities = list(streams.keys())
             if len(qualities) == 1:
                 quality_used = qualities[0]
                 selected_url = streams[quality_used]
             else:
-                # Pick 1080p > 720p > Best > 480p by default or prompt
+
                 def sort_key(q):
                     num = re.findall(r"\d+", q)
                     return int(num[0]) if num else 0
