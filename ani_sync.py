@@ -493,7 +493,7 @@ def launch_player(target_path, title, ep_num, player="mpv"):
 def turbo_play(
     stream_url, title, ep_num, player="mpv", direct=False, download_only=False
 ):
-    """Zero-buffering multi-connection playback using fast local caching."""
+    """Zero-buffering maximum-speed playback using 64 parallel multi-connections."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_file = CACHE_DIR / f"{safe_title}.mp4"
@@ -501,7 +501,7 @@ def turbo_play(
     # 1. Instant Play if already in cache
     if cache_file.exists() and cache_file.stat().st_size > 5 * 1024 * 1024:
         print(
-            f"\n{C_GREEN}{C_BOLD}⚡ Episode already cached locally — Starting instantly!{C_RESET}"
+            f"\n{C_GREEN}{C_BOLD}⚡ Episode already cached locally — Starting instantly (0.0s latency)!{C_RESET}"
         )
         if download_only:
             print(f"{C_GREEN}✓ File ready at: {cache_file}{C_RESET}")
@@ -514,18 +514,28 @@ def turbo_play(
         return launch_player(stream_url, title, ep_num, player=player)
 
     print(
-        f"\n{C_CYAN}{C_BOLD}⚡ Turbo Multi-Connection Download (32 parallel streams)...{C_RESET}"
+        f"\n{C_CYAN}{C_BOLD}🚀 MAXIMUM TURBO SPEED (64 Parallel Multi-Connections)...{C_RESET}"
     )
     print(
-        f"{C_DIM}Downloading entire episode at maximum Wi-Fi speed to eliminate all buffering.{C_RESET}\n"
+        f"{C_DIM}Saturating maximum Wi-Fi bandwidth for 100% buffer-free local playback.{C_RESET}\n"
     )
 
     dl_cmd = [
         "yt-dlp",
         "-N",
-        "32",
+        "64",
         "--concurrent-fragments",
-        "32",
+        "64",
+        "--socket-timeout",
+        "5",
+        "--buffer-size",
+        "16M",
+        "--http-chunk-size",
+        "10M",
+        "--fragment-retries",
+        "10",
+        "--retries",
+        "5",
         "--add-header",
         "Referer: https://anidb.app/",
         "--add-header",
@@ -555,11 +565,11 @@ def turbo_play(
     )
     res = launch_player(target_to_play, title, ep_num, player=player)
 
-    # Cache cleanup: Keep newest ~3GB of anime, delete older
+    # Cache cleanup: Keep newest ~4GB of anime, delete older
     try:
         cached_files = sorted(CACHE_DIR.glob("*.mp4"), key=lambda f: f.stat().st_mtime)
         total_size = sum(f.stat().st_size for f in cached_files)
-        while total_size > 3 * 1024 * 1024 * 1024 and len(cached_files) > 5:
+        while total_size > 4 * 1024 * 1024 * 1024 and len(cached_files) > 6:
             oldest = cached_files.pop(0)
             total_size -= oldest.stat().st_size
             oldest.unlink(missing_ok=True)
@@ -570,7 +580,7 @@ def turbo_play(
 
 
 def prefetch_episode(next_ep_data, title, preferred_quality=None, mode="sub"):
-    """Background pre-fetch of next episode so next episode loads in 0.0 seconds."""
+    """Background pre-fetch of next episode so it loads in 0.0 seconds."""
     try:
         ep_num = next_ep_data.get("number")
         ep_id = next_ep_data.get("id")
@@ -594,9 +604,19 @@ def prefetch_episode(next_ep_data, title, preferred_quality=None, mode="sub"):
         dl_cmd = [
             "yt-dlp",
             "-N",
-            "32",
+            "64",
             "--concurrent-fragments",
-            "32",
+            "64",
+            "--socket-timeout",
+            "5",
+            "--buffer-size",
+            "16M",
+            "--http-chunk-size",
+            "10M",
+            "--fragment-retries",
+            "10",
+            "--retries",
+            "5",
             "--add-header",
             "Referer: https://anidb.app/",
             "--add-header",
@@ -719,13 +739,20 @@ def play_loop(
                 quality_used = sorted_qualities[0]
                 selected_url = streams[quality_used]
 
-        # Background pre-fetch next episode so it loads in 0.0s
-        if current_idx + 1 < len(episodes) and not direct and not download_only:
-            threading.Thread(
-                target=prefetch_episode,
-                args=(episodes[current_idx + 1], title, preferred_quality, mode),
-                daemon=True,
-            ).start()
+        # Background pre-fetch next 2 episodes so upcoming episodes load in 0.0s
+        if not direct and not download_only:
+            if current_idx + 1 < len(episodes):
+                threading.Thread(
+                    target=prefetch_episode,
+                    args=(episodes[current_idx + 1], title, preferred_quality, mode),
+                    daemon=True,
+                ).start()
+            if current_idx + 2 < len(episodes):
+                threading.Thread(
+                    target=prefetch_episode,
+                    args=(episodes[current_idx + 2], title, preferred_quality, mode),
+                    daemon=True,
+                ).start()
 
         # Launch Turbo Multi-Connection Player
         turbo_play(
