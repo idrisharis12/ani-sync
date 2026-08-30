@@ -473,66 +473,103 @@ After authenticating, `ani-sync` will **automatically sync every episode you wat
 
 ## 🔑 Multi-Platform Tracking Setup
 
-### MyAnimeList (MAL) Setup
+`ani-sync` can sync your watch progress to **MyAnimeList**, **AniList**, and **Kitsu** simultaneously. You can connect any combination or all three.
+
+Run `ani-sync auth` to open the interactive setup picker, or authenticate each platform directly:
+
+---
+
+### 1. 🟣 AniList Setup Walkthrough
+
+AniList uses OAuth 2.0 with a PIN-based CLI verification flow.
+
+#### Step 1: Create an AniList API Client
+1. Log in to your account on [AniList.co](https://anilist.co/).
+2. Open **Developer Settings**: [https://anilist.co/settings/developer](https://anilist.co/settings/developer).
+3. Click the **"Create New Client"** button.
+4. Fill in the client form:
+   | Field | Value | Notes |
+   | :--- | :--- | :--- |
+   | **Client Name** | `ani-sync` | Name of your personal application |
+   | **Redirect URL** | `https://anilist.co/api/v2/oauth/pin` | **Must be exact** for CLI PIN authorization |
+5. Click **"Save"**.
+6. AniList will generate your **Client ID** and **Client Secret**.
+
+#### Step 2: Authenticate in Terminal
+1. Run the setup command:
+   ```bash
+   ani-sync auth anilist
+   ```
+2. Enter your **Client ID** and **Client Secret** when prompted.
+3. `ani-sync` will open your browser to the AniList authorization page.
+4. Click **"Authorize"** to grant permission.
+5. AniList will display a **PIN code** on the screen.
+6. Copy the code, paste it into your terminal, and press `Enter`.
+7. `ani-sync` will securely save your AniList token locally.
+
+---
+
+### 2. 🟠 Kitsu Setup Walkthrough
+
+Kitsu authentication is completely seamless and requires no developer portal setup.
+
+1. Ensure you have an account registered on [kitsu.app](https://kitsu.app/).
+2. In your terminal, run:
+   ```bash
+   ani-sync auth kitsu
+   ```
+3. Enter your **Kitsu email or username**.
+4. Enter your **Kitsu password** (keystrokes are hidden for security).
+5. `ani-sync` connects directly to Kitsu's OAuth2 token endpoint to obtain an encrypted access token.
+6. Your password is **never stored locally** — only the OAuth access and refresh tokens are saved.
+
+---
+
+### 3. 🔵 MyAnimeList (MAL) Setup Walkthrough
 
 To enable automatic episode tracking with your MyAnimeList account:
 
+#### Step 1: Create a MAL API Client
 1. Log in to [MyAnimeList.net](https://myanimelist.net/).
 2. Open the **API Developer Portal**: [https://myanimelist.net/apiconfig](https://myanimelist.net/apiconfig).
-3. Click **"Create ID"** and fill in:
-   | Field | Value |
+3. Click **"Create ID"** (or "Create an App").
+4. Fill in the application fields:
+   | Field Name | Value to Enter |
    | :--- | :--- |
    | **App Name** | `ani-sync` |
    | **App Type** | `other` |
    | **App Redirect URL** | `http://localhost` |
-4. Copy your **Client ID** and run:
+   | **Homepage URL** | `https://github.com/idrisharis12/ani-sync/` |
+   | **Commercial use?** | `No` |
+   | **Non-commercial use?** | `Yes` |
+5. Submit the form and copy your **Client ID** (and optional Client Secret).
+
+#### Step 2: Authenticate in Terminal
+1. Run:
    ```bash
    ani-sync auth mal
    ```
-5. Paste your Client ID, authorize in the browser, and paste the redirect URL back.
+2. Enter your **Client ID**.
+3. Authorize in the browser and copy the redirected URL from your browser's address bar (`http://localhost/?code=...`).
+4. Paste the URL into your terminal to finalize authentication.
 
 ---
 
-### AniList Setup
+### 📁 Local Configuration & Privacy
 
-1. Go to [AniList Developer Settings](https://anilist.co/settings/developer).
-2. Click **"Create New Client"**:
-   | Field | Value |
-   | :--- | :--- |
-   | **Name** | `ani-sync` |
-   | **Redirect URL** | `https://anilist.co/api/v2/oauth/pin` |
-3. Copy your **Client ID** and **Client Secret**, then run:
-   ```bash
-   ani-sync auth anilist
-   ```
-4. Enter your Client ID and Secret, authorize in the browser, and paste the PIN code back.
-
----
-
-### Kitsu Setup
-
-Kitsu uses simple email/password authentication (no developer portal needed):
-
-```bash
-ani-sync auth kitsu
-```
-
-Enter your Kitsu email and password. Your credentials are sent directly to Kitsu's OAuth endpoint and are **not stored locally** — only the access token is saved.
-
----
-
-### Configuration File Format
-
-All credentials are saved in `~/.config/ani-sync/config.env` (or `%APPDATA%\ani-sync\config.env` on Windows):
+All tokens are stored locally on your machine in `~/.config/ani-sync/config.env` (or `%APPDATA%\ani-sync\config.env` on Windows). No data is ever sent to third-party telemetry servers.
 
 ```bash
 # Example ~/.config/ani-sync/config.env
-export MAL_CLIENT_ID="example_client_id_123456"
+export MAL_CLIENT_ID="your_mal_client_id"
 export MAL_CLIENT_SECRET=""
-export MAL_REFRESH_TOKEN="example_refresh_token_xyz789"
-export ANILIST_TOKEN="example_anilist_access_token"
-export KITSU_TOKEN="example_kitsu_access_token"
-export KITSU_REFRESH_TOKEN="example_kitsu_refresh_token"
+export MAL_REFRESH_TOKEN="your_mal_refresh_token"
+
+export ANILIST_TOKEN="your_anilist_access_token"
+
+export KITSU_TOKEN="your_kitsu_access_token"
+export KITSU_REFRESH_TOKEN="your_kitsu_refresh_token"
+
 export DISCORD_CLIENT_ID="1543718626400403466"
 ```
 
