@@ -215,53 +215,74 @@ ani-sync "spy x family" --player iina
 
 ---
 
-## 🔑 Step-by-Step MyAnimeList API Setup
+## 🔑 Step-by-Step MyAnimeList API Setup (Complete Walkthrough)
 
-To enable auto-syncing with your MyAnimeList account, create a free personal API Client ID on MyAnimeList:
+To enable automatic episode tracking and syncing with your MyAnimeList account, you need a free personal API Client ID from MyAnimeList. Follow this exact walkthrough:
 
-### Step 1: Create an Application on MyAnimeList
-1. Log in to [MyAnimeList.net](https://myanimelist.net/).
-2. Go to the **MAL API Developer Portal**: [https://myanimelist.net/apiconfig](https://myanimelist.net/apiconfig).
-3. Click on **"Create ID"**.
-4. Fill in the form:
-   | Field | Value | Notes |
-   | :--- | :--- | :--- |
-   | **App Name** | `ani-sync` | Name of your client |
-   | **App Type** | `other` | Select `other` from the dropdown |
-   | **App Redirect URL** | `http://localhost` | **Must be exact** for OAuth redirect |
-   | **Description** | `CLI anime tracker and streamer` | Brief description |
-   | **Commercial Use** | `No` | Select No |
-   | **Terms of Service** | `Checked` | Agree to terms |
-5. Click **"Submit"** and copy your **Client ID**.
+### Step 1: Open the Developer Portal & Create an App ID
+1. Log in to your account on [MyAnimeList.net](https://myanimelist.net/).
+2. Open the **API Developer Portal**: [https://myanimelist.net/apiconfig](https://myanimelist.net/apiconfig).
+3. Click the **"Create ID"** (or **"Create an App"**) button.
+
+### Step 2: Fill in the Application Form
+Fill in each field exactly as described below:
+
+| Field Name | Value to Enter | Notes |
+| :--- | :--- | :--- |
+| **App Name** | `ani-sync` | Name of your personal client |
+| **App Type** | `other` | Select `other` from the dropdown menu |
+| **App Redirect URL** | `http://localhost` | **Must be exact** (use `http://`, not `https://`) |
+| **Homepage URL** | `https://github.com/idrisharis12/ani-sync/` | *Include the trailing slash `/` or MAL will say invalid* |
+| **App Description** | *(See copy-paste text below)* | MAL requires a detailed description |
+| **Commercial use?** | `No` | Select No |
+| **Non-commercial use?** | `Yes` | Select Yes |
+| **Terms of Service** | `Checked` | Check the box to agree to API terms |
+
+> **📋 Copy-Paste Description for MAL:**
+> ```
+> ani-sync is an open-source command-line tool built for personal use that allows users to stream anime episodes directly in their terminal and automatically sync watched episode numbers, watch history, and anime status to their MyAnimeList profile using the official MyAnimeList OAuth 2.0 API.
+> ```
+
+4. Click **"Submit"** at the bottom of the form.
+5. Your newly created app details will appear. Copy your **`Client ID`** (and optional `Client Secret`).
 
 ---
 
-### Step 2: Generate Authentication Tokens
+### Step 3: Run the Terminal Setup Wizard
 
-Run the interactive setup wizard:
+In your terminal, run:
 ```bash
 ani-sync auth
 ```
 
-1. Enter your **Client ID** when prompted.
-2. Your browser will open the MAL authorization page. Click **"Allow"**.
-3. You will be redirected to an address like `http://localhost/?code=AUTHORIZATION_CODE`.
-4. Copy the URL or code from your address bar and paste it into the terminal.
-5. `ani-sync` will exchange the code for tokens and save them securely in:
+1. Paste your **Client ID** (and Client Secret if requested).
+2. `ani-sync` will open the authorization URL in your web browser.
+3. Log in (if prompted) and click **"Allow"**.
+4. You will be redirected to an address like:
+   ```
+   http://localhost/?code=def50200611fe883d9...
+   ```
+   > [!NOTE]
+   > Your browser may display **"This site can’t be reached"** or **"Unable to connect"**. **This is completely normal** because no local server is running on your machine. The authorization code is located directly in your browser's **URL address bar**!
+
+5. Copy the entire URL (or the long string after `code=`) from your browser address bar.
+6. Paste it into your terminal prompt and press `Enter`.
+7. `ani-sync` will exchange the authorization code for your tokens and save them to:
    ```
    ~/.config/ani-sync/config.env
    ```
 
 ---
 
-### Step 3: Manual Environment Variables (Optional)
-You can also manually export credentials in `~/.bashrc` or `~/.zshrc`:
+### Step 4: Verification & Manual Environment Variables (Optional)
+Once completed, `ani-sync` is ready to go! If you ever want to check or manually set your credentials in `~/.bashrc` or `~/.zshrc`:
 
 ```bash
 export MAL_CLIENT_ID="your_client_id_here"
 export MAL_CLIENT_SECRET=""   # Optional
 export MAL_REFRESH_TOKEN="your_refresh_token_here"
 ```
+Reload your shell with `source ~/.bashrc` or `source ~/.zshrc`.
 
 ---
 
