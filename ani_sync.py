@@ -3,15 +3,16 @@
 """:"
 exec python3 "$0" "$@"
 """
-import os
-import sys
-import subprocess
-import re
-import json
+
 import html
+import json
+import os
+import re
 import secrets
-import webbrowser
+import subprocess
+import sys
 import urllib.parse
+import webbrowser
 from pathlib import Path
 
 import requests
@@ -28,19 +29,20 @@ ANIDB_BASE = "https://anidb.app"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
 TOKEN_URL = "https://myanimelist.net/v1/oauth2/token"
-AUTH_URL  = "https://myanimelist.net/v1/oauth2/authorize"
-API_URL   = "https://api.myanimelist.net/v2"
+AUTH_URL = "https://myanimelist.net/v1/oauth2/authorize"
+API_URL = "https://api.myanimelist.net/v2"
 
 # Terminal Colors
-C_BLUE   = "\033[94m"
-C_CYAN   = "\033[96m"
-C_GREEN  = "\033[92m"
+C_BLUE = "\033[94m"
+C_CYAN = "\033[96m"
+C_GREEN = "\033[92m"
 C_YELLOW = "\033[93m"
-C_MAGENTA= "\033[95m"
-C_RED    = "\033[91m"
-C_BOLD   = "\033[1m"
-C_DIM    = "\033[2m"
-C_RESET  = "\033[0m"
+C_MAGENTA = "\033[95m"
+C_RED = "\033[91m"
+C_BOLD = "\033[1m"
+C_DIM = "\033[2m"
+C_RESET = "\033[0m"
+
 
 # ----------------------------------------------------------------------
 # Config & Environment Handling
@@ -61,12 +63,14 @@ def load_config():
         except Exception:
             pass
 
+
 def save_config(client_id, client_secret, refresh_token):
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         f.write(f'export MAL_CLIENT_ID="{client_id}"\n')
         f.write(f'export MAL_CLIENT_SECRET="{client_secret}"\n')
         f.write(f'export MAL_REFRESH_TOKEN="{refresh_token}"\n')
+
 
 def get_mal_env():
     load_config()
@@ -75,30 +79,42 @@ def get_mal_env():
     refresh_token = os.getenv("MAL_REFRESH_TOKEN", "").strip()
     return client_id, client_secret, refresh_token
 
+
 def is_mal_configured():
     client_id, _, refresh_token = get_mal_env()
     return bool(client_id and refresh_token)
+
 
 # ----------------------------------------------------------------------
 # Interactive MAL Authentication Helper
 # ----------------------------------------------------------------------
 def run_auth():
-    print(f"\n{C_CYAN}{C_BOLD}============================================================{C_RESET}")
-    print(f"{C_MAGENTA}{C_BOLD}         ani-sync — MyAnimeList Authentication Setup        {C_RESET}")
-    print(f"{C_CYAN}{C_BOLD}============================================================{C_RESET}")
+    print(
+        f"\n{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
+    print(
+        f"{C_MAGENTA}{C_BOLD}         ani-sync — MyAnimeList Authentication Setup        {C_RESET}"
+    )
+    print(
+        f"{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
     print(f"\n1. Go to: {C_BLUE}https://myanimelist.net/apiconfig{C_RESET}")
     print(f"2. Click {C_BOLD}'Create ID'{C_RESET} with the following settings:")
     print(f"   - {C_BOLD}App Name:{C_RESET} ani-sync")
     print(f"   - {C_BOLD}App Type:{C_RESET} other")
     print(f"   - {C_BOLD}Redirect URL:{C_RESET} http://localhost")
-    print(f"{C_CYAN}------------------------------------------------------------{C_RESET}")
+    print(
+        f"{C_CYAN}------------------------------------------------------------{C_RESET}"
+    )
 
     client_id = input(f"\n{C_BOLD}Enter your MAL Client ID: {C_RESET}").strip()
     if not client_id:
         print(f"{C_RED}Error: Client ID is required.{C_RESET}")
         return
 
-    client_secret = input(f"{C_BOLD}Enter your MAL Client Secret (press Enter if none): {C_RESET}").strip()
+    client_secret = input(
+        f"{C_BOLD}Enter your MAL Client Secret (press Enter if none): {C_RESET}"
+    ).strip()
     code_verifier = secrets.token_urlsafe(100)[:128]
 
     params = {
@@ -118,14 +134,20 @@ def run_auth():
     except Exception:
         pass
 
-    print(f"After logging in and clicking '{C_BOLD}Allow{C_RESET}', you will be redirected to:")
+    print(
+        f"After logging in and clicking '{C_BOLD}Allow{C_RESET}', you will be redirected to:"
+    )
     print(f"  {C_DIM}http://localhost/?code=AUTHORIZATION_CODE{C_RESET}")
 
-    auth_input = input(f"\n{C_BOLD}Paste the redirected URL (or the 'code' parameter): {C_RESET}").strip()
+    auth_input = input(
+        f"\n{C_BOLD}Paste the redirected URL (or the 'code' parameter): {C_RESET}"
+    ).strip()
     if "code=" in auth_input:
         parsed = urllib.parse.urlparse(auth_input)
         query_params = urllib.parse.parse_qs(parsed.query)
-        auth_code = query_params.get("code", [auth_input.split("code=")[1].split("&")[0]])[0]
+        auth_code = query_params.get(
+            "code", [auth_input.split("code=")[1].split("&")[0]]
+        )[0]
     else:
         auth_code = auth_input
 
@@ -156,6 +178,7 @@ def run_auth():
     except Exception as e:
         print(f"{C_RED}❌ Connection error: {e}{C_RESET}")
 
+
 # ----------------------------------------------------------------------
 # MyAnimeList Syncing
 # ----------------------------------------------------------------------
@@ -182,15 +205,20 @@ def refresh_mal_token():
         pass
     return None
 
+
 def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
     if not is_mal_configured():
-        print(f"{C_YELLOW}ℹ️  MAL sync skipped (Run 'ani-sync auth' to connect MyAnimeList){C_RESET}")
+        print(
+            f"{C_YELLOW}ℹ️  MAL sync skipped (Run 'ani-sync auth' to connect MyAnimeList){C_RESET}"
+        )
         return False
 
     print(f"\n{C_CYAN}🔄  Syncing episode {episode_num} to MyAnimeList...{C_RESET}")
     access_token = refresh_mal_token()
     if not access_token:
-        print(f"{C_RED}⚠️  Failed to refresh MyAnimeList access token. Try running 'ani-sync auth'.{C_RESET}")
+        print(
+            f"{C_RED}⚠️  Failed to refresh MyAnimeList access token. Try running 'ani-sync auth'.{C_RESET}"
+        )
         return False
 
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -232,13 +260,18 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
             timeout=10,
         )
         if res.status_code in (200, 201):
-            print(f"{C_GREEN}{C_BOLD}✅  MAL Synced:{C_RESET} Episode {episode_num} marked as watched!")
+            print(
+                f"{C_GREEN}{C_BOLD}✅  MAL Synced:{C_RESET} Episode {episode_num} marked as watched!"
+            )
             return True
         else:
-            print(f"{C_RED}❌  MAL Sync update failed ({res.status_code}): {res.text}{C_RESET}")
+            print(
+                f"{C_RED}❌  MAL Sync update failed ({res.status_code}): {res.text}{C_RESET}"
+            )
     except Exception as e:
         print(f"{C_RED}❌  MAL Sync error: {e}{C_RESET}")
     return False
+
 
 # ----------------------------------------------------------------------
 # AniDB Scraper & Video Stream Extraction
@@ -249,11 +282,14 @@ def http_get(url, is_json=False):
     res.raise_for_status()
     return res.json() if is_json else res.text
 
+
 def search_anime(query):
     """Search for anime on AniDB provider."""
     url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
     html_text = http_get(url)
-    matches = re.findall(r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL)
+    matches = re.findall(
+        r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
+    )
     results = []
     seen = set()
     for slug, raw_title in matches:
@@ -262,6 +298,7 @@ def search_anime(query):
             title = html.unescape(raw_title).strip()
             results.append({"slug": slug, "title": title})
     return results
+
 
 def get_anime_details(slug):
     """Fetch anime seasons and mal_id if present."""
@@ -275,13 +312,18 @@ def get_anime_details(slug):
     season_section = re.search(r">Seasons<.*?>Details<", html_text, re.DOTALL)
     if season_section:
         sec_text = season_section.group(0)
-        s_matches = re.findall(r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text)
+        s_matches = re.findall(
+            r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text
+        )
         seen = {slug}
         for s_slug, s_title in s_matches:
             if s_slug not in seen:
                 seen.add(s_slug)
-                seasons.append({"slug": s_slug, "title": html.unescape(s_title).strip()})
+                seasons.append(
+                    {"slug": s_slug, "title": html.unescape(s_title).strip()}
+                )
     return {"mal_id": mal_id, "seasons": seasons}
+
 
 def get_episodes(slug):
     """Fetch available episodes for an anime."""
@@ -289,6 +331,7 @@ def get_episodes(slug):
     url = f"{ANIDB_BASE}/api/frontend/anime/{anime_id}/episodes"
     data = http_get(url, is_json=True)
     return data.get("episodes", [])
+
 
 def get_episode_streams(episode_id, mode="sub"):
     """Fetch m3u8 streams and available qualities for an episode."""
@@ -332,6 +375,7 @@ def get_episode_streams(episode_id, mode="sub"):
         streams["Auto / Best"] = master_m3u8_url
     return streams
 
+
 # ----------------------------------------------------------------------
 # Player Launch & Playback Management
 # ----------------------------------------------------------------------
@@ -363,10 +407,13 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
         cmd = [player, stream_url]
 
     print(f"\n{C_BOLD}▶️  Now Playing:{C_RESET} {C_CYAN}{media_title}{C_RESET}")
-    print(f"{C_DIM}Player: {player} | Close player window when done watching.{C_RESET}\n")
+    print(
+        f"{C_DIM}Player: {player} | Close player window when done watching.{C_RESET}\n"
+    )
 
     proc = subprocess.run(cmd)
     return proc.returncode == 0
+
 
 # ----------------------------------------------------------------------
 # Interactive Menus
@@ -381,23 +428,30 @@ def pick_option(title, options, default_idx=0):
 
     while True:
         try:
-            choice = input(f"\n{C_BOLD}Select [1-{len(options)}] (default: {default_idx+1}): {C_RESET}").strip()
+            choice = input(
+                f"\n{C_BOLD}Select [1-{len(options)}] (default: {default_idx+1}): {C_RESET}"
+            ).strip()
             if not choice:
                 return default_idx
             val = int(choice)
             if 1 <= val <= len(options):
                 return val - 1
-            print(f"{C_RED}Please enter a number between 1 and {len(options)}.{C_RESET}")
+            print(
+                f"{C_RED}Please enter a number between 1 and {len(options)}.{C_RESET}"
+            )
         except ValueError:
             print(f"{C_RED}Invalid input. Please enter a number.{C_RESET}")
         except (KeyboardInterrupt, EOFError):
             print("\n")
             sys.exit(0)
 
+
 # ----------------------------------------------------------------------
 # Main Interactive Flow
 # ----------------------------------------------------------------------
-def play_loop(anime, initial_ep_idx=0, preferred_quality=None, mode="sub", player="mpv"):
+def play_loop(
+    anime, initial_ep_idx=0, preferred_quality=None, mode="sub", player="mpv"
+):
     """Watch loop with next, replay, previous, change episode/quality/season."""
     slug = anime["slug"]
     title = anime["title"]
@@ -424,10 +478,14 @@ def play_loop(anime, initial_ep_idx=0, preferred_quality=None, mode="sub", playe
         ep_num = ep_data.get("number", current_idx + 1)
         ep_id = ep_data.get("id")
 
-        print(f"\n{C_CYAN}Resolving streams for Episode {ep_num} ({mode.upper()})...{C_RESET}")
+        print(
+            f"\n{C_CYAN}Resolving streams for Episode {ep_num} ({mode.upper()})...{C_RESET}"
+        )
         streams = get_episode_streams(ep_id, mode=mode)
         if not streams:
-            print(f"{C_RED}❌ Could not resolve video streams for Episode {ep_num}.{C_RESET}")
+            print(
+                f"{C_RED}❌ Could not resolve video streams for Episode {ep_num}.{C_RESET}"
+            )
             break
 
         # Quality Selection
@@ -446,6 +504,7 @@ def play_loop(anime, initial_ep_idx=0, preferred_quality=None, mode="sub", playe
                 def sort_key(q):
                     num = re.findall(r"\d+", q)
                     return int(num[0]) if num else 0
+
                 sorted_qualities = sorted(qualities, key=sort_key, reverse=True)
                 quality_used = sorted_qualities[0]
                 selected_url = streams[quality_used]
@@ -460,16 +519,22 @@ def play_loop(anime, initial_ep_idx=0, preferred_quality=None, mode="sub", playe
 
         # Interactive post-playback controls
         while True:
-            print(f"\n{C_MAGENTA}{C_BOLD}------------------- Playback Controls -------------------{C_RESET}")
+            print(
+                f"\n{C_MAGENTA}{C_BOLD}------------------- Playback Controls -------------------{C_RESET}"
+            )
             has_next = (current_idx + 1) < len(episodes)
             has_prev = (current_idx - 1) >= 0
 
             controls = []
             if has_next:
-                controls.append(f"{C_GREEN}[n] Next Ep ({episodes[current_idx+1].get('number')}){C_RESET}")
+                controls.append(
+                    f"{C_GREEN}[n] Next Ep ({episodes[current_idx+1].get('number')}){C_RESET}"
+                )
             controls.append(f"{C_CYAN}[r] Replay Ep {ep_num}{C_RESET}")
             if has_prev:
-                controls.append(f"{C_BLUE}[p] Previous Ep ({episodes[current_idx-1].get('number')}){C_RESET}")
+                controls.append(
+                    f"{C_BLUE}[p] Previous Ep ({episodes[current_idx-1].get('number')}){C_RESET}"
+                )
             controls.append(f"{C_YELLOW}[s] Select Episode{C_RESET}")
             controls.append(f"{C_YELLOW}[q] Change Quality{C_RESET}")
             if seasons:
@@ -491,13 +556,17 @@ def play_loop(anime, initial_ep_idx=0, preferred_quality=None, mode="sub", playe
                 current_idx += 1
                 break
             elif cmd.lower() in ("r", "replay"):
-                break # loops same ep
+                break  # loops same ep
             elif cmd.lower() in ("p", "prev", "previous") and has_prev:
                 current_idx -= 1
                 break
             elif cmd.lower() in ("s", "select", "ep"):
-                ep_options = [f"Episode {e.get('number', i+1)}" for i, e in enumerate(episodes)]
-                current_idx = pick_option("Select Episode:", ep_options, default_idx=current_idx)
+                ep_options = [
+                    f"Episode {e.get('number', i+1)}" for i, e in enumerate(episodes)
+                ]
+                current_idx = pick_option(
+                    "Select Episode:", ep_options, default_idx=current_idx
+                )
                 break
             elif cmd.lower() in ("q", "quality"):
                 q_options = list(streams.keys())
@@ -507,18 +576,26 @@ def play_loop(anime, initial_ep_idx=0, preferred_quality=None, mode="sub", playe
             elif cmd.lower() in ("s", "season") and seasons:
                 s_options = [s["title"] for s in seasons]
                 s_idx = pick_option("Select Season / Movie:", s_options, default_idx=0)
-                return play_loop(seasons[s_idx], initial_ep_idx=0, preferred_quality=preferred_quality, mode=mode, player=player)
+                return play_loop(
+                    seasons[s_idx],
+                    initial_ep_idx=0,
+                    preferred_quality=preferred_quality,
+                    mode=mode,
+                    player=player,
+                )
             elif cmd.lower() in ("x", "quit", "exit"):
                 print(f"{C_GREEN}Thanks for using ani-sync! Sayonara! 👋{C_RESET}\n")
                 return
             else:
                 print(f"{C_RED}Invalid option.{C_RESET}")
 
+
 # ----------------------------------------------------------------------
 # CLI Interface & Entry Point
 # ----------------------------------------------------------------------
 def print_help():
-    print(f"""{C_CYAN}{C_BOLD}ani-sync v{VERSION}{C_RESET} — Stream anime in terminal and auto-sync progress to MyAnimeList
+    print(
+        f"""{C_CYAN}{C_BOLD}ani-sync v{VERSION}{C_RESET} — Stream anime in terminal and auto-sync progress to MyAnimeList
 
 {C_BOLD}Usage:{C_RESET}
     ani-sync <anime name> [options]
@@ -539,7 +616,9 @@ def print_help():
     --player <player>     Media player executable (default: mpv)
     auth                  Run interactive MyAnimeList OAuth2 setup wizard
     -h, --help            Show this help menu
-""")
+"""
+    )
+
 
 def main():
     args = sys.argv[1:]
@@ -598,9 +677,15 @@ def main():
 
     query = " ".join(query_parts).strip()
     if not query:
-        print(f"\n{C_CYAN}{C_BOLD}============================================================{C_RESET}")
-        print(f"{C_MAGENTA}{C_BOLD}              ani-sync — Terminal Anime Player              {C_RESET}")
-        print(f"{C_CYAN}{C_BOLD}============================================================{C_RESET}")
+        print(
+            f"\n{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+        )
+        print(
+            f"{C_MAGENTA}{C_BOLD}              ani-sync — Terminal Anime Player              {C_RESET}"
+        )
+        print(
+            f"{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+        )
         try:
             query = input(f"\n{C_BOLD}🔍 Search anime title: {C_RESET}").strip()
         except (KeyboardInterrupt, EOFError):
@@ -618,7 +703,9 @@ def main():
         return
 
     if not results:
-        print(f"{C_RED}❌ No anime found matching '{query}'. Try another search term!{C_RESET}")
+        print(
+            f"{C_RED}❌ No anime found matching '{query}'. Try another search term!{C_RESET}"
+        )
         return
 
     # Pick Anime
@@ -633,8 +720,14 @@ def main():
     details = get_anime_details(chosen_anime["slug"])
     seasons = details.get("seasons", [])
     if seasons:
-        franchise_options = [f"{chosen_anime['title']} (Selected)"] + [s["title"] for s in seasons]
-        f_idx = pick_option(f"Seasons & Movies for '{chosen_anime['title']}':", franchise_options, default_idx=0)
+        franchise_options = [f"{chosen_anime['title']} (Selected)"] + [
+            s["title"] for s in seasons
+        ]
+        f_idx = pick_option(
+            f"Seasons & Movies for '{chosen_anime['title']}':",
+            franchise_options,
+            default_idx=0,
+        )
         if f_idx > 0:
             chosen_anime = seasons[f_idx - 1]
 
@@ -653,7 +746,9 @@ def main():
                 break
     elif len(episodes) > 1:
         ep_options = [f"Episode {e.get('number', i+1)}" for i, e in enumerate(episodes)]
-        ep_idx = pick_option(f"Select Episode for '{chosen_anime['title']}':", ep_options, default_idx=0)
+        ep_idx = pick_option(
+            f"Select Episode for '{chosen_anime['title']}':", ep_options, default_idx=0
+        )
 
     # Launch Playback Loop
     play_loop(
@@ -663,6 +758,7 @@ def main():
         mode=mode,
         player=player,
     )
+
 
 if __name__ == "__main__":
     main()
