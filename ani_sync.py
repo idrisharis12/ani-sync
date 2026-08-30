@@ -230,6 +230,7 @@ def run_auth():
         save_config(client_id, client_secret, refresh_token)
         print(f"\n{C_GREEN}{C_BOLD}✅ Authorization Successful!{C_RESET}")
         print(f"📁 Credentials saved to: {C_CYAN}{CONFIG_PATH}{C_RESET}")
+        sync_all_libraries()
     except Exception as e:
         print(f"{C_RED}❌ Connection error: {e}{C_RESET}")
 
@@ -437,6 +438,7 @@ def run_anilist_auth():
         _append_config("ANILIST_TOKEN", token)
         print(f"\n{C_GREEN}{C_BOLD}✅ AniList Authorization Successful!{C_RESET}")
         print(f"📁 Token saved to: {C_CYAN}{CONFIG_PATH}{C_RESET}")
+        sync_all_libraries()
     except Exception as e:
         print(f"{C_RED}❌ Connection error: {e}{C_RESET}")
 
@@ -546,6 +548,7 @@ def run_kitsu_auth():
         _append_config("KITSU_REFRESH_TOKEN", refresh_token)
         print(f"\n{C_GREEN}{C_BOLD}✅ Kitsu Authorization Successful!{C_RESET}")
         print(f"📁 Token saved to: {C_CYAN}{CONFIG_PATH}{C_RESET}")
+        sync_all_libraries()
     except Exception as e:
         print(f"{C_RED}❌ Connection error: {e}{C_RESET}")
 
@@ -716,6 +719,329 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
             args=(anime_title, episode_num),
             daemon=True,
         ).start()
+
+
+# ----------------------------------------------------------------------
+# Multi-Platform Library Sync & Auto-Import Engine
+# ----------------------------------------------------------------------
+def fetch_mal_library():
+    """Fetch user's watching and completed anime library from MyAnimeList."""
+    if not is_mal_configured():
+        return []
+    token = refresh_mal_token()
+    if not token:
+        return []
+    headers = {"Authorization": f"Bearer {token}"}
+    results = []
+    for status in ["watching", "completed"]:
+        try:
+            r = requests.get(
+                f"{API_URL}/users/@me/animelist",
+                params={
+                    "fields": "list_status,num_episodes",
+                    "limit": 100,
+                    "status": status,
+                },
+                headers=headers,
+                timeout=12,
+            )
+            if r.status_code == 200:
+                data = r.json().get("data", [])
+                for item in data:
+                    node = item.get("node", {})
+                    list_status = item.get("list_status", {})
+                    title = node.get("title", "").strip()
+                    ep = list_status.get("num_episodes_watched", 1)
+                    if title:
+                        results.append(
+                            {
+                                "title": title,
+                                "episode": max(1, ep),
+                                "status": list_status.get("status", status),
+                                "platform": "MyAnimeList",
+                            }
+                        )
+        except Exception:
+            pass
+    return results
+
+
+def fetch_anilist_library():
+    """Fetch user's watching and completed anime library from AniList."""
+    if not is_anilist_configured():
+        return []
+    token = os.getenv("ANILIST_TOKEN", "").strip()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    results = []
+    try:
+        # Get viewer ID
+        vr = requests.post(
+            ANILIST_API_URL,
+            json={"query": "query { Viewer { id name } }"},
+            headers=headers,
+            timeout=10,
+        )
+        if vr.status_code != 200:
+            return []
+        viewer_id = vr.json().get("data", {}).get("Viewer", {}).get("id")
+        if not viewer_id:
+            return []
+
+        # Get media list collection
+        list_query = """
+        query ($userId: Int) {
+          MediaListCollection (userId: $userId, type: ANIME, status_in: [CURRENT, COMPLETED, PAUSED]) {
+            lists {
+              name
+              entries {
+                progress
+                status
+                media {
+                  id
+                  title { userPreferred english romaji }
+                  episodes
+                }
+              }
+            }
+          }
+        }
+        """
+        lr = requests.post(
+            ANILIST_API_URL,
+            json={"query": list_query, "variables": {"userId": viewer_id}},
+            headers=headers,
+            timeout=12,
+        )
+        if lr.status_code == 200:
+            lists = (
+                lr.json()
+                .get("data", {})
+                .get("MediaListCollection", {})
+                .get("lists", [])
+            )
+            for l in lists:
+                for entry in l.get("entries", []):
+                    media = entry.get("media", {})
+                    titles = media.get("title", {})
+                    title = (
+                        titles.get("userPreferred")
+                        or titles.get("english")
+                        or titles.get("romaji")
+                    )
+                    progress = entry.get("progress", 1)
+                    status = entry.get("status", "CURRENT").lower()
+                    if title:
+                        results.append(
+                            {
+                                "title": title,
+                                "episode": max(1, progress),
+                                "status": status,
+                                "platform": "AniList",
+                            }
+                        )
+    except Exception:
+        pass
+    return results
+
+
+def fetch_kitsu_library():
+    """Fetch user's watching and completed anime library from Kitsu."""
+    if not is_kitsu_configured():
+        return []
+    token = os.getenv("KITSU_TOKEN", "").strip()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
+    }
+    results = []
+    try:
+        # Get user ID
+        ur = requests.get(
+            f"{KITSU_API_URL}/users?filter[self]=true", headers=headers, timeout=10
+        )
+        if ur.status_code != 200:
+            new_token = refresh_kitsu_token()
+            if not new_token:
+                return []
+            headers["Authorization"] = f"Bearer {new_token}"
+            ur = requests.get(
+                f"{KITSU_API_URL}/users?filter[self]=true", headers=headers, timeout=10
+            )
+            if ur.status_code != 200:
+                return []
+        users = ur.json().get("data", [])
+        if not users:
+            return []
+        uid = users[0]["id"]
+
+        # Fetch entries
+        er = requests.get(
+            f"{KITSU_API_URL}/library-entries?filter[userId]={uid}&include=anime&page[limit]=50",
+            headers=headers,
+            timeout=12,
+        )
+        if er.status_code == 200:
+            data = er.json()
+            anime_map = {}
+            for inc in data.get("included", []):
+                if inc.get("type") == "anime":
+                    anime_map[inc["id"]] = inc.get("attributes", {}).get(
+                        "canonicalTitle"
+                    )
+            entries = data.get("data", [])
+            for e in entries:
+                aid = (
+                    e.get("relationships", {})
+                    .get("anime", {})
+                    .get("data", {})
+                    .get("id")
+                )
+                title = anime_map.get(aid)
+                progress = e.get("attributes", {}).get("progress", 1)
+                status = e.get("attributes", {}).get("status", "current")
+                if title:
+                    results.append(
+                        {
+                            "title": title,
+                            "episode": max(1, progress),
+                            "status": status,
+                            "platform": "Kitsu",
+                        }
+                    )
+    except Exception:
+        pass
+    return results
+
+
+def sync_all_libraries(quiet=False):
+    """Import and merge user's watched anime libraries from MAL, AniList, and Kitsu into ani-sync."""
+    load_config()
+    mal_items = []
+    anilist_items = []
+    kitsu_items = []
+
+    has_mal = is_mal_configured()
+    has_al = is_anilist_configured()
+    has_kt = is_kitsu_configured()
+
+    if not (has_mal or has_al or has_kt):
+        if not quiet:
+            print(f"\n{C_YELLOW}ℹ️  No tracking platforms connected yet.{C_RESET}")
+            print(
+                f"Run {C_GREEN}ani-sync auth{C_RESET} to connect MyAnimeList, AniList, or Kitsu!"
+            )
+        return 0
+
+    if not quiet:
+        print(
+            f"\n{C_CYAN}{C_BOLD}📥 Syncing Anime Libraries from Connected Platforms...{C_RESET}"
+        )
+
+    # Fetch in parallel for high performance
+    threads = []
+
+    def _mal():
+        nonlocal mal_items
+        mal_items = fetch_mal_library()
+
+    def _al():
+        nonlocal anilist_items
+        anilist_items = fetch_anilist_library()
+
+    def _kt():
+        nonlocal kitsu_items
+        kitsu_items = fetch_kitsu_library()
+
+    if has_mal:
+        t = threading.Thread(target=_mal)
+        threads.append(t)
+        t.start()
+    if has_al:
+        t = threading.Thread(target=_al)
+        threads.append(t)
+        t.start()
+    if has_kt:
+        t = threading.Thread(target=_kt)
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join(timeout=15)
+
+    if not quiet:
+        if has_mal:
+            print(f"  {C_GREEN}✓{C_RESET} MyAnimeList: {len(mal_items)} anime found")
+        if has_al:
+            print(
+                f"  {C_GREEN}✓{C_RESET} AniList:     {len(anilist_items)} anime found"
+            )
+        if has_kt:
+            print(f"  {C_GREEN}✓{C_RESET} Kitsu:       {len(kitsu_items)} anime found")
+
+    total_fetched = mal_items + anilist_items + kitsu_items
+    if not total_fetched:
+        if not quiet:
+            print(f"{C_YELLOW}No anime entries found on connected platforms.{C_RESET}")
+        return 0
+
+    # Merge into local history
+    history_data = load_history()
+    existing_history = history_data.get("history", [])
+    history_map = {h.get("slug"): h for h in existing_history if h.get("slug")}
+    title_to_slug = {
+        h.get("title", "").lower(): h.get("slug")
+        for h in existing_history
+        if h.get("title")
+    }
+
+    merged_count = 0
+    for item in total_fetched:
+        raw_title = item["title"]
+        ep = item["episode"]
+        slug = title_to_slug.get(raw_title.lower())
+        if not slug:
+            slug = re.sub(r"[^\w\s-]", "", raw_title.lower()).strip().replace(" ", "-")
+            title_to_slug[raw_title.lower()] = slug
+
+        if slug in history_map:
+            if ep > history_map[slug].get("episode", 1):
+                history_map[slug]["episode"] = ep
+        else:
+            entry = {
+                "slug": slug,
+                "title": raw_title,
+                "episode": ep,
+                "quality": "720p",
+                "mode": "sub",
+                "platform": item["platform"],
+                "timestamp": int(time.time()),
+            }
+            history_map[slug] = entry
+            merged_count += 1
+
+    merged_list = list(history_map.values())
+    merged_list.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+    history_data["history"] = merged_list[:100]
+    if merged_list and not history_data.get("last_watched"):
+        history_data["last_watched"] = merged_list[0]
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(history_data, f, indent=2)
+    except Exception:
+        pass
+
+    if not quiet:
+        print(
+            f"\n{C_GREEN}{C_BOLD}✨ Library Sync Complete:{C_RESET} {len(merged_list)} anime tracked in ani-sync history!"
+        )
+    return len(merged_list)
 
 
 # ----------------------------------------------------------------------
@@ -1399,19 +1725,34 @@ def pick_option(title, options, default_idx=0, use_fzf=True):
 
 def _fzf_pick(title, options):
     """Launch fzf with the list of options and return the selected index."""
-    # Build numbered options for display
+    clean_title = (
+        title.replace("\033[94m", "")
+        .replace("\033[96m", "")
+        .replace("\033[92m", "")
+        .replace("\033[93m", "")
+        .replace("\033[95m", "")
+        .replace("\033[91m", "")
+        .replace("\033[1m", "")
+        .replace("\033[2m", "")
+        .replace("\033[0m", "")
+        .strip()
+    )
     numbered = [f"{i+1}. {opt}" for i, opt in enumerate(options)]
     input_text = "\n".join(numbered)
 
     fzf_cmd = [
         "fzf",
-        "--height=~40%",
+        "--height=~50%",
         "--layout=reverse",
         "--border=rounded",
-        f"--header={title}",
-        "--prompt=🔍 Search > ",
-        "--pointer=▶",
-        "--marker=✓",
+        "--margin=1,2",
+        "--padding=0,1",
+        "--info=inline",
+        f"--header= 📺  ani-sync  ❯  {clean_title} ",
+        "--prompt=  🔍 Search ❯ ",
+        "--pointer=▶ ",
+        "--marker=✦ ",
+        "--color=header:bold:cyan,info:yellow,prompt:bold:magenta,pointer:bold:cyan,marker:bold:green,border:cyan",
         "--ansi",
         "--no-scrollbar",
         "--cycle",
@@ -1428,11 +1769,9 @@ def _fzf_pick(title, options):
         return None  # User cancelled (Esc/Ctrl-C)
 
     selected = proc.stdout.strip()
-    # Extract the number prefix to find the original index
     num_match = re.match(r"^(\d+)\.", selected)
     if num_match:
         return int(num_match.group(1)) - 1
-    # Fallback: find by exact text match
     for i, opt in enumerate(options):
         if opt in selected:
             return i
@@ -1458,6 +1797,14 @@ def play_loop(
 
     print(f"{C_YELLOW}Fetching episodes for {title}...{C_RESET}")
     episodes = get_episodes(slug)
+    if not episodes:
+        # Try automatic title search fallback on AniDB
+        search_res = search_anime(title)
+        if search_res:
+            slug = search_res[0]["slug"]
+            anime["slug"] = slug
+            episodes = get_episodes(slug)
+
     if not episodes:
         print(f"{C_RED}❌ No episodes found for {title}.{C_RESET}")
         return
@@ -1690,6 +2037,7 @@ def print_help():
     ani-sync -c, continue                 Resume last watched anime
     ani-sync -t, trending                 Browse top currently airing/trending anime
     ani-sync history                      View and resume from watch history
+    ani-sync sync, import                 Sync & import library from MAL/AniList/Kitsu
     ani-sync watch <url> [--player <player>]
     ani-sync update
     ani-sync auth
@@ -1700,6 +2048,7 @@ def print_help():
     {C_GREEN}ani-sync "frieren" -q 1080p{C_RESET}
     {C_GREEN}ani-sync continue{C_RESET}
     {C_GREEN}ani-sync trending{C_RESET}
+    {C_GREEN}ani-sync sync{C_RESET}
     {C_GREEN}ani-sync "attack on titan" --dub{C_RESET}
     {C_GREEN}ani-sync "jujutsu kaisen" -d -e 1{C_RESET}
 
@@ -1707,6 +2056,7 @@ def print_help():
     -c, --continue, continue  Resume last watched anime (plays next episode)
     -t, --trending, trending  Browse top airing and trending anime
     history, --history        View recent watch history and pick to resume
+    sync, --sync, import      Sync & import watch library from all connected platforms
     -e, --episode <num>       Jump directly to specified episode number
     -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
     --skip, --auto-skip       Automatically skip anime opening/intro (+85s)
@@ -1757,6 +2107,11 @@ def main():
     if args and args[0] in ("-U", "--update", "update"):
         quiet = "--quiet" in args or "-q" in args
         update_self(quiet=quiet)
+        return
+
+    # Check for library sync command
+    if args and args[0] in ("sync", "import", "library", "pull", "--sync"):
+        sync_all_libraries()
         return
 
     if args and args[0] in ("auth", "setup", "--auth"):

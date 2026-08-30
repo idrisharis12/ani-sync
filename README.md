@@ -44,6 +44,7 @@
   - [12. 💬 Discord Rich Presence Integration](#12--discord-rich-presence-integration)
   - [13. 🔍 Interactive FZF Fuzzy Search](#13--interactive-fzf-fuzzy-search)
   - [14. 🔄 Multi-Platform Tracking (MAL + AniList + Kitsu)](#14--multi-platform-tracking-mal--anilist--kitsu)
+  - [15. 📥 Multi-Platform Library Auto-Import & Full Sync (`ani-sync sync`)](#15--multi-platform-library-auto-import--full-sync-ani-sync-sync)
 - [📋 CLI Cheat Sheet & Flag Reference](#-cli-cheat-sheet--flag-reference)
 - [🔄 Universal Auto-Updates](#-universal-auto-updates)
 - [🔑 Multi-Platform Tracking Setup](#-multi-platform-tracking-setup)
@@ -420,7 +421,27 @@ ani-sync auth kitsu
 After authenticating, `ani-sync` will **automatically sync every episode you watch** to all connected platforms in the background — no extra flags needed.
 
 > [!NOTE]
-> You can connect one, two, or all three platforms. Each platform syncs independently in its own background thread so it never slows down playback.
+### 15. 📥 Multi-Platform Library Auto-Import & Full Sync (`ani-sync sync`)
+Already have an existing watch library on **MyAnimeList**, **AniList**, or **Kitsu**? `ani-sync` can pull and merge your entire watching/completed collection with a single command:
+
+```bash
+ani-sync sync
+# or
+ani-sync import
+```
+
+```
+📥 Syncing Anime Libraries from Connected Platforms...
+  ✓ MyAnimeList: 12 anime found
+  ✓ AniList:     18 anime found
+  ✓ Kitsu:       5 anime found
+
+✨ Library Sync Complete: 28 anime tracked in ani-sync history!
+```
+
+- **Seamless Cloud Merge**: All your watched anime across MAL, AniList, and Kitsu are merged into your local history without duplicates.
+- **Instant Playback**: Select any imported anime directly from `ani-sync history` with FZF fuzzy search and start watching instantly.
+- **Auto-Sync on Connect**: Library sync triggers automatically whenever you authenticate a new platform via `ani-sync auth`!
 
 ---
 
@@ -429,28 +450,21 @@ After authenticating, `ani-sync` will **automatically sync every episode you wat
 | Command / Flag | Description | Example |
 | :--- | :--- | :--- |
 | `ani-sync <title>` | Search and stream anime by title | `ani-sync "frieren"` |
-| `ani-sync -c`, `continue` | Resume last watched anime | `ani-sync continue` |
+| `ani-sync -c`, `continue` | Resume last watched anime (starts next episode) | `ani-sync continue` |
 | `ani-sync -t`, `trending` | Browse top trending / airing anime | `ani-sync trending` |
-| `ani-sync history` | Browse and resume from watch history | `ani-sync history` |
+| `ani-sync history` | Browse and resume from watch history with FZF | `ani-sync history` |
+| `ani-sync sync`, `import` | Sync and import library from MAL, AniList & Kitsu | `ani-sync sync` |
 | `--skip`, `--auto-skip` | Automatically skip anime opening/intro (+85s) | `ani-sync "one piece" --skip` |
 | `-e, --episode <num>` | Jump directly to specific episode number | `ani-sync "naruto" -e 50` |
 | `-q, --quality <res>` | Preferred video resolution (`1080p`, `720p`, `480p`) | `ani-sync "one piece" -q 1080p` |
 | `-d, --download` | Download episode locally without playing | `ani-sync "jujutsu kaisen" -e 1 -d` |
 | `--dub` | Stream English Dubbed version | `ani-sync "solo leveling" --dub` |
 | `--direct` | Stream directly without local caching | `ani-sync "frieren" --direct` |
+| `--no-fzf` | Disable FZF fuzzy search and use numbered menus | `ani-sync --no-fzf` |
 | `--player <player>` | Media player binary (`mpv`, `vlc`, `iina`) | `ani-sync "bleach" --player vlc` |
 | `ani-sync update`, `-U` | Check and update to latest version | `ani-sync update` |
-| `ani-sync auth` | Launch MyAnimeList OAuth2 setup wizard | `ani-sync auth` |
-| `-h, --help` | Display CLI help menu | `ani-sync --help` |
-| `ani-sync history` | Browse and resume from watch history | `ani-sync history` |
-| `-e, --episode <num>` | Jump directly to specific episode number | `ani-sync "naruto" -e 50` |
-| `-q, --quality <res>` | Preferred video resolution (`1080p`, `720p`, `480p`) | `ani-sync "one piece" -q 1080p` |
-| `-d, --download` | Download episode locally without playing | `ani-sync "jujutsu kaisen" -e 1 -d` |
-| `--dub` | Stream English Dubbed version | `ani-sync "solo leveling" --dub` |
-| `--direct` | Stream directly without local caching | `ani-sync "frieren" --direct` |
-| `--player <player>` | Media player binary (`mpv`, `vlc`, `iina`) | `ani-sync "bleach" --player vlc` |
-| `ani-sync update`, `-U` | Check and update to latest version | `ani-sync update` |
-| `ani-sync auth` | Launch MyAnimeList OAuth2 setup wizard | `ani-sync auth` |
+| `ani-sync auth` | Interactive multi-platform auth picker | `ani-sync auth` |
+| `ani-sync auth <mal\|al\|kt>` | Connect specific tracking platform | `ani-sync auth anilist` |
 | `-h, --help` | Display CLI help menu | `ani-sync --help` |
 
 ---
