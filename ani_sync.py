@@ -478,10 +478,12 @@ def sync_episode_to_anilist(anime_title, episode_num):
     }
     try:
         # Search for anime
+        clean_search = re.sub(r'["\\]', "", anime_title)
+        search_query = f'{{ Media (search: "{clean_search}", type: ANIME) {{ id title {{ romaji english userPreferred }} episodes }} }}'
         res = requests.post(
             ANILIST_API_URL,
-            json={"query": ANILIST_SEARCH_QUERY, "variables": {"search": anime_title}},
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            json={"query": search_query},
+            headers={"Content-Type": "application/json"},
             timeout=10,
         )
         media = (
@@ -493,16 +495,16 @@ def sync_episode_to_anilist(anime_title, episode_num):
         total_eps = media.get("episodes")
         status = "COMPLETED" if total_eps and episode_num >= total_eps else "CURRENT"
         # Update progress
+        update_mutation = f"""
+        mutation {{
+          SaveMediaListEntry (mediaId: {media_id}, progress: {episode_num}, status: {status}) {{
+            id mediaId status progress
+          }}
+        }}
+        """
         res = requests.post(
             ANILIST_API_URL,
-            json={
-                "query": ANILIST_UPDATE_MUTATION,
-                "variables": {
-                    "mediaId": media_id,
-                    "progress": episode_num,
-                    "status": status,
-                },
-            },
+            json={"query": update_mutation},
             headers=headers,
             timeout=10,
         )
@@ -782,7 +784,7 @@ def fetch_anilist_library():
         # Get viewer ID
         vr = requests.post(
             ANILIST_API_URL,
-            json={"query": "query { Viewer { id name } }"},
+            json={"query": "{ Viewer { id name } }"},
             headers=headers,
             timeout=10,
         )
@@ -793,27 +795,27 @@ def fetch_anilist_library():
             return []
 
         # Get media list collection
-        list_query = """
-        query ($userId: Int) {
-          MediaListCollection (userId: $userId, type: ANIME, status_in: [CURRENT, COMPLETED, PAUSED]) {
-            lists {
+        list_query = f"""
+        {{
+          MediaListCollection (userId: {viewer_id}, type: ANIME, status_in: [CURRENT, COMPLETED, PAUSED]) {{
+            lists {{
               name
-              entries {
+              entries {{
                 progress
                 status
-                media {
+                media {{
                   id
-                  title { userPreferred english romaji }
+                  title {{ userPreferred english romaji }}
                   episodes
-                }
-              }
-            }
-          }
-        }
+                }}
+              }}
+            }}
+          }}
+        }}
         """
         lr = requests.post(
             ANILIST_API_URL,
-            json={"query": list_query, "variables": {"userId": viewer_id}},
+            json={"query": list_query},
             headers=headers,
             timeout=12,
         )
