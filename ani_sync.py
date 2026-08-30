@@ -445,7 +445,7 @@ def get_episode_streams(episode_id, mode="sub"):
 # Player Launch & Playback Management
 # ----------------------------------------------------------------------
 def launch_player(stream_url, title, ep_num, player="mpv"):
-    """Launch the chosen media player with title, stream, instant-start buffer cache, and anti-throttling headers."""
+    """Launch the chosen media player with title, stream, and optimal smooth playback."""
     media_title = f"{title} - Episode {ep_num}"
     cmd = []
     if player == "mpv":
@@ -454,21 +454,9 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
             f"--force-media-title={media_title}",
             f"--user-agent={USER_AGENT}",
             "--referrer=https://anidb.app/",
-            "--http-header-fields-set=Referer: https://anidb.app/,Origin: https://anidb.app",
-            "--profile=fast",
             "--hwdec=auto-safe",
+            "--profile=fast",
             "--audio-buffer=0.8",
-            "--video-sync=audio",
-            "--cache=yes",
-            "--cache-pause=no",
-            "--cache-pause-initial=no",
-            "--demuxer-max-bytes=100M",
-            "--demuxer-max-back-bytes=30M",
-            "--demuxer-readahead-secs=20",
-            "--force-seekable=yes",
-            "--hr-seek=yes",
-            "--hls-bitrate=max",
-            "--sub-auto=fuzzy",
             stream_url,
         ]
     elif player == "vlc":
@@ -476,29 +464,19 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
             "vlc",
             "--play-and-exit",
             f"--meta-title={media_title}",
-            f"--http-user-agent={USER_AGENT}",
-            "--http-referrer=https://anidb.app/",
-            "--network-caching=1500",
             stream_url,
         ]
     elif player == "iina":
         cmd = [
             "iina",
             f"--mpv-force-media-title={media_title}",
-            f"--mpv-user-agent={USER_AGENT}",
-            "--mpv-referrer=https://anidb.app/",
-            "--mpv-cache=yes",
-            "--mpv-demuxer-max-bytes=100M",
-            "--mpv-demuxer-readahead-secs=20",
             stream_url,
         ]
     else:
         cmd = [player, stream_url]
 
     print(f"\n{C_BOLD}▶️  Now Playing:{C_RESET} {C_CYAN}{media_title}{C_RESET}")
-    print(
-        f"{C_DIM}Player: {player} | Instant-start smooth streaming enabled{C_RESET}\n"
-    )
+    print(f"{C_DIM}Player: {player} | Smooth playback active{C_RESET}\n")
 
     proc = subprocess.run(cmd)
     return proc.returncode == 0
