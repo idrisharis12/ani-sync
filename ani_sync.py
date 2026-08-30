@@ -386,7 +386,9 @@ class DiscordRPC:
                 import struct
 
                 load_config()
-                client_id = os.getenv("DISCORD_CLIENT_ID", "").strip()
+                client_id = os.getenv(
+                    "DISCORD_CLIENT_ID", "1543718626400403466"
+                ).strip()
                 if not client_id:
                     return
 
