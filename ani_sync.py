@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """:"
 exec python3 "$0" "$@"
@@ -20,32 +20,54 @@ from pathlib import Path
 
 import requests
 
-# ----------------------------------------------------------------------
-# Constants & Paths
-# ----------------------------------------------------------------------
-VERSION = "2.0.0"
-CONFIG_DIR = Path.home() / ".config" / "ani-sync"
-CONFIG_PATH = CONFIG_DIR / "config.env"
-HISTORY_PATH = CONFIG_DIR / "history.json"
+# Enable ANSI colors & UTF-8 on Windows Command Prompt & PowerShell
+if sys.platform == "win32":
+    os.system("")
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
+
+def get_config_dir():
+    """Return OS-appropriate config directory (AppData on Windows, ~/.config on Linux/macOS)."""
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "ani-sync"
+    return Path.home() / ".config" / "ani-sync"
 
 
 def get_cache_dir():
-    """Return ultra-fast RAM disk /dev/shm if available, otherwise ~/.cache/ani-sync."""
-    shm = Path("/dev/shm/ani-sync")
-    try:
-        if Path("/dev/shm").exists():
-            st = os.statvfs("/dev/shm")
-            free_bytes = st.f_bavail * st.f_frsize
-            if free_bytes > 1024 * 1024 * 1024:  # > 1GB free RAM
-                shm.mkdir(parents=True, exist_ok=True)
-                return shm
-    except Exception:
-        pass
-    fallback = Path.home() / ".cache" / "ani-sync"
+    """Return ultra-fast RAM disk /dev/shm on Linux, or standard cache dir on Windows/macOS."""
+    if sys.platform != "win32":
+        shm = Path("/dev/shm/ani-sync")
+        try:
+            if Path("/dev/shm").exists() and hasattr(os, "statvfs"):
+                st = os.statvfs("/dev/shm")
+                free_bytes = st.f_bavail * st.f_frsize
+                if free_bytes > 1024 * 1024 * 1024:  # > 1GB free RAM
+                    shm.mkdir(parents=True, exist_ok=True)
+                    return shm
+        except Exception:
+            pass
+        fallback = Path.home() / ".cache" / "ani-sync"
+    else:
+        temp_dir = os.environ.get("TEMP") or os.environ.get("LOCALAPPDATA")
+        if temp_dir:
+            fallback = Path(temp_dir) / "ani-sync"
+        else:
+            fallback = Path.home() / ".cache" / "ani-sync"
+
     fallback.mkdir(parents=True, exist_ok=True)
     return fallback
 
 
+VERSION = "2.0.0"
+CONFIG_DIR = get_config_dir()
+CONFIG_PATH = CONFIG_DIR / "config.env"
+HISTORY_PATH = CONFIG_DIR / "history.json"
 CACHE_DIR = get_cache_dir()
 
 ANIDB_BASE = "https://anidb.app"
@@ -471,13 +493,48 @@ def sanitize_filename(name):
     return re.sub(r"[^\w\-_\. ]", "_", name).strip()
 
 
+def find_player_binary(player="mpv"):
+    """Find player binary across Windows, macOS, and Linux."""
+    exe = shutil.which(player)
+    if exe:
+        return exe
+    if sys.platform == "win32":
+        exe_win = shutil.which(f"{player}.exe")
+        if exe_win:
+            return exe_win
+        if player == "mpv":
+            candidates = [
+                Path.home() / "scoop" / "apps" / "mpv" / "current" / "mpv.exe",
+                Path(os.environ.get("LOCALAPPDATA", ""))
+                / "Programs"
+                / "mpv"
+                / "mpv.exe",
+                Path("C:/Program Files/mpv/mpv.exe"),
+                Path("C:/Program Files (x86)/mpv/mpv.exe"),
+                Path("C:/tools/mpv/mpv.exe"),
+            ]
+            for c in candidates:
+                if c.exists():
+                    return str(c)
+        elif player == "vlc":
+            candidates = [
+                Path("C:/Program Files/VideoLAN/VLC/vlc.exe"),
+                Path("C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"),
+            ]
+            for c in candidates:
+                if c.exists():
+                    return str(c)
+    return player
+
+
 def launch_player(target_path, title, ep_num, player="mpv"):
     """Launch the chosen media player with title, stream/file, and optimal smooth playback."""
     media_title = f"{title} - Episode {ep_num}"
+    player_bin = find_player_binary(player)
     cmd = []
-    if player == "mpv":
+    if player == "mpv" or "mpv" in Path(player_bin).stem.lower():
         cmd = [
-            "mpv",
+            player_bin,
             f"--force-media-title={media_title}",
             f"--user-agent={USER_AGENT}",
             "--referrer=https://anidb.app/",
@@ -486,21 +543,21 @@ def launch_player(target_path, title, ep_num, player="mpv"):
             "--audio-buffer=0.8",
             target_path,
         ]
-    elif player == "vlc":
+    elif player == "vlc" or "vlc" in Path(player_bin).stem.lower():
         cmd = [
-            "vlc",
+            player_bin,
             "--play-and-exit",
             f"--meta-title={media_title}",
             target_path,
         ]
-    elif player == "iina":
+    elif player == "iina" or "iina" in Path(player_bin).stem.lower():
         cmd = [
-            "iina",
+            player_bin,
             f"--mpv-force-media-title={media_title}",
             target_path,
         ]
     else:
-        cmd = [player, target_path]
+        cmd = [player_bin, target_path]
 
     print(f"\n{C_BOLD}▶️  Now Playing:{C_RESET} {C_CYAN}{media_title}{C_RESET}")
     print(f"{C_DIM}Player: {player} | 100% Smooth Zero-Buffering Playback{C_RESET}\n")

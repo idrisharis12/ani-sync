@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Speed-64x%20Turbo-brightgreen" alt="64x Turbo Speed" />
   <img src="https://img.shields.io/badge/Buffer-Zero--Buffering-success" alt="Zero Buffering" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" />
-  <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-informational" alt="Platform" />
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-informational" alt="Platform" />
 </p>
 
 ---
@@ -92,7 +92,7 @@ Traditional web scrapers and terminal anime players stream video sequentially us
 
 ## 📦 Installation
 
-### Method 1: One-Line Installer (Recommended)
+### Method 1: Linux / macOS One-Line Installer (Recommended)
 Run this single command in your terminal to install `ani-sync` and all dependencies automatically:
 
 ```bash
@@ -106,7 +106,16 @@ curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.
 
 ---
 
-### Method 2: Debian / Ubuntu Package (`.deb`)
+### Method 2: Windows PowerShell One-Line Installer
+Run this command in **PowerShell** (Run as Administrator or standard User):
+
+```powershell
+irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 | iex
+```
+
+---
+
+### Method 3: Debian / Ubuntu Package (`.deb`)
 Download and install the native Debian package:
 
 ```bash
@@ -116,7 +125,7 @@ sudo apt install -y ./ani-sync_2.0.0_all.deb
 
 ---
 
-### Method 3: Git Clone & Local Install
+### Method 4: Git Clone & Local Install
 ```bash
 git clone https://github.com/idrisharis12/ani-sync.git
 cd ani-sync
@@ -124,14 +133,16 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Or using `make`:
-```bash
-sudo make install
+Or on Windows PowerShell:
+```powershell
+git clone https://github.com/idrisharis12/ani-sync.git
+cd ani-sync
+.\install.ps1
 ```
 
 ---
 
-### Method 4: Python Pip
+### Method 5: Python Pip (Cross-Platform)
 ```bash
 pip install --user git+https://github.com/idrisharis12/ani-sync.git
 ```
@@ -140,7 +151,16 @@ pip install --user git+https://github.com/idrisharis12/ani-sync.git
 
 ### Prerequisites & System Dependencies
 
-`ani-sync` requires **Python 3.8+**, **`yt-dlp`**, and **`mpv`**.
+`ani-sync` requires **Python 3.8+**, **`yt-dlp`**, and **`mpv`** (or VLC).
+
+#### 🪟 Windows (Winget or Scoop)
+```powershell
+# Using Winget (Built-in on Windows 10/11)
+winget install Python.Python.3.12 mpv.net yt-dlp
+
+# Or using Scoop
+scoop install python mpv yt-dlp
+```
 
 #### 🏹 Arch Linux / Manjaro
 ```bash
