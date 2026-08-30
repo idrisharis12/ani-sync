@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "description": "Stream anime from terminal with 64x turbo speed & automatic MyAnimeList tracking",
+    "homepage": "https://github.com/idrisharis12/ani-sync",
+    "license": "MIT",
+    "depends": [
+        "python",
+        "mpv",
+        "yt-dlp"
+    ],
+    "url": "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync.py",
+    "bin": [
+        [
+            "ani_sync.py",
+            "ani-sync"
+        ]
+    ],
+    "checkver": "github",
+    "autoupdate": {
+        "url": "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync.py"
+    }
+}

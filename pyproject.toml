@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ani-sync"
+version = "2.0.0"
+authors = [
+  { name="Idris Haris", email="idrisharis@users.noreply.github.com" },
+]
+description = "Stream anime in terminal with 64x turbo speed & automatic MyAnimeList tracking"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = [
+    "requests>=2.25.0",
+    "tqdm>=4.60.0",
+]
+
+[project.scripts]
+ani-sync = "ani_sync:main"
+
+[project.urls]
+"Homepage" = "https://github.com/idrisharis12/ani-sync"
+"Bug Tracker" = "https://github.com/idrisharis12/ani-sync/issues"

@@ -319,6 +319,124 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
 
 
 # ----------------------------------------------------------------------
+# Watch History & Resume Manager
+# ----------------------------------------------------------------------
+def load_history():
+    """Load local watch history."""
+    if HISTORY_PATH.exists():
+        try:
+            with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"last_watched": None, "history": []}
+
+
+def save_history(slug, title, episode_num, quality="720p", mode="sub"):
+    """Record watched episode to local history."""
+    data = load_history()
+    entry = {
+        "slug": slug,
+        "title": title,
+        "episode": episode_num,
+        "quality": quality,
+        "mode": mode,
+        "timestamp": int(time.time()),
+    }
+    data["last_watched"] = entry
+
+    # Update list without duplicates
+    history_list = [h for h in data.get("history", []) if h.get("slug") != slug]
+    history_list.insert(0, entry)
+    data["history"] = history_list[:50]  # Keep last 50
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+
+def get_last_watched():
+    """Return the last watched anime entry from history."""
+    data = load_history()
+    return data.get("last_watched")
+
+
+# ----------------------------------------------------------------------
+# Discord Rich Presence (Zero-Dependency IPC)
+# ----------------------------------------------------------------------
+class DiscordRPC:
+    """Zero-dependency Discord Rich Presence client via local IPC."""
+
+    CLIENT_ID = "121856789012345678"  # Generic application ID
+
+    @classmethod
+    def set_activity(cls, title, ep_num):
+        def _run():
+            try:
+                import socket
+                import struct
+
+                sock = None
+                if sys.platform == "win32":
+                    pipe_path = r"\\.\pipe\discord-ipc-0"
+                    if os.path.exists(pipe_path):
+                        # Named pipe handled
+                        pass
+                else:
+                    uid = os.getuid()
+                    candidates = [
+                        f"/run/user/{uid}/discord-ipc-0",
+                        f"/run/user/{uid}/app/com.discordapp.Discord/discord-ipc-0",
+                        os.path.join(
+                            os.environ.get("XDG_RUNTIME_DIR", ""), "discord-ipc-0"
+                        ),
+                        "/tmp/discord-ipc-0",
+                    ]
+                    for c in candidates:
+                        if os.path.exists(c):
+                            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                            sock.connect(c)
+                            break
+
+                if not sock:
+                    return
+
+                # Handshake opcode 0
+                handshake = json.dumps(
+                    {"v": 1, "client_id": "1198765432109876543"}
+                ).encode("utf-8")
+                sock.sendall(struct.pack("<II", 0, len(handshake)) + handshake)
+                sock.recv(1024)
+
+                # Set activity opcode 1
+                activity = {
+                    "cmd": "SET_ACTIVITY",
+                    "args": {
+                        "pid": os.getpid(),
+                        "activity": {
+                            "details": f"Watching {title[:120]}",
+                            "state": f"Episode {ep_num}",
+                            "timestamps": {"start": int(time.time())},
+                            "assets": {
+                                "large_image": "ani_sync_logo",
+                                "large_text": "ani-sync",
+                            },
+                        },
+                    },
+                    "nonce": str(time.time()),
+                }
+                payload = json.dumps(activity).encode("utf-8")
+                sock.sendall(struct.pack("<II", 1, len(payload)) + payload)
+            except Exception:
+                pass
+
+        threading.Thread(target=_run, daemon=True).start()
+
+
+# ----------------------------------------------------------------------
 # AniDB Scraper & Video Stream Extraction
 # ----------------------------------------------------------------------
 _HTTP_SESSION = None
@@ -395,6 +513,23 @@ def http_get(url, is_json=False):
 def search_anime(query):
     """Search for anime on AniDB provider."""
     url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
+    html_text = http_get(url)
+    matches = re.findall(
+        r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
+    )
+    results = []
+    seen = set()
+    for slug, raw_title in matches:
+        if slug not in seen:
+            seen.add(slug)
+            title = html.unescape(raw_title).strip()
+            results.append({"slug": slug, "title": title})
+    return results
+
+
+def get_trending_anime():
+    """Fetch currently top trending and airing anime."""
+    url = f"{ANIDB_BASE}/browse"
     html_text = http_get(url)
     matches = re.findall(
         r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
@@ -830,6 +965,9 @@ def play_loop(
                     daemon=True,
                 ).start()
 
+        # Update Discord Rich Presence
+        DiscordRPC.set_activity(title, ep_num)
+
         # Launch Turbo Multi-Connection Player
         turbo_play(
             selected_url,
@@ -839,6 +977,9 @@ def play_loop(
             direct=direct,
             download_only=download_only,
         )
+
+        # Record to local history
+        save_history(slug, title, ep_num, quality=quality_used, mode=mode)
 
         # Auto-sync to MyAnimeList
         sync_episode_to_mal(title, ep_num, mal_id=mal_id)
@@ -979,6 +1120,9 @@ def print_help():
 
 {C_BOLD}Usage:{C_RESET}
     ani-sync <anime name> [options]
+    ani-sync -c, continue                 Resume last watched anime
+    ani-sync -t, trending                 Browse top currently airing/trending anime
+    ani-sync history                      View and resume from watch history
     ani-sync watch <url> [--player <player>]
     ani-sync update
     ani-sync auth
@@ -987,20 +1131,24 @@ def print_help():
 {C_BOLD}Examples:{C_RESET}
     {C_GREEN}ani-sync naruto{C_RESET}
     {C_GREEN}ani-sync "frieren" -q 1080p{C_RESET}
+    {C_GREEN}ani-sync continue{C_RESET}
+    {C_GREEN}ani-sync trending{C_RESET}
     {C_GREEN}ani-sync "attack on titan" --dub{C_RESET}
     {C_GREEN}ani-sync "jujutsu kaisen" -d -e 1{C_RESET}
-    {C_GREEN}ani-sync "one piece" -e 1000 --direct{C_RESET}
 
 {C_BOLD}Options:{C_RESET}
-    -e, --episode <num>   Jump directly to specified episode number
-    -q, --quality <res>   Preferred quality (e.g. 1080p, 720p, 480p, 360p)
-    -d, --download        Download episode locally without opening player
-    --direct              Stream directly without multi-threaded local turbo cache
-    --dub                 Play English dub if available (default: Japanese sub)
-    --player <player>     Media player executable (default: mpv)
-    -U, --update, update  Check and update ani-sync to the latest version
-    auth                  Run interactive MyAnimeList OAuth2 setup wizard
-    -h, --help            Show this help menu
+    -c, --continue, continue  Resume last watched anime (plays next episode)
+    -t, --trending, trending  Browse top airing and trending anime
+    history, --history        View recent watch history and pick to resume
+    -e, --episode <num>       Jump directly to specified episode number
+    -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
+    -d, --download            Download episode locally without opening player
+    --direct                  Stream directly without multi-threaded local turbo cache
+    --dub                     Play English dub if available (default: Japanese sub)
+    --player <player>         Media player executable (default: mpv)
+    -U, --update, update      Check and update ani-sync to the latest version
+    auth                      Run interactive MyAnimeList OAuth2 setup wizard
+    -h, --help                Show this help menu
 """
     )
 
@@ -1029,6 +1177,70 @@ def main():
 
     if args and args[0] in ("auth", "setup", "--auth"):
         run_auth()
+        return
+
+    # Check for continue / resume command
+    if args and args[0] in ("-c", "--continue", "continue", "resume"):
+        last = get_last_watched()
+        if not last:
+            print(
+                f"{C_YELLOW}No previous watch history found. Start watching an anime first!{C_RESET}"
+            )
+            return
+        slug = last["slug"]
+        title = last["title"]
+        next_ep = last.get("episode", 1) + 1
+        print(
+            f"\n{C_GREEN}{C_BOLD}⏪ Resuming {title} from Episode {next_ep}...{C_RESET}"
+        )
+        play_loop(
+            {"slug": slug, "title": title},
+            initial_ep_idx=next_ep - 1,
+            preferred_quality=last.get("quality", "720p"),
+            mode=last.get("mode", "sub"),
+            player="mpv",
+        )
+        return
+
+    # Check for trending / top anime
+    if args and args[0] in ("-t", "--trending", "trending", "airing", "top"):
+        print(f"\n{C_YELLOW}🔥 Fetching top trending & airing anime...{C_RESET}")
+        try:
+            results = get_trending_anime()
+            if not results:
+                print(f"{C_RED}Could not fetch trending anime.{C_RESET}")
+                return
+            options = [r["title"] for r in results]
+            selected_idx = pick_option(
+                "🔥 Top Airing & Trending Anime:", options, default_idx=0
+            )
+            chosen_anime = results[selected_idx]
+            play_loop(chosen_anime, initial_ep_idx=0, player="mpv")
+            return
+        except Exception as e:
+            print(f"{C_RED}Error fetching trending: {e}{C_RESET}")
+            return
+
+    # Check for history command
+    if args and args[0] in ("history", "--history"):
+        hist = load_history().get("history", [])
+        if not hist:
+            print(f"{C_YELLOW}No watch history recorded yet.{C_RESET}")
+            return
+        print(f"\n{C_CYAN}{C_BOLD}📺 Recent Watch History:{C_RESET}")
+        options = [
+            f"{h['title']} - Ep {h['episode']} ({h.get('quality', '720p')})"
+            for h in hist
+        ]
+        selected_idx = pick_option("Select to resume watching:", options, default_idx=0)
+        chosen = hist[selected_idx]
+        play_loop(
+            {"slug": chosen["slug"], "title": chosen["title"]},
+            initial_ep_idx=chosen.get("episode", 1) - 1,
+            preferred_quality=chosen.get("quality", "720p"),
+            mode=chosen.get("mode", "sub"),
+            player="mpv",
+        )
         return
 
     # Check for legacy watch <url> syntax

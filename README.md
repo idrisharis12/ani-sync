@@ -204,7 +204,38 @@ ani-sync
 
 ---
 
-### 2. Seasons, Movies & Episode Selection
+### 2. ⏪ Smart Resume & Continue Watching
+Resume your last watched anime with a single command (automatically plays the next episode):
+
+```bash
+ani-sync continue
+# or
+ani-sync -c
+```
+
+---
+
+### 3. 🔥 Browse Top Airing & Trending Anime
+Browse currently airing and top trending anime without typing a search query:
+
+```bash
+ani-sync trending
+# or
+ani-sync -t
+```
+
+---
+
+### 4. 📺 View & Resume from Watch History
+Browse and pick from your recent watch history:
+
+```bash
+ani-sync history
+```
+
+---
+
+### 5. Seasons, Movies & Episode Selection
 If an anime has multiple seasons or movies (e.g. *Attack on Titan*, *Demon Slayer*, *Jujutsu Kaisen*), `ani-sync` presents a clean interactive menu:
 
 ```
@@ -226,7 +257,7 @@ ani-sync "naruto shippuden" -e 167
 
 ---
 
-### 3. Video Quality Selection (720p, 1080p, etc.)
+### 6. Video Quality Selection (720p, 1080p, etc.)
 By default, `ani-sync` streams in **720p HD** for zero-buffering instant start. You can specify any desired resolution with `-q`:
 
 ```bash
