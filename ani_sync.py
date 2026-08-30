@@ -609,6 +609,58 @@ def play_loop(
 
 
 # ----------------------------------------------------------------------
+# Self-Updater
+# ----------------------------------------------------------------------
+def update_self(quiet=False):
+    """Update ani-sync to the latest version directly from GitHub."""
+    if not quiet:
+        print(
+            f"\n{C_CYAN}{C_BOLD}🔄 Checking for ani-sync updates from GitHub...{C_RESET}"
+        )
+    url = "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync.py"
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        remote_code = r.text
+
+        v_match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', remote_code)
+        remote_version = v_match.group(1) if v_match else "latest"
+
+        targets = [
+            Path(__file__).resolve(),
+            Path.home() / ".local" / "share" / "ani-sync" / "ani_sync.py",
+            Path("/usr/local/share/ani-sync/ani_sync.py"),
+            Path("/usr/share/ani-sync/ani_sync.py"),
+        ]
+
+        updated = False
+        for target in set(targets):
+            if target.exists():
+                try:
+                    with open(target, "w", encoding="utf-8") as f:
+                        f.write(remote_code)
+                    os.chmod(target, 0o755)
+                    updated = True
+                except PermissionError:
+                    if not quiet:
+                        print(
+                            f"{C_YELLOW}Notice: Permission denied writing to {target}. Run with sudo to update system-wide install.{C_RESET}"
+                        )
+
+        if updated and not quiet:
+            print(
+                f"{C_GREEN}{C_BOLD}✅ Successfully updated ani-sync to v{remote_version}!{C_RESET}\n"
+            )
+        elif not quiet:
+            print(
+                f"{C_GREEN}{C_BOLD}✅ ani-sync is already up to date (v{remote_version}).{C_RESET}\n"
+            )
+    except Exception as e:
+        if not quiet:
+            print(f"{C_RED}❌ Failed to update ani-sync: {e}{C_RESET}")
+
+
+# ----------------------------------------------------------------------
 # CLI Interface & Entry Point
 # ----------------------------------------------------------------------
 def print_help():
@@ -618,6 +670,7 @@ def print_help():
 {C_BOLD}Usage:{C_RESET}
     ani-sync <anime name> [options]
     ani-sync watch <url> [--player <player>]
+    ani-sync update
     ani-sync auth
     ani-sync --help
 
@@ -632,6 +685,7 @@ def print_help():
     -q, --quality <res>   Preferred quality (e.g. 1080p, 720p, 480p, 360p)
     --dub                 Play English dub if available (default: Japanese sub)
     --player <player>     Media player executable (default: mpv)
+    -U, --update, update  Check and update ani-sync to the latest version
     auth                  Run interactive MyAnimeList OAuth2 setup wizard
     -h, --help            Show this help menu
 """
@@ -647,6 +701,11 @@ def main():
         else:
             print_help()
             return
+
+    if args and args[0] in ("-U", "--update", "update"):
+        quiet = "--quiet" in args or "-q" in args
+        update_self(quiet=quiet)
+        return
 
     if args and args[0] in ("auth", "setup", "--auth"):
         run_auth()

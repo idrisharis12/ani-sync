@@ -66,7 +66,18 @@ curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.
 
 ---
 
-### Method 2: Git Clone & Local Install
+### Method 2: Debian / Ubuntu Package (`.deb`)
+Download and install the Debian package via `apt`:
+
+```bash
+# Download and install directly
+curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb
+sudo apt install -y ./ani-sync_2.0.0_all.deb
+```
+
+---
+
+### Method 3: Git Clone & Local Install
 ```bash
 git clone https://github.com/idrisharis12/ani-sync.git
 cd ani-sync
@@ -81,10 +92,25 @@ sudo make install
 
 ---
 
-### Method 3: Python Pip
+### Method 4: Python Pip
 ```bash
 pip install --user git+https://github.com/idrisharis12/ani-sync.git
 ```
+
+---
+
+### 🔄 Automatic Updates
+
+`ani-sync` can update itself automatically:
+
+1. **Via Built-in Updater**:
+   ```bash
+   ani-sync update
+   # or
+   ani-sync -U
+   ```
+2. **Via APT Integration (`sudo apt update && sudo apt upgrade`)**:
+   When installed system-wide or via `.deb`, `ani-sync` registers a hook in `/etc/apt/apt.conf.d/99ani-sync-updater`. Whenever you run your regular system updates (`sudo apt update`), it automatically checks and syncs the latest `ani-sync` release from GitHub!
 
 ---
 

@@ -72,14 +72,15 @@ LAUNCHER
 chmod +x "$SHARE_DIR/ani_sync.py"
 chmod +x "$INSTALL_DIR/ani-sync"
 
-echo -e "${CYAN}[3/3] Verifying installation...${NC}"
-
-# Check if INSTALL_DIR is in PATH
-if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-    echo -e "${YELLOW}Note: ${INSTALL_DIR} is not in your current PATH.${NC}"
-    echo "Add the following line to your ~/.bashrc or ~/.zshrc:"
-    echo "    export PATH=\"\$PATH:${INSTALL_DIR}\""
+# Set up automatic APT update hook if running as root on Debian/Ubuntu
+if [ "$EUID" -eq 0 ] && [ -d "/etc/apt/apt.conf.d" ]; then
+    cat << 'APTHOOK' > /etc/apt/apt.conf.d/99ani-sync-updater
+APT::Update::Post-Invoke-Success { "if command -v ani-sync >/dev/null 2>&1; then ani-sync update --quiet || true; fi"; };
+APTHOOK
+    chmod 644 /etc/apt/apt.conf.d/99ani-sync-updater
+    echo -e "${GREEN}✓ Registered APT auto-update hook (/etc/apt/apt.conf.d/99ani-sync-updater)${NC}"
 fi
 
 echo -e "\n${GREEN}${BOLD}✓ Successfully installed ani-sync!${NC}"
 echo -e "Run ${CYAN}ani-sync <anime name>${NC} or ${CYAN}ani-sync${NC} to start."
+echo -e "To update anytime: ${CYAN}ani-sync update${NC} (or automatically via ${CYAN}sudo apt update${NC})"
