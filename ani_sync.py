@@ -385,10 +385,10 @@ class DiscordRPC:
                 import socket
                 import struct
 
-                # Allow user to specify custom Discord Application ID
-                client_id = os.getenv(
-                    "DISCORD_CLIENT_ID", "1110825313936441394"
-                ).strip()
+                load_config()
+                client_id = os.getenv("DISCORD_CLIENT_ID", "").strip()
+                if not client_id:
+                    return
 
                 sock = None
                 if sys.platform == "win32":
