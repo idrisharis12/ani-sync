@@ -277,9 +277,73 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
 # ----------------------------------------------------------------------
 # AniDB Scraper & Video Stream Extraction
 # ----------------------------------------------------------------------
+_HTTP_SESSION = None
+
+
+def get_http_session():
+    global _HTTP_SESSION
+    if _HTTP_SESSION is None:
+        _HTTP_SESSION = requests.Session()
+        _HTTP_SESSION.headers.update(
+            {
+                "User-Agent": USER_AGENT,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Referer": "https://anidb.app/",
+                "Sec-Ch-Ua": '"Not-A.Brand";v="99", "Chromium";v="124", "Google Chrome";v="124"',
+                "Sec-Ch-Ua-Mobile": "?0",
+                "Sec-Ch-Ua-Platform": '"Linux"',
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "Upgrade-Insecure-Requests": "1",
+            }
+        )
+    return _HTTP_SESSION
+
+
 def http_get(url, is_json=False):
-    headers = {"User-Agent": USER_AGENT}
-    res = requests.get(url, headers=headers, timeout=12)
+    """Fetch URL using session with automatic curl fallback to prevent timeouts."""
+    session = get_http_session()
+
+    # 1. Try requests with robust headers
+    try:
+        res = session.get(url, timeout=12)
+        if res.status_code == 200:
+            return res.json() if is_json else res.text
+    except Exception:
+        pass
+
+    # 2. Fallback to curl with browser headers
+    try:
+        cmd = [
+            "curl",
+            "-sL",
+            "-A",
+            USER_AGENT,
+            "--max-time",
+            "15",
+            "-H",
+            "Referer: https://anidb.app/",
+            "-H",
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            url,
+        ]
+        out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode(
+            "utf-8", errors="ignore"
+        )
+        if out.strip():
+            return json.loads(out) if is_json else out
+    except Exception:
+        pass
+
+    # 3. Last retry with higher timeout
+    res = requests.get(
+        url,
+        headers={"User-Agent": USER_AGENT, "Referer": "https://anidb.app/"},
+        timeout=20,
+    )
     res.raise_for_status()
     return res.json() if is_json else res.text
 
