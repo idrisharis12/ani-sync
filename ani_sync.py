@@ -380,13 +380,23 @@ def get_episode_streams(episode_id, mode="sub"):
 # Player Launch & Playback Management
 # ----------------------------------------------------------------------
 def launch_player(stream_url, title, ep_num, player="mpv"):
-    """Launch the chosen media player with title and stream."""
+    """Launch the chosen media player with title, stream, buffer cache, and anti-throttling headers."""
     media_title = f"{title} - Episode {ep_num}"
     cmd = []
     if player == "mpv":
         cmd = [
             "mpv",
             f"--force-media-title={media_title}",
+            f"--user-agent={USER_AGENT}",
+            "--referrer=https://anidb.app/",
+            "--cache=yes",
+            "--demuxer-max-bytes=300M",
+            "--demuxer-max-back-bytes=100M",
+            "--demuxer-readahead-secs=120",
+            "--cache-secs=120",
+            "--cache-pause-wait=2",
+            "--force-seekable=yes",
+            "--hr-seek=yes",
             "--sub-auto=fuzzy",
             stream_url,
         ]
@@ -395,12 +405,20 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
             "vlc",
             "--play-and-exit",
             f"--meta-title={media_title}",
+            f"--http-user-agent={USER_AGENT}",
+            "--http-referrer=https://anidb.app/",
+            "--network-caching=3000",
             stream_url,
         ]
     elif player == "iina":
         cmd = [
             "iina",
             f"--mpv-force-media-title={media_title}",
+            f"--mpv-user-agent={USER_AGENT}",
+            "--mpv-referrer=https://anidb.app/",
+            "--mpv-cache=yes",
+            "--mpv-demuxer-max-bytes=300M",
+            "--mpv-demuxer-readahead-secs=120",
             stream_url,
         ]
     else:
@@ -408,7 +426,7 @@ def launch_player(stream_url, title, ep_num, player="mpv"):
 
     print(f"\n{C_BOLD}▶️  Now Playing:{C_RESET} {C_CYAN}{media_title}{C_RESET}")
     print(
-        f"{C_DIM}Player: {player} | Close player window when done watching.{C_RESET}\n"
+        f"{C_DIM}Player: {player} | High-speed cache & buffer enabled (300MB){C_RESET}\n"
     )
 
     proc = subprocess.run(cmd)
