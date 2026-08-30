@@ -293,7 +293,20 @@ ani-sync "solo leveling" --dub
 
 ---
 
-### 8. 📥 High-Speed Offline Download Mode (`-d`)
+### 8. ⏩ Auto-Skip Anime Opening & Ending (`--skip`)
+Never sit through 90 seconds of anime intros or spoilers again:
+
+- **Automatic Skip Mode**: Pass `--skip` or `--auto-skip` to automatically fast-forward past the opening intro (+85 seconds):
+  ```bash
+  ani-sync "frieren" --skip
+  ```
+- **In-Player Shortcuts (Interactive)**: During playback in MPV, you can skip anytime:
+  - Press **`Tab`** or **`i`**: Instantly skip Opening / Intro (+85 seconds forward).
+  - Press **`o`**: Instantly skip Outro / Ending (+85 seconds forward).
+
+---
+
+### 9. 📥 High-Speed Offline Download Mode (`-d`)
 Download episodes directly to your disk with 64x multi-connection acceleration without launching the media player:
 
 ```bash
@@ -303,7 +316,7 @@ ani-sync "jujutsu kaisen" -e 1 -d
 
 ---
 
-### 9. 🎮 Interactive Post-Playback Controls
+### 10. 🎮 Interactive Post-Playback Controls
 When an episode finishes (or when you exit the media player), `ani-sync` updates your MyAnimeList progress and displays an interactive control loop:
 
 ```
@@ -321,7 +334,7 @@ Choice:
 
 ---
 
-### 10. 🎧 Custom Media Player Support
+### 11. 🎧 Custom Media Player Support
 `ani-sync` defaults to `mpv` with hardware acceleration, but you can specify VLC or IINA:
 
 ```bash
@@ -334,10 +347,14 @@ ani-sync "spy x family" --player iina
 
 ---
 
-### 11. 💬 Discord Rich Presence Integration
-`ani-sync` automatically connects to your local Discord client and broadcasts your watch activity:
+### 12. 💬 Discord Rich Presence Integration
+`ani-sync` automatically connects to your local Discord desktop app via IPC and displays your watch activity in real-time:
 > **Watching Frieren: Beyond Journey's End**  
 > *Episode 5 • 12:45 elapsed*
+
+> [!NOTE]
+> Ensure **"Display current activity as a status message"** is enabled in your Discord Settings (`User Settings` -> `Activity Privacy`).  
+> You can also specify a custom Discord Application ID by setting `export DISCORD_CLIENT_ID="YOUR_ID"` in `~/.config/ani-sync/config.env`.
 
 ---
 
@@ -348,6 +365,17 @@ ani-sync "spy x family" --player iina
 | `ani-sync <title>` | Search and stream anime by title | `ani-sync "frieren"` |
 | `ani-sync -c`, `continue` | Resume last watched anime | `ani-sync continue` |
 | `ani-sync -t`, `trending` | Browse top trending / airing anime | `ani-sync trending` |
+| `ani-sync history` | Browse and resume from watch history | `ani-sync history` |
+| `--skip`, `--auto-skip` | Automatically skip anime opening/intro (+85s) | `ani-sync "one piece" --skip` |
+| `-e, --episode <num>` | Jump directly to specific episode number | `ani-sync "naruto" -e 50` |
+| `-q, --quality <res>` | Preferred video resolution (`1080p`, `720p`, `480p`) | `ani-sync "one piece" -q 1080p` |
+| `-d, --download` | Download episode locally without playing | `ani-sync "jujutsu kaisen" -e 1 -d` |
+| `--dub` | Stream English Dubbed version | `ani-sync "solo leveling" --dub` |
+| `--direct` | Stream directly without local caching | `ani-sync "frieren" --direct` |
+| `--player <player>` | Media player binary (`mpv`, `vlc`, `iina`) | `ani-sync "bleach" --player vlc` |
+| `ani-sync update`, `-U` | Check and update to latest version | `ani-sync update` |
+| `ani-sync auth` | Launch MyAnimeList OAuth2 setup wizard | `ani-sync auth` |
+| `-h, --help` | Display CLI help menu | `ani-sync --help` |
 | `ani-sync history` | Browse and resume from watch history | `ani-sync history` |
 | `-e, --episode <num>` | Jump directly to specific episode number | `ani-sync "naruto" -e 50` |
 | `-q, --quality <res>` | Preferred video resolution (`1080p`, `720p`, `480p`) | `ani-sync "one piece" -q 1080p` |

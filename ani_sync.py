@@ -368,23 +368,35 @@ def get_last_watched():
 # Discord Rich Presence (Zero-Dependency IPC)
 # ----------------------------------------------------------------------
 class DiscordRPC:
-    """Zero-dependency Discord Rich Presence client via local IPC."""
+    """Zero-dependency Discord Rich Presence client via local IPC socket."""
 
-    CLIENT_ID = "121856789012345678"  # Generic application ID
+    _sock = None
+    _thread = None
+    _active = False
 
     @classmethod
-    def set_activity(cls, title, ep_num):
+    def start_activity(cls, title, ep_num):
+        """Start persistent Discord Rich Presence activity."""
+        cls.stop_activity()
+        cls._active = True
+
         def _run():
             try:
                 import socket
                 import struct
 
+                # Allow user to specify custom Discord Application ID
+                client_id = os.getenv(
+                    "DISCORD_CLIENT_ID", "1110825313936441394"
+                ).strip()
+
                 sock = None
                 if sys.platform == "win32":
-                    pipe_path = r"\\.\pipe\discord-ipc-0"
-                    if os.path.exists(pipe_path):
-                        # Named pipe handled
-                        pass
+                    for i in range(10):
+                        pipe_name = rf"\\.\pipe\discord-ipc-{i}"
+                        if os.path.exists(pipe_name):
+                            # On Windows, open named pipe
+                            break
                 else:
                     uid = os.getuid()
                     candidates = [
@@ -404,14 +416,14 @@ class DiscordRPC:
                 if not sock:
                     return
 
-                # Handshake opcode 0
-                handshake = json.dumps(
-                    {"v": 1, "client_id": "1198765432109876543"}
-                ).encode("utf-8")
+                cls._sock = sock
+
+                # Send Handshake opcode 0
+                handshake = json.dumps({"v": 1, "client_id": client_id}).encode("utf-8")
                 sock.sendall(struct.pack("<II", 0, len(handshake)) + handshake)
                 sock.recv(1024)
 
-                # Set activity opcode 1
+                # Send Set Activity opcode 1
                 activity = {
                     "cmd": "SET_ACTIVITY",
                     "args": {
@@ -430,10 +442,33 @@ class DiscordRPC:
                 }
                 payload = json.dumps(activity).encode("utf-8")
                 sock.sendall(struct.pack("<II", 1, len(payload)) + payload)
+
+                # Keep socket open and alive while active
+                while cls._active:
+                    time.sleep(1)
             except Exception:
                 pass
+            finally:
+                if cls._sock:
+                    try:
+                        cls._sock.close()
+                    except Exception:
+                        pass
+                    cls._sock = None
 
-        threading.Thread(target=_run, daemon=True).start()
+        cls._thread = threading.Thread(target=_run, daemon=True)
+        cls._thread.start()
+
+    @classmethod
+    def stop_activity(cls):
+        """Close Discord Rich Presence activity cleanly."""
+        cls._active = False
+        if cls._sock:
+            try:
+                cls._sock.close()
+            except Exception:
+                pass
+            cls._sock = None
 
 
 # ----------------------------------------------------------------------
@@ -662,7 +697,57 @@ def find_player_binary(player="mpv"):
     return player
 
 
-def launch_player(target_path, title, ep_num, player="mpv"):
+def get_auto_skip_script(auto_skip=False):
+    """Generate lightweight MPV Lua script for skipping anime intros/outros."""
+    cache_dir = get_cache_dir()
+    script_path = cache_dir / "ani_skip.lua"
+
+    lua_code = f"""
+-- ani-sync Auto-Skip & Fast-Skip Lua Integration
+local auto_skip = {str(auto_skip).lower()}
+local skipped_intro = false
+
+function on_pos_change(name, pos)
+    if not pos then return end
+    if auto_skip and not skipped_intro and pos >= 0 and pos < 85 then
+        mp.osd_message("⏩ Auto-Skipping Opening (+85s)", 3)
+        mp.set_property_number("time-pos", 85)
+        skipped_intro = true
+    end
+end
+
+if auto_skip then
+    mp.observe_property("time-pos", "number", on_pos_change)
+end
+
+-- Keybindings for instant manual intro/outro skips
+mp.add_key_binding("i", "skip-intro", function()
+    local pos = mp.get_property_number("time-pos", 0)
+    mp.osd_message("⏩ Skipped Intro (+85s)", 2)
+    mp.set_property_number("time-pos", pos + 85)
+end)
+
+mp.add_key_binding("Tab", "skip-intro-tab", function()
+    local pos = mp.get_property_number("time-pos", 0)
+    mp.osd_message("⏩ Skipped Intro (+85s)", 2)
+    mp.set_property_number("time-pos", pos + 85)
+end)
+
+mp.add_key_binding("o", "skip-outro", function()
+    local pos = mp.get_property_number("time-pos", 0)
+    mp.osd_message("⏩ Skipped Outro (+85s)", 2)
+    mp.set_property_number("time-pos", pos + 85)
+end)
+"""
+    try:
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(lua_code)
+        return str(script_path)
+    except Exception:
+        return None
+
+
+def launch_player(target_path, title, ep_num, player="mpv", auto_skip=False):
     """Launch the chosen media player with title, stream/file, and optimal smooth playback."""
     media_title = f"{title} - Episode {ep_num}"
     player_bin = find_player_binary(player)
@@ -676,8 +761,11 @@ def launch_player(target_path, title, ep_num, player="mpv"):
             "--hwdec=auto-safe",
             "--profile=fast",
             "--audio-buffer=0.8",
-            target_path,
         ]
+        skip_script = get_auto_skip_script(auto_skip=auto_skip)
+        if skip_script:
+            cmd.append(f"--script={skip_script}")
+        cmd.append(target_path)
     elif player == "vlc" or "vlc" in Path(player_bin).stem.lower():
         cmd = [
             player_bin,
@@ -695,14 +783,22 @@ def launch_player(target_path, title, ep_num, player="mpv"):
         cmd = [player_bin, target_path]
 
     print(f"\n{C_BOLD}▶️  Now Playing:{C_RESET} {C_CYAN}{media_title}{C_RESET}")
-    print(f"{C_DIM}Player: {player} | 100% Smooth Zero-Buffering Playback{C_RESET}\n")
+    print(
+        f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro (+85s) | [o] Skip Outro | [q] Quit{C_RESET}\n"
+    )
 
     proc = subprocess.run(cmd)
     return proc.returncode == 0
 
 
 def turbo_play(
-    stream_url, title, ep_num, player="mpv", direct=False, download_only=False
+    stream_url,
+    title,
+    ep_num,
+    player="mpv",
+    direct=False,
+    download_only=False,
+    auto_skip=False,
 ):
     """Zero-buffering maximum-speed playback using 64 parallel multi-connections."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
@@ -888,6 +984,7 @@ def play_loop(
     player="mpv",
     direct=False,
     download_only=False,
+    auto_skip=False,
 ):
     """Watch loop with next, replay, previous, change episode/quality/season."""
     slug = anime["slug"]
@@ -966,7 +1063,7 @@ def play_loop(
                 ).start()
 
         # Update Discord Rich Presence
-        DiscordRPC.set_activity(title, ep_num)
+        DiscordRPC.start_activity(title, ep_num)
 
         # Launch Turbo Multi-Connection Player
         turbo_play(
@@ -976,7 +1073,11 @@ def play_loop(
             player=player,
             direct=direct,
             download_only=download_only,
+            auto_skip=auto_skip,
         )
+
+        # Stop Discord Rich Presence on player close
+        DiscordRPC.stop_activity()
 
         # Record to local history
         save_history(slug, title, ep_num, quality=quality_used, mode=mode)
@@ -1142,6 +1243,7 @@ def print_help():
     history, --history        View recent watch history and pick to resume
     -e, --episode <num>       Jump directly to specified episode number
     -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
+    --skip, --auto-skip       Automatically skip anime opening/intro (+85s)
     -d, --download            Download episode locally without opening player
     --direct                  Stream directly without multi-threaded local turbo cache
     --dub                     Play English dub if available (default: Japanese sub)
@@ -1149,6 +1251,11 @@ def print_help():
     -U, --update, update      Check and update ani-sync to the latest version
     auth                      Run interactive MyAnimeList OAuth2 setup wizard
     -h, --help                Show this help menu
+
+{C_BOLD}Player Keybindings:{C_RESET}
+    {C_CYAN}[Tab]{C_RESET} or {C_CYAN}[i]{C_RESET}         Skip anime intro / opening (+85 seconds)
+    {C_CYAN}[o]{C_RESET}                   Skip anime outro / ending
+    {C_CYAN}[q]{C_RESET}                   Quit player and return to post-playback controls
 """
     )
 
@@ -1262,6 +1369,7 @@ def main():
     player = "mpv"
     direct = False
     download_only = False
+    auto_skip = False
 
     i = 0
     while i < len(args):
@@ -1280,6 +1388,8 @@ def main():
             download_only = True
         elif arg == "--direct":
             direct = True
+        elif arg in ("--skip", "--auto-skip"):
+            auto_skip = True
         elif arg == "--dub":
             mode = "dub"
         elif arg == "--player":
@@ -1374,6 +1484,7 @@ def main():
         player=player,
         direct=direct,
         download_only=download_only,
+        auto_skip=auto_skip,
     )
 
 
