@@ -260,27 +260,38 @@ ani-sync auth
 3. Log in (if prompted) and click **"Allow"**.
 4. You will be redirected to an address like:
    ```
-   http://localhost/?code=def50200611fe883d9...
+   http://localhost/?code=EXAMPLE_AUTHORIZATION_CODE_HERE...
    ```
    > [!NOTE]
    > Your browser may display **"This site can’t be reached"** or **"Unable to connect"**. **This is completely normal** because no local server is running on your machine. The authorization code is located directly in your browser's **URL address bar**!
 
 5. Copy the entire URL (or the long string after `code=`) from your browser address bar.
 6. Paste it into your terminal prompt and press `Enter`.
-7. `ani-sync` will exchange the authorization code for your tokens and save them to:
+7. `ani-sync` will exchange the authorization code for your tokens and save them automatically to:
    ```
    ~/.config/ani-sync/config.env
    ```
 
 ---
 
-### Step 4: Verification & Manual Environment Variables (Optional)
-Once completed, `ani-sync` is ready to go! If you ever want to check or manually set your credentials in `~/.bashrc` or `~/.zshrc`:
+### Step 4: Verification & Configuration Format
+
+Once setup is complete, your credentials will be stored safely in `~/.config/ani-sync/config.env` using this format:
 
 ```bash
-export MAL_CLIENT_ID="your_client_id_here"
-export MAL_CLIENT_SECRET=""   # Optional
-export MAL_REFRESH_TOKEN="your_refresh_token_here"
+# Example ~/.config/ani-sync/config.env
+export MAL_CLIENT_ID="example_client_id_123456"
+export MAL_CLIENT_SECRET="example_client_secret_abcdef"  # Optional
+export MAL_REFRESH_TOKEN="example_refresh_token_xyz789"
+```
+
+#### Manual Environment Variables (Optional)
+If you prefer not using the config file, you can also export these directly in your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+export MAL_CLIENT_ID="YOUR_CLIENT_ID"
+export MAL_CLIENT_SECRET="YOUR_CLIENT_SECRET"   # Optional
+export MAL_REFRESH_TOKEN="YOUR_REFRESH_TOKEN"
 ```
 Reload your shell with `source ~/.bashrc` or `source ~/.zshrc`.
 

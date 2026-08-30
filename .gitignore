@@ -2,12 +2,29 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+build/
+dist/
+*.egg-info/
 
 # Virtual environments
 env/
 venv/
 .venv/
 ENV/
+
+# Configuration, Tokens & Secrets (Prevent accidental leaks)
+*.env
+.env*
+config.env
+*.token*
+token.json
+history.json
+ani-hsts
+MAL_CLIENT_*
+*.secret*
+*.pem
+*.key
 
 # IDE / editor settings
 .idea/
@@ -18,6 +35,3 @@ ENV/
 # OS files
 .DS_Store
 Thumbs.db
-
-# Secrets (just in case)
-MAL_CLIENT_*
