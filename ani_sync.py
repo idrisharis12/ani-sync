@@ -27,7 +27,26 @@ VERSION = "2.0.0"
 CONFIG_DIR = Path.home() / ".config" / "ani-sync"
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
-CACHE_DIR = Path.home() / ".cache" / "ani-sync"
+
+
+def get_cache_dir():
+    """Return ultra-fast RAM disk /dev/shm if available, otherwise ~/.cache/ani-sync."""
+    shm = Path("/dev/shm/ani-sync")
+    try:
+        if Path("/dev/shm").exists():
+            st = os.statvfs("/dev/shm")
+            free_bytes = st.f_bavail * st.f_frsize
+            if free_bytes > 1024 * 1024 * 1024:  # > 1GB free RAM
+                shm.mkdir(parents=True, exist_ok=True)
+                return shm
+    except Exception:
+        pass
+    fallback = Path.home() / ".cache" / "ani-sync"
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
+CACHE_DIR = get_cache_dir()
 
 ANIDB_BASE = "https://anidb.app"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
