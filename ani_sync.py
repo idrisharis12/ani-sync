@@ -119,12 +119,35 @@ def load_config():
             pass
 
 
-def save_config(client_id, client_secret, refresh_token):
+def _append_config(key, value):
+    """Append or update a key in config.env without overwriting other keys."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    lines = []
+    found = False
+    if CONFIG_PATH.exists():
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            for line in f:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#") and "=" in stripped:
+                    line_key = stripped.replace("export ", "").split("=", 1)[0].strip()
+                    if line_key == key:
+                        lines.append(f'export {key}="{value}"\n')
+                        found = True
+                        continue
+                lines.append(line if line.endswith("\n") else line + "\n")
+    if not found:
+        lines.append(f'export {key}="{value}"\n')
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        f.write(f'export MAL_CLIENT_ID="{client_id}"\n')
-        f.write(f'export MAL_CLIENT_SECRET="{client_secret}"\n')
-        f.write(f'export MAL_REFRESH_TOKEN="{refresh_token}"\n')
+        f.writelines(lines)
+    os.environ[key] = str(value)
+
+
+def save_config(client_id, client_secret, refresh_token):
+    """Safely update MAL config keys without touching other platform tokens."""
+    _append_config("MAL_CLIENT_ID", client_id)
+    if client_secret:
+        _append_config("MAL_CLIENT_SECRET", client_secret)
+    _append_config("MAL_REFRESH_TOKEN", refresh_token)
 
 
 def get_mal_env():
@@ -677,28 +700,6 @@ def sync_episode_to_kitsu(anime_title, episode_num):
     except Exception as e:
         print(f"{C_RED}❌  Kitsu Sync error: {e}{C_RESET}")
     return False
-
-
-def _append_config(key, value):
-    """Append or update a key in config.env without overwriting other keys."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    lines = []
-    found = False
-    if CONFIG_PATH.exists():
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            for line in f:
-                stripped = line.strip()
-                line_key = stripped.replace("export ", "").split("=", 1)[0].strip()
-                if line_key == key:
-                    lines.append(f'export {key}="{value}"\n')
-                    found = True
-                else:
-                    lines.append(line)
-    if not found:
-        lines.append(f'export {key}="{value}"\n')
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        f.writelines(lines)
-    os.environ[key] = value
 
 
 def sync_all_platforms(anime_title, episode_num, mal_id=None):
