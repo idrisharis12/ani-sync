@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/ani-sync_logo.jpeg" alt="ani-sync logo" width="280" />
+</p>
+
 # ani‑sync
 
 A tiny **command‑line wrapper** around [ani‑cli](https://github.com/pystardust/ani-cli) that automatically syncs the watched episode to **MyAnimeList** (MAL).
@@ -43,4 +47,3 @@ ani-sync watch https://gogoanime.cm/one-piece-episode-1000 --player mpv
 
 ## Contributing
 Feel free to open issues or submit pull‑requests. The project follows the **MIT License**.
-# ani-sync
