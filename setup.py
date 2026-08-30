@@ -2,15 +2,14 @@ from setuptools import setup
 
 setup(
     name="ani-sync",
-    version="1.0.0",
-    description="CLI wrapper around ani-cli that automatically syncs watched anime episodes to MyAnimeList",
+    version="2.0.0",
+    description="Stream anime from your terminal and automatically sync watch progress to MyAnimeList",
     author="Idris Haris",
     url="https://github.com/idrisharis12/ani-sync",
     py_modules=["ani_sync"],
     install_requires=[
         "requests>=2.28.0",
         "tqdm>=4.64.0",
-        "ani-cli",
     ],
     entry_points={
         "console_scripts": [

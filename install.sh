@@ -82,4 +82,4 @@ if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
 fi
 
 echo -e "\n${GREEN}${BOLD}✓ Successfully installed ani-sync!${NC}"
-echo -e "Run ${CYAN}ani-sync watch <url>${NC} to start."
+echo -e "Run ${CYAN}ani-sync <anime name>${NC} or ${CYAN}ani-sync${NC} to start."
