@@ -84,8 +84,8 @@ ANILIST_TOKEN_URL = "https://anilist.co/api/v2/oauth/token"
 ANILIST_REDIRECT_URI = "https://anilist.co/api/v2/oauth/pin"
 
 # Kitsu JSON:API
-KITSU_API_URL = "https://kitsu.app/api/edge"
-KITSU_TOKEN_URL = "https://kitsu.app/api/oauth/token"
+KITSU_API_URL = "https://kitsu.io/api/edge"
+KITSU_TOKEN_URL = "https://kitsu.io/api/oauth/token"
 
 # Terminal Colors
 C_BLUE = "\033[94m"
@@ -374,14 +374,26 @@ def run_anilist_auth():
         f"{C_CYAN}------------------------------------------------------------{C_RESET}"
     )
 
-    client_id = input(f"\n{C_BOLD}Enter your AniList Client ID: {C_RESET}").strip()
+    load_config()
+    default_cid = os.getenv("ANILIST_CLIENT_ID", "").strip()
+    default_secret = os.getenv("ANILIST_CLIENT_SECRET", "").strip()
+
+    cid_prompt = (
+        f"\n{C_BOLD}Enter your AniList Client ID (default: {default_cid}): {C_RESET}"
+        if default_cid
+        else f"\n{C_BOLD}Enter your AniList Client ID: {C_RESET}"
+    )
+    client_id = input(cid_prompt).strip() or default_cid
     if not client_id:
         print(f"{C_RED}Error: Client ID is required.{C_RESET}")
         return
 
-    client_secret = input(
-        f"{C_BOLD}Enter your AniList Client Secret: {C_RESET}"
-    ).strip()
+    secret_prompt = (
+        f"{C_BOLD}Enter your AniList Client Secret (default: [saved]): {C_RESET}"
+        if default_secret
+        else f"{C_BOLD}Enter your AniList Client Secret: {C_RESET}"
+    )
+    client_secret = input(secret_prompt).strip() or default_secret
 
     auth_link = (
         f"{ANILIST_AUTH_URL}?client_id={client_id}"
