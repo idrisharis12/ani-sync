@@ -485,15 +485,15 @@ ani-sync import
 
 ---
 
-## 🔑 Multi-Platform Tracking Setup
+## 🔑 Multi-Platform Tracking & Discord Setup
 
-`ani-sync` can sync your watch progress to **MyAnimeList**, **AniList**, and **Kitsu** simultaneously. You can connect any combination or all three.
+`ani-sync` connects seamlessly with **AniList**, **Kitsu**, **MyAnimeList**, and **Discord Rich Presence**. You can connect any combination or all of them.
 
 Run `ani-sync auth` to open the interactive setup picker, or authenticate each platform directly:
 
 ---
 
-### 1. 🟣 AniList Setup Walkthrough
+### 1. 🟣 AniList Setup Walkthrough (GraphQL API)
 
 AniList uses OAuth 2.0 with a PIN-based CLI verification flow.
 
@@ -501,13 +501,13 @@ AniList uses OAuth 2.0 with a PIN-based CLI verification flow.
 1. Log in to your account on [AniList.co](https://anilist.co/).
 2. Open **Developer Settings**: [https://anilist.co/settings/developer](https://anilist.co/settings/developer).
 3. Click the **"Create New Client"** button.
-4. Fill in the client form:
-   | Field | Value | Notes |
+4. Fill in the client fields:
+   | Field | Value to Enter | Notes |
    | :--- | :--- | :--- |
    | **Client Name** | `ani-sync` | Name of your personal application |
    | **Redirect URL** | `https://anilist.co/api/v2/oauth/pin` | **Must be exact** for CLI PIN authorization |
 5. Click **"Save"**.
-6. AniList will generate your **Client ID** and **Client Secret**.
+6. AniList will display your **Client ID** (e.g. `49862`) and **Client Secret**.
 
 #### Step 2: Authenticate in Terminal
 1. Run the setup command:
@@ -515,17 +515,17 @@ AniList uses OAuth 2.0 with a PIN-based CLI verification flow.
    ani-sync auth anilist
    ```
 2. Enter your **Client ID** and **Client Secret** when prompted.
-3. `ani-sync` will open your browser to the AniList authorization page.
+3. `ani-sync` opens your browser to the authorization page.
 4. Click **"Authorize"** to grant permission.
-5. AniList will display a **PIN code** on the screen.
+5. AniList will display an alphanumeric **PIN code** on your screen.
 6. Copy the code, paste it into your terminal, and press `Enter`.
-7. `ani-sync` will securely save your AniList token locally.
+7. `ani-sync` securely exchanges the PIN for an access token and automatically pulls your AniList watch history!
 
 ---
 
-### 2. 🟠 Kitsu Setup Walkthrough
+### 2. 🟠 Kitsu Setup Walkthrough (JSON:API)
 
-Kitsu authentication is completely seamless and requires no developer portal setup.
+Kitsu authentication is 100% seamless and requires **no developer portal registration**.
 
 1. Ensure you have an account registered on [kitsu.app](https://kitsu.app/).
 2. In your terminal, run:
@@ -534,8 +534,9 @@ Kitsu authentication is completely seamless and requires no developer portal set
    ```
 3. Enter your **Kitsu email or username**.
 4. Enter your **Kitsu password** (keystrokes are hidden for security).
-5. `ani-sync` connects directly to Kitsu's OAuth2 token endpoint to obtain an encrypted access token.
-6. Your password is **never stored locally** — only the OAuth access and refresh tokens are saved.
+5. `ani-sync` connects directly to Kitsu's OAuth2 endpoint to obtain encrypted access and refresh tokens.
+6. > [!TIP]
+   > Your password is **never stored locally**. Only the OAuth2 tokens are saved.
 
 ---
 
@@ -548,14 +549,14 @@ To enable automatic episode tracking with your MyAnimeList account:
 2. Open the **API Developer Portal**: [https://myanimelist.net/apiconfig](https://myanimelist.net/apiconfig).
 3. Click **"Create ID"** (or "Create an App").
 4. Fill in the application fields:
-   | Field Name | Value to Enter |
-   | :--- | :--- |
-   | **App Name** | `ani-sync` |
-   | **App Type** | `other` |
-   | **App Redirect URL** | `http://localhost` |
-   | **Homepage URL** | `https://github.com/idrisharis12/ani-sync/` |
-   | **Commercial use?** | `No` |
-   | **Non-commercial use?** | `Yes` |
+   | Field Name | Value to Enter | Notes |
+   | :--- | :--- | :--- |
+   | **App Name** | `ani-sync` | Name of your client |
+   | **App Type** | `other` | Select `other` from dropdown |
+   | **App Redirect URL** | `http://localhost` | **Must be exact** (`http://`) |
+   | **Homepage URL** | `https://github.com/idrisharis12/ani-sync/` | *Include trailing slash `/`* |
+   | **Commercial use?** | `No` | Select No |
+   | **Non-commercial use?** | `Yes` | Select Yes |
 5. Submit the form and copy your **Client ID** (and optional Client Secret).
 
 #### Step 2: Authenticate in Terminal
@@ -564,8 +565,31 @@ To enable automatic episode tracking with your MyAnimeList account:
    ani-sync auth mal
    ```
 2. Enter your **Client ID**.
-3. Authorize in the browser and copy the redirected URL from your browser's address bar (`http://localhost/?code=...`).
+3. Authorize in your browser and copy the redirected URL from your browser's address bar (`http://localhost/?code=...`).
 4. Paste the URL into your terminal to finalize authentication.
+
+---
+
+### 4. 💬 Discord Rich Presence Setup & Customization
+
+`ani-sync` works with Discord Rich Presence **out of the box with zero configuration**!
+
+- **Default Setup**: Uses the verified default Application ID (`1543718626400403466`).
+- **Clickable Buttons**: Friends viewing your profile will see live clickable buttons (**"⚡ Get ani-sync CLI"** and **"⭐ Star on GitHub"**) linking directly to your GitHub repository.
+
+#### Enabling Activity Status in Discord:
+1. Open Discord desktop app.
+2. Go to **User Settings** (⚙️ gear icon) ➔ **Activity Privacy**.
+3. Enable **"Display current activity as a status message"**.
+
+#### (Optional) Custom Discord Application ID & Logo:
+If you want to use your own Discord Application:
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications) and create an application named `ani-sync`.
+2. Under **Rich Presence** ➔ **Art Assets**, upload the logo (`assets/ani-sync_logo.jpeg`) with the asset key: `ani_sync_logo`.
+3. Set your custom ID in `~/.config/ani-sync/config.env`:
+   ```bash
+   export DISCORD_CLIENT_ID="YOUR_CUSTOM_APP_ID"
+   ```
 
 ---
 
@@ -579,6 +603,8 @@ export MAL_CLIENT_ID="your_mal_client_id"
 export MAL_CLIENT_SECRET=""
 export MAL_REFRESH_TOKEN="your_mal_refresh_token"
 
+export ANILIST_CLIENT_ID="your_anilist_client_id"
+export ANILIST_CLIENT_SECRET="your_anilist_client_secret"
 export ANILIST_TOKEN="your_anilist_access_token"
 
 export KITSU_TOKEN="your_kitsu_access_token"
