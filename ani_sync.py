@@ -77,6 +77,16 @@ TOKEN_URL = "https://myanimelist.net/v1/oauth2/token"
 AUTH_URL = "https://myanimelist.net/v1/oauth2/authorize"
 API_URL = "https://api.myanimelist.net/v2"
 
+# AniList GraphQL API
+ANILIST_API_URL = "https://graphql.anilist.co"
+ANILIST_AUTH_URL = "https://anilist.co/api/v2/oauth/authorize"
+ANILIST_TOKEN_URL = "https://anilist.co/api/v2/oauth/token"
+ANILIST_REDIRECT_URI = "https://anilist.co/api/v2/oauth/pin"
+
+# Kitsu JSON:API
+KITSU_API_URL = "https://kitsu.app/api/edge"
+KITSU_TOKEN_URL = "https://kitsu.app/api/oauth/token"
+
 # Terminal Colors
 C_BLUE = "\033[94m"
 C_CYAN = "\033[96m"
@@ -316,6 +326,384 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
     except Exception as e:
         print(f"{C_RED}❌  MAL Sync error: {e}{C_RESET}")
     return False
+
+
+# ----------------------------------------------------------------------
+# AniList Tracking (GraphQL API)
+# ----------------------------------------------------------------------
+ANILIST_SEARCH_QUERY = """
+query ($search: String) {
+  Media (search: $search, type: ANIME) {
+    id
+    title { romaji english userPreferred }
+    episodes
+  }
+}
+"""
+
+ANILIST_UPDATE_MUTATION = """
+mutation ($mediaId: Int, $progress: Int, $status: MediaListStatus) {
+  SaveMediaListEntry (mediaId: $mediaId, progress: $progress, status: $status) {
+    id mediaId status progress
+  }
+}
+"""
+
+
+def is_anilist_configured():
+    load_config()
+    return bool(os.getenv("ANILIST_TOKEN", "").strip())
+
+
+def run_anilist_auth():
+    """Interactive AniList OAuth2 setup wizard."""
+    print(
+        f"\n{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
+    print(
+        f"{C_MAGENTA}{C_BOLD}         ani-sync — AniList Authentication Setup            {C_RESET}"
+    )
+    print(
+        f"{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
+    print(f"\n1. Go to: {C_BLUE}https://anilist.co/settings/developer{C_RESET}")
+    print(f"2. Click {C_BOLD}'Create New Client'{C_RESET} with these settings:")
+    print(f"   - {C_BOLD}Name:{C_RESET} ani-sync")
+    print(f"   - {C_BOLD}Redirect URL:{C_RESET} https://anilist.co/api/v2/oauth/pin")
+    print(
+        f"{C_CYAN}------------------------------------------------------------{C_RESET}"
+    )
+
+    client_id = input(f"\n{C_BOLD}Enter your AniList Client ID: {C_RESET}").strip()
+    if not client_id:
+        print(f"{C_RED}Error: Client ID is required.{C_RESET}")
+        return
+
+    client_secret = input(
+        f"{C_BOLD}Enter your AniList Client Secret: {C_RESET}"
+    ).strip()
+
+    auth_link = (
+        f"{ANILIST_AUTH_URL}?client_id={client_id}"
+        f"&redirect_uri={ANILIST_REDIRECT_URI}&response_type=code"
+    )
+    print(f"\n{C_YELLOW}Opening browser for authorization...{C_RESET}")
+    print(f"If browser doesn't open, visit: {C_BLUE}{auth_link}{C_RESET}\n")
+    try:
+        webbrowser.open(auth_link)
+    except Exception:
+        pass
+
+    auth_code = input(
+        f"\n{C_BOLD}Paste the authorization code shown on the page: {C_RESET}"
+    ).strip()
+    if not auth_code:
+        print(f"{C_RED}Error: Authorization code is required.{C_RESET}")
+        return
+
+    print(f"\n{C_CYAN}Exchanging code for AniList access token...{C_RESET}")
+    try:
+        res = requests.post(
+            ANILIST_TOKEN_URL,
+            json={
+                "grant_type": "authorization_code",
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": ANILIST_REDIRECT_URI,
+                "code": auth_code,
+            },
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            timeout=15,
+        )
+        if res.status_code != 200:
+            print(
+                f"{C_RED}❌ AniList OAuth Error ({res.status_code}): {res.text}{C_RESET}"
+            )
+            return
+        token = res.json().get("access_token", "")
+        # Append to config.env
+        _append_config("ANILIST_TOKEN", token)
+        print(f"\n{C_GREEN}{C_BOLD}✅ AniList Authorization Successful!{C_RESET}")
+        print(f"📁 Token saved to: {C_CYAN}{CONFIG_PATH}{C_RESET}")
+    except Exception as e:
+        print(f"{C_RED}❌ Connection error: {e}{C_RESET}")
+
+
+def sync_episode_to_anilist(anime_title, episode_num):
+    """Sync episode progress to AniList."""
+    if not is_anilist_configured():
+        return False
+    token = os.getenv("ANILIST_TOKEN", "").strip()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    try:
+        # Search for anime
+        res = requests.post(
+            ANILIST_API_URL,
+            json={"query": ANILIST_SEARCH_QUERY, "variables": {"search": anime_title}},
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            timeout=10,
+        )
+        media = (
+            res.json().get("data", {}).get("Media") if res.status_code == 200 else None
+        )
+        if not media:
+            return False
+        media_id = media["id"]
+        total_eps = media.get("episodes")
+        status = "COMPLETED" if total_eps and episode_num >= total_eps else "CURRENT"
+        # Update progress
+        res = requests.post(
+            ANILIST_API_URL,
+            json={
+                "query": ANILIST_UPDATE_MUTATION,
+                "variables": {
+                    "mediaId": media_id,
+                    "progress": episode_num,
+                    "status": status,
+                },
+            },
+            headers=headers,
+            timeout=10,
+        )
+        if res.status_code == 200:
+            entry = res.json().get("data", {}).get("SaveMediaListEntry", {})
+            print(
+                f"{C_GREEN}{C_BOLD}✅  AniList Synced:{C_RESET} Episode {entry.get('progress', episode_num)} marked as {entry.get('status', status).lower()}!"
+            )
+            return True
+    except Exception as e:
+        print(f"{C_RED}❌  AniList Sync error: {e}{C_RESET}")
+    return False
+
+
+# ----------------------------------------------------------------------
+# Kitsu Tracking (JSON:API)
+# ----------------------------------------------------------------------
+def is_kitsu_configured():
+    load_config()
+    return bool(os.getenv("KITSU_TOKEN", "").strip())
+
+
+def run_kitsu_auth():
+    """Interactive Kitsu authentication setup (username/password grant)."""
+    print(
+        f"\n{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
+    print(
+        f"{C_MAGENTA}{C_BOLD}         ani-sync — Kitsu Authentication Setup              {C_RESET}"
+    )
+    print(
+        f"{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
+    print(f"\n{C_YELLOW}Kitsu uses email/password authentication.{C_RESET}")
+    print(f"Your credentials are sent directly to Kitsu and are NOT stored locally.\n")
+
+    username = input(f"{C_BOLD}Enter your Kitsu email or username: {C_RESET}").strip()
+    if not username:
+        print(f"{C_RED}Error: Email/username is required.{C_RESET}")
+        return
+
+    import getpass
+
+    password = getpass.getpass(f"{C_BOLD}Enter your Kitsu password: {C_RESET}")
+    if not password:
+        print(f"{C_RED}Error: Password is required.{C_RESET}")
+        return
+
+    print(f"\n{C_CYAN}Authenticating with Kitsu...{C_RESET}")
+    try:
+        res = requests.post(
+            KITSU_TOKEN_URL,
+            data={"grant_type": "password", "username": username, "password": password},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=15,
+        )
+        if res.status_code != 200:
+            print(
+                f"{C_RED}❌ Kitsu Auth Error ({res.status_code}): {res.text}{C_RESET}"
+            )
+            return
+        token_data = res.json()
+        access_token = token_data.get("access_token", "")
+        refresh_token = token_data.get("refresh_token", "")
+        _append_config("KITSU_TOKEN", access_token)
+        _append_config("KITSU_REFRESH_TOKEN", refresh_token)
+        print(f"\n{C_GREEN}{C_BOLD}✅ Kitsu Authorization Successful!{C_RESET}")
+        print(f"📁 Token saved to: {C_CYAN}{CONFIG_PATH}{C_RESET}")
+    except Exception as e:
+        print(f"{C_RED}❌ Connection error: {e}{C_RESET}")
+
+
+def refresh_kitsu_token():
+    """Refresh Kitsu access token using stored refresh token."""
+    load_config()
+    refresh_token = os.getenv("KITSU_REFRESH_TOKEN", "").strip()
+    if not refresh_token:
+        return None
+    try:
+        res = requests.post(
+            KITSU_TOKEN_URL,
+            data={"grant_type": "refresh_token", "refresh_token": refresh_token},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=10,
+        )
+        if res.status_code == 200:
+            data = res.json()
+            new_token = data.get("access_token", "")
+            new_refresh = data.get("refresh_token", "")
+            if new_token:
+                _append_config("KITSU_TOKEN", new_token)
+            if new_refresh:
+                _append_config("KITSU_REFRESH_TOKEN", new_refresh)
+            return new_token
+    except Exception:
+        pass
+    return None
+
+
+def sync_episode_to_kitsu(anime_title, episode_num):
+    """Sync episode progress to Kitsu."""
+    if not is_kitsu_configured():
+        return False
+    token = os.getenv("KITSU_TOKEN", "").strip()
+    kitsu_headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
+    }
+    try:
+        # Search anime
+        res = requests.get(
+            f"{KITSU_API_URL}/anime",
+            params={"filter[text]": anime_title, "page[limit]": 1},
+            headers={"Accept": "application/vnd.api+json"},
+            timeout=10,
+        )
+        if res.status_code != 200:
+            return False
+        results = res.json().get("data", [])
+        if not results:
+            return False
+        anime_id = results[0]["id"]
+
+        # Get user ID
+        res = requests.get(
+            f"{KITSU_API_URL}/users?filter[self]=true",
+            headers=kitsu_headers,
+            timeout=10,
+        )
+        if res.status_code != 200:
+            # Token might be expired, try refresh
+            new_token = refresh_kitsu_token()
+            if not new_token:
+                return False
+            kitsu_headers["Authorization"] = f"Bearer {new_token}"
+            res = requests.get(
+                f"{KITSU_API_URL}/users?filter[self]=true",
+                headers=kitsu_headers,
+                timeout=10,
+            )
+            if res.status_code != 200:
+                return False
+        users = res.json().get("data", [])
+        if not users:
+            return False
+        user_id = users[0]["id"]
+
+        # Find existing library entry
+        res = requests.get(
+            f"{KITSU_API_URL}/library-entries",
+            params={"filter[userId]": user_id, "filter[animeId]": anime_id},
+            headers=kitsu_headers,
+            timeout=10,
+        )
+        entries = res.json().get("data", []) if res.status_code == 200 else []
+
+        if entries:
+            entry_id = entries[0]["id"]
+            res = requests.patch(
+                f"{KITSU_API_URL}/library-entries/{entry_id}",
+                json={
+                    "data": {
+                        "id": entry_id,
+                        "type": "libraryEntries",
+                        "attributes": {"progress": episode_num, "status": "current"},
+                    }
+                },
+                headers=kitsu_headers,
+                timeout=10,
+            )
+        else:
+            res = requests.post(
+                f"{KITSU_API_URL}/library-entries",
+                json={
+                    "data": {
+                        "type": "libraryEntries",
+                        "attributes": {"progress": episode_num, "status": "current"},
+                        "relationships": {
+                            "anime": {"data": {"type": "anime", "id": anime_id}},
+                            "user": {"data": {"type": "users", "id": user_id}},
+                        },
+                    }
+                },
+                headers=kitsu_headers,
+                timeout=10,
+            )
+
+        if res.status_code in (200, 201, 202):
+            print(
+                f"{C_GREEN}{C_BOLD}✅  Kitsu Synced:{C_RESET} Episode {episode_num} marked as watching!"
+            )
+            return True
+    except Exception as e:
+        print(f"{C_RED}❌  Kitsu Sync error: {e}{C_RESET}")
+    return False
+
+
+def _append_config(key, value):
+    """Append or update a key in config.env without overwriting other keys."""
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    lines = []
+    found = False
+    if CONFIG_PATH.exists():
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            for line in f:
+                stripped = line.strip()
+                line_key = stripped.replace("export ", "").split("=", 1)[0].strip()
+                if line_key == key:
+                    lines.append(f'export {key}="{value}"\n')
+                    found = True
+                else:
+                    lines.append(line)
+    if not found:
+        lines.append(f'export {key}="{value}"\n')
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+    os.environ[key] = value
+
+
+def sync_all_platforms(anime_title, episode_num, mal_id=None):
+    """Sync episode progress to all configured tracking platforms."""
+    # MAL
+    sync_episode_to_mal(anime_title, episode_num, mal_id=mal_id)
+    # AniList (background)
+    if is_anilist_configured():
+        threading.Thread(
+            target=sync_episode_to_anilist,
+            args=(anime_title, episode_num),
+            daemon=True,
+        ).start()
+    # Kitsu (background)
+    if is_kitsu_configured():
+        threading.Thread(
+            target=sync_episode_to_kitsu,
+            args=(anime_title, episode_num),
+            daemon=True,
+        ).start()
 
 
 # ----------------------------------------------------------------------
@@ -945,10 +1333,32 @@ def prefetch_episode(next_ep_data, title, preferred_quality=None, mode="sub"):
 
 
 # ----------------------------------------------------------------------
-# Interactive Menus
+# Interactive Menus (FZF Fuzzy Search + Fallback)
 # ----------------------------------------------------------------------
-def pick_option(title, options, default_idx=0):
-    """Render a clean numbered CLI selection menu."""
+def _has_fzf():
+    """Check if fzf is available on the system."""
+    return shutil.which("fzf") is not None
+
+
+_FZF_ENABLED = True  # Set to False by --no-fzf CLI flag
+
+
+def pick_option(title, options, default_idx=0, use_fzf=True):
+    """Interactive selection menu with fzf fuzzy search (auto-fallback to numbered list).
+
+    When fzf is installed, launches an interactive fuzzy finder with live
+    search filtering, arrow-key navigation, and instant selection.
+    Falls back to a clean numbered menu when fzf is not available.
+    """
+    if use_fzf and _FZF_ENABLED and _has_fzf() and len(options) > 1:
+        try:
+            result = _fzf_pick(title, options)
+            if result is not None:
+                return result
+        except Exception:
+            pass  # Fallback to numbered menu
+
+    # Classic numbered menu fallback
     print(f"\n{C_CYAN}{C_BOLD}{title}{C_RESET}")
     print(f"{C_DIM}{'-' * len(title)}{C_RESET}")
     for idx, opt in enumerate(options, 1):
@@ -973,6 +1383,48 @@ def pick_option(title, options, default_idx=0):
         except (KeyboardInterrupt, EOFError):
             print("\n")
             sys.exit(0)
+
+
+def _fzf_pick(title, options):
+    """Launch fzf with the list of options and return the selected index."""
+    # Build numbered options for display
+    numbered = [f"{i+1}. {opt}" for i, opt in enumerate(options)]
+    input_text = "\n".join(numbered)
+
+    fzf_cmd = [
+        "fzf",
+        "--height=~40%",
+        "--layout=reverse",
+        "--border=rounded",
+        f"--header={title}",
+        "--prompt=🔍 Search > ",
+        "--pointer=▶",
+        "--marker=✓",
+        "--ansi",
+        "--no-scrollbar",
+        "--cycle",
+    ]
+
+    proc = subprocess.run(
+        fzf_cmd,
+        input=input_text,
+        capture_output=True,
+        text=True,
+    )
+
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return None  # User cancelled (Esc/Ctrl-C)
+
+    selected = proc.stdout.strip()
+    # Extract the number prefix to find the original index
+    num_match = re.match(r"^(\d+)\.", selected)
+    if num_match:
+        return int(num_match.group(1)) - 1
+    # Fallback: find by exact text match
+    for i, opt in enumerate(options):
+        if opt in selected:
+            return i
+    return 0
 
 
 # ----------------------------------------------------------------------
@@ -1084,8 +1536,8 @@ def play_loop(
         # Record to local history
         save_history(slug, title, ep_num, quality=quality_used, mode=mode)
 
-        # Auto-sync to MyAnimeList
-        sync_episode_to_mal(title, ep_num, mal_id=mal_id)
+        # Auto-sync to all configured tracking platforms (MAL, AniList, Kitsu)
+        sync_all_platforms(title, ep_num, mal_id=mal_id)
 
         # Interactive post-playback controls
         while True:
@@ -1249,15 +1701,26 @@ def print_help():
     -d, --download            Download episode locally without opening player
     --direct                  Stream directly without multi-threaded local turbo cache
     --dub                     Play English dub if available (default: Japanese sub)
+    --no-fzf                  Disable fzf fuzzy search (use numbered menus)
     --player <player>         Media player executable (default: mpv)
     -U, --update, update      Check and update ani-sync to the latest version
-    auth                      Run interactive MyAnimeList OAuth2 setup wizard
     -h, --help                Show this help menu
+
+{C_BOLD}Authentication (Multi-Platform Tracking):{C_RESET}
+    auth                      Interactive auth picker (MAL / AniList / Kitsu)
+    auth mal                  Connect MyAnimeList account
+    auth anilist              Connect AniList account
+    auth kitsu                Connect Kitsu account
 
 {C_BOLD}Player Keybindings:{C_RESET}
     {C_CYAN}[Tab]{C_RESET} or {C_CYAN}[i]{C_RESET}         Skip anime intro / opening (+85 seconds)
     {C_CYAN}[o]{C_RESET}                   Skip anime outro / ending
     {C_CYAN}[q]{C_RESET}                   Quit player and return to post-playback controls
+
+{C_BOLD}FZF Fuzzy Search:{C_RESET}
+    When {C_CYAN}fzf{C_RESET} is installed, all selection menus use interactive fuzzy
+    filtering. Install: {C_GREEN}sudo pacman -S fzf{C_RESET} (Arch) / {C_GREEN}sudo apt install fzf{C_RESET} (Debian)
+    / {C_GREEN}brew install fzf{C_RESET} (macOS). Disable with {C_YELLOW}--no-fzf{C_RESET}.
 """
     )
 
@@ -1285,7 +1748,31 @@ def main():
         return
 
     if args and args[0] in ("auth", "setup", "--auth"):
-        run_auth()
+        if len(args) >= 2 and args[1].lower() in ("anilist", "al"):
+            run_anilist_auth()
+        elif len(args) >= 2 and args[1].lower() in ("kitsu", "kt"):
+            run_kitsu_auth()
+        elif len(args) >= 2 and args[1].lower() in ("mal", "myanimelist"):
+            run_auth()
+        else:
+            # Interactive platform picker
+            print(
+                f"\n{C_CYAN}{C_BOLD}🔗 Select tracking platform to authenticate:{C_RESET}"
+            )
+            platforms = [
+                "MyAnimeList (MAL)",
+                "AniList",
+                "Kitsu",
+            ]
+            idx = pick_option(
+                "Authentication Setup:", platforms, default_idx=0, use_fzf=False
+            )
+            if idx == 0:
+                run_auth()
+            elif idx == 1:
+                run_anilist_auth()
+            elif idx == 2:
+                run_kitsu_auth()
         return
 
     # Check for continue / resume command
@@ -1372,6 +1859,7 @@ def main():
     direct = False
     download_only = False
     auto_skip = False
+    use_fzf = True
 
     i = 0
     while i < len(args):
@@ -1392,6 +1880,10 @@ def main():
             direct = True
         elif arg in ("--skip", "--auto-skip"):
             auto_skip = True
+        elif arg == "--no-fzf":
+            use_fzf = False
+            global _FZF_ENABLED
+            _FZF_ENABLED = False
         elif arg == "--dub":
             mode = "dub"
         elif arg == "--player":

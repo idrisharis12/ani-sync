@@ -5,13 +5,14 @@
 <h1 align="center">ani-sync</h1>
 
 <p align="center">
-  <b>Stream anime from your terminal with 64x multi-connection turbo speed and automatically sync watch progress to MyAnimeList.</b>
+  <b>Stream anime from your terminal with 64x multi-connection turbo speed and automatically sync watch progress to MyAnimeList, AniList & Kitsu.</b>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python&logoColor=white" alt="Python 3.8+" />
   <img src="https://img.shields.io/badge/Speed-64x%20Turbo-brightgreen" alt="64x Turbo Speed" />
   <img src="https://img.shields.io/badge/Buffer-Zero--Buffering-success" alt="Zero Buffering" />
+  <img src="https://img.shields.io/badge/Tracking-MAL%20%7C%20AniList%20%7C%20Kitsu-blueviolet" alt="Multi-Platform Tracking" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-informational" alt="Platform" />
 </p>
@@ -36,13 +37,16 @@
   - [5. 🎬 Seasons, Movies & Episode Selection](#5--seasons-movies--episode-selection)
   - [6. 🎯 Multi-Resolution Quality Selection (1080p, 720p, etc.)](#6--multi-resolution-quality-selection-1080p-720p-etc)
   - [7. 🎙️ Japanese Subtitles vs English Dub (`--dub`)](#7-️-japanese-subtitles-vs-english-dub---dub)
-  - [8. 📥 High-Speed Offline Download Mode (`-d`)](#8--high-speed-offline-download-mode--d)
-  - [9. 🎮 Interactive Post-Playback Controls](#9--interactive-post-playback-controls)
-  - [10. 🎧 Custom Media Player Support](#10--custom-media-player-support)
-  - [11. 💬 Discord Rich Presence Integration](#11--discord-rich-presence-integration)
+  - [8. ⏩ Auto-Skip Anime Opening & Ending (`--skip`)](#8--auto-skip-anime-opening--ending---skip)
+  - [9. 📥 High-Speed Offline Download Mode (`-d`)](#9--high-speed-offline-download-mode--d)
+  - [10. 🎮 Interactive Post-Playback Controls](#10--interactive-post-playback-controls)
+  - [11. 🎧 Custom Media Player Support](#11--custom-media-player-support)
+  - [12. 💬 Discord Rich Presence Integration](#12--discord-rich-presence-integration)
+  - [13. 🔍 Interactive FZF Fuzzy Search](#13--interactive-fzf-fuzzy-search)
+  - [14. 🔄 Multi-Platform Tracking (MAL + AniList + Kitsu)](#14--multi-platform-tracking-mal--anilist--kitsu)
 - [📋 CLI Cheat Sheet & Flag Reference](#-cli-cheat-sheet--flag-reference)
 - [🔄 Universal Auto-Updates](#-universal-auto-updates)
-- [🔑 Step-by-Step MyAnimeList API Setup](#-step-by-step-myanimelist-api-setup)
+- [🔑 Multi-Platform Tracking Setup](#-multi-platform-tracking-setup)
 - [💖 Credits & Acknowledgements](#-credits--acknowledgements)
 - [📄 License](#-license)
 
@@ -57,6 +61,9 @@
 | 💾 **RAM-Disk Caching (`/dev/shm`)** | Automatically utilizes Linux tmpfs shared memory at **10,000+ MB/s** for 0ms seek latency and 0 SSD wear. |
 | ⏩ **Dual-Episode Pre-Fetching** | Silently preloads Episodes N+1 and N+2 in the background so next episodes start in **0.00s instantly**. |
 | 🔄 **Automatic MyAnimeList Sync** | Automatically updates and increments your watched episode count on **MyAnimeList** via the official OAuth2 API upon finishing an episode. |
+| 🔄 **Multi-Platform Tracking** | Simultaneously sync watch progress to **MyAnimeList**, **AniList**, and **Kitsu** — all in background threads. |
+| 🔍 **FZF Fuzzy Search** | When `fzf` is installed, all menus use **interactive fuzzy filtering** with live search. Falls back to numbered menus gracefully. |
+| ⏩ **Auto-Skip Opening/Ending** | Pass `--skip` to auto-skip the anime OP, or press `Tab`/`i`/`o` during playback for instant manual skip (+85s). |
 | ⏪ **Smart Continue Watching** | Run `ani-sync continue` to resume right where you left off. |
 | 🔥 **Trending & Airing Browser** | Run `ani-sync trending` to instantly pick from the top currently airing and popular anime. |
 | 🎬 **Seasons, OVAs & Movies** | Seamlessly navigate through multiple seasons, spin-offs, and movies in a single franchise. |
@@ -358,6 +365,65 @@ ani-sync "spy x family" --player iina
 
 ---
 
+### 13. 🔍 Interactive FZF Fuzzy Search
+When [`fzf`](https://github.com/junegunn/fzf) is installed, all selection menus in `ani-sync` are upgraded to a **live interactive fuzzy search** with real-time filtering, arrow-key navigation, and instant selection — no more scrolling through long numbered lists.
+
+```
+🔍 Search > frier
+▶ 1. Frieren: Beyond Journey's End
+  2. Frieren: Beyond Journey's End Season 2
+  3. Sousou no Frieren (Special)
+```
+
+**Install fzf:**
+```bash
+# Arch Linux
+sudo pacman -S fzf
+
+# Debian / Ubuntu
+sudo apt install fzf
+
+# macOS
+brew install fzf
+
+# Windows (Scoop)
+scoop install fzf
+```
+
+> [!TIP]
+> If fzf is not installed, `ani-sync` gracefully falls back to its classic numbered menu. You can also force the numbered menu with `--no-fzf`.
+
+---
+
+### 14. 🔄 Multi-Platform Tracking (MAL + AniList + Kitsu)
+`ani-sync` supports **simultaneous automatic progress syncing** to all three major anime tracking platforms:
+
+| Platform | Auth Method | Setup Command |
+| :--- | :--- | :--- |
+| **MyAnimeList (MAL)** | OAuth2 (browser) | `ani-sync auth mal` |
+| **AniList** | OAuth2 (browser) | `ani-sync auth anilist` |
+| **Kitsu** | Email + Password | `ani-sync auth kitsu` |
+
+Run `ani-sync auth` to get an interactive platform picker, or connect each directly:
+
+```bash
+# Connect MyAnimeList
+ani-sync auth mal
+
+# Connect AniList
+ani-sync auth anilist
+
+# Connect Kitsu
+ani-sync auth kitsu
+```
+
+After authenticating, `ani-sync` will **automatically sync every episode you watch** to all connected platforms in the background — no extra flags needed.
+
+> [!NOTE]
+> You can connect one, two, or all three platforms. Each platform syncs independently in its own background thread so it never slows down playback.
+
+---
+
 ## 📋 CLI Cheat Sheet & Flag Reference
 
 | Command / Flag | Description | Example |
@@ -405,74 +471,69 @@ ani-sync "spy x family" --player iina
 
 ---
 
-## 🔑 Step-by-Step MyAnimeList API Setup (Complete Walkthrough)
+## 🔑 Multi-Platform Tracking Setup
 
-To enable automatic episode tracking and syncing with your MyAnimeList account, you need a free personal API Client ID from MyAnimeList.
+### MyAnimeList (MAL) Setup
 
-### Step 1: Open the Developer Portal & Create an App ID
-1. Log in to your account on [MyAnimeList.net](https://myanimelist.net/).
+To enable automatic episode tracking with your MyAnimeList account:
+
+1. Log in to [MyAnimeList.net](https://myanimelist.net/).
 2. Open the **API Developer Portal**: [https://myanimelist.net/apiconfig](https://myanimelist.net/apiconfig).
-3. Click the **"Create ID"** (or **"Create an App"**) button.
-
-### Step 2: Fill in the Application Form
-Fill in each field exactly as described below:
-
-| Field Name | Value to Enter | Notes |
-| :--- | :--- | :--- |
-| **App Name** | `ani-sync` | Name of your personal client |
-| **App Type** | `other` | Select `other` from the dropdown menu |
-| **App Redirect URL** | `http://localhost` | **Must be exact** (use `http://`, not `https://`) |
-| **Homepage URL** | `https://github.com/idrisharis12/ani-sync/` | *Include the trailing slash `/`* |
-| **App Description** | *(See copy-paste text below)* | Detailed description required by MAL |
-| **Commercial use?** | `No` | Select No |
-| **Non-commercial use?** | `Yes` | Select Yes |
-| **Terms of Service** | `Checked` | Check the box to agree to API terms |
-
-> **📋 Copy-Paste Description for MAL:**
-> ```
-> ani-sync is an open-source command-line tool built for personal use that allows users to stream anime episodes directly in their terminal and automatically sync watched episode numbers, watch history, and anime status to their MyAnimeList profile using the official MyAnimeList OAuth 2.0 API.
-> ```
-
-4. Click **"Submit"** at the bottom of the form.
-5. Copy your **`Client ID`** (and optional `Client Secret`).
+3. Click **"Create ID"** and fill in:
+   | Field | Value |
+   | :--- | :--- |
+   | **App Name** | `ani-sync` |
+   | **App Type** | `other` |
+   | **App Redirect URL** | `http://localhost` |
+4. Copy your **Client ID** and run:
+   ```bash
+   ani-sync auth mal
+   ```
+5. Paste your Client ID, authorize in the browser, and paste the redirect URL back.
 
 ---
 
-### Step 3: Run the Terminal Setup Wizard
+### AniList Setup
 
-In your terminal, run:
+1. Go to [AniList Developer Settings](https://anilist.co/settings/developer).
+2. Click **"Create New Client"**:
+   | Field | Value |
+   | :--- | :--- |
+   | **Name** | `ani-sync` |
+   | **Redirect URL** | `https://anilist.co/api/v2/oauth/pin` |
+3. Copy your **Client ID** and **Client Secret**, then run:
+   ```bash
+   ani-sync auth anilist
+   ```
+4. Enter your Client ID and Secret, authorize in the browser, and paste the PIN code back.
+
+---
+
+### Kitsu Setup
+
+Kitsu uses simple email/password authentication (no developer portal needed):
+
 ```bash
-ani-sync auth
+ani-sync auth kitsu
 ```
 
-1. Paste your **Client ID** (and Client Secret if requested).
-2. `ani-sync` opens the authorization URL in your web browser.
-3. Log in (if prompted) and click **"Allow"**.
-4. You will be redirected to an address like:
-   ```
-   http://localhost/?code=EXAMPLE_AUTHORIZATION_CODE_HERE...
-   ```
-   > [!NOTE]
-   > Your browser may display **"This site can’t be reached"**. **This is completely normal** because no local server is running. The authorization code is directly inside your browser's **URL address bar**!
-
-5. Copy the entire URL (or the string after `code=`) from your address bar.
-6. Paste it into your terminal prompt and press `Enter`.
-7. `ani-sync` exchanges the code for tokens and saves them automatically to:
-   ```
-   ~/.config/ani-sync/config.env
-   ```
+Enter your Kitsu email and password. Your credentials are sent directly to Kitsu's OAuth endpoint and are **not stored locally** — only the access token is saved.
 
 ---
 
 ### Configuration File Format
 
-Credentials are saved in `~/.config/ani-sync/config.env` (or `%APPDATA%\ani-sync\config.env` on Windows):
+All credentials are saved in `~/.config/ani-sync/config.env` (or `%APPDATA%\ani-sync\config.env` on Windows):
 
 ```bash
 # Example ~/.config/ani-sync/config.env
 export MAL_CLIENT_ID="example_client_id_123456"
-export MAL_CLIENT_SECRET="example_client_secret_abcdef"  # Optional
+export MAL_CLIENT_SECRET=""
 export MAL_REFRESH_TOKEN="example_refresh_token_xyz789"
+export ANILIST_TOKEN="example_anilist_access_token"
+export KITSU_TOKEN="example_kitsu_access_token"
+export KITSU_REFRESH_TOKEN="example_kitsu_refresh_token"
+export DISCORD_CLIENT_ID="1543718626400403466"
 ```
 
 ---
