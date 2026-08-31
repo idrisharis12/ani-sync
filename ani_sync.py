@@ -70,7 +70,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.4.0"
+VERSION = "2.5.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -836,7 +836,11 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         if is_mal_configured():
             tasks["MyAnimeList"] = executor.submit(
-                sync_episode_to_mal, anime_title, episode_num, mal_id=mal_id, quiet=True
+                sync_episode_to_mal,
+                anime_title,
+                episode_num,
+                mal_id=mal_id,
+                quiet=True,
             )
         if is_anilist_configured():
             tasks["AniList"] = executor.submit(
@@ -855,6 +859,270 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
                 sync_results[p_name] = (False, str(e))
 
     return sync_results
+
+
+def score_anime_mal(anime_title, score, mal_id=None, quiet=False):
+    """Update anime score rating on MyAnimeList."""
+    if not is_mal_configured():
+        return False, "Not configured"
+    access_token = refresh_mal_token()
+    if not access_token:
+        return False, "Auth failed"
+    if not mal_id:
+        try:
+            search_url = f"{API_URL}/anime"
+            headers = {"Authorization": f"Bearer {access_token}"}
+            res = requests.get(
+                search_url,
+                params={"q": anime_title, "limit": 1},
+                headers=headers,
+                timeout=8,
+            )
+            if res.status_code == 200:
+                data = res.json().get("data", [])
+                if data:
+                    mal_id = data[0]["node"]["id"]
+        except Exception:
+            pass
+    if not mal_id:
+        return False, "Anime not found on MAL"
+    try:
+        update_url = f"{API_URL}/anime/{mal_id}/my_list_status"
+        res = requests.patch(
+            update_url,
+            data={"score": score},
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            timeout=8,
+        )
+        if res.status_code in (200, 201):
+            return True, f"Rated {score}/10"
+        return False, f"HTTP {res.status_code}"
+    except Exception as e:
+        return False, str(e)
+
+
+def score_anime_anilist(anime_title, score, quiet=False):
+    """Update anime score rating on AniList."""
+    if not is_anilist_configured():
+        return False, "Not configured"
+    token = os.getenv("ANILIST_TOKEN", "").strip()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    try:
+        # Search media ID
+        sr = requests.post(
+            ANILIST_API_URL,
+            json={
+                "query": "query ($search: String) { Media (search: $search, type: ANIME) { id } }",
+                "variables": {"search": anime_title},
+            },
+            headers=headers,
+            timeout=8,
+        )
+        if sr.status_code != 200:
+            return False, "Search failed"
+        media_id = sr.json().get("data", {}).get("Media", {}).get("id")
+        if not media_id:
+            return False, "Anime not found"
+
+        mutation = """
+        mutation ($mediaId: Int, $score: Float) {
+          SaveMediaListEntry (mediaId: $mediaId, score: $score) {
+            id
+            score
+          }
+        }
+        """
+        mr = requests.post(
+            ANILIST_API_URL,
+            json={
+                "query": mutation,
+                "variables": {"mediaId": media_id, "score": float(score)},
+            },
+            headers=headers,
+            timeout=8,
+        )
+        if mr.status_code == 200:
+            return True, f"Rated {score}/10"
+        return False, f"HTTP {mr.status_code}"
+    except Exception as e:
+        return False, str(e)
+
+
+def score_anime_kitsu(anime_title, score, quiet=False):
+    """Update anime score rating on Kitsu."""
+    if not is_kitsu_configured():
+        return False, "Not configured"
+    token = os.getenv("KITSU_TOKEN", "").strip()
+    user_id = os.getenv("KITSU_USER_ID", "").strip()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/vnd.api+json",
+        "Accept": "application/vnd.api+json",
+    }
+    try:
+        sr = requests.get(
+            f"{KITSU_API_URL}/anime",
+            params={"filter[text]": anime_title, "page[limit]": 1},
+            headers=headers,
+            timeout=8,
+        )
+        if sr.status_code != 200:
+            return False, "Search failed"
+        data = sr.json().get("data", [])
+        if not data:
+            return False, "Anime not found"
+        anime_id = data[0]["id"]
+
+        er = requests.get(
+            f"{KITSU_API_URL}/library-entries",
+            params={"filter[user_id]": user_id, "filter[anime_id]": anime_id},
+            headers=headers,
+            timeout=8,
+        )
+        if er.status_code == 200 and er.json().get("data"):
+            entry_id = er.json()["data"][0]["id"]
+            res = requests.patch(
+                f"{KITSU_API_URL}/library-entries/{entry_id}",
+                json={
+                    "data": {
+                        "id": entry_id,
+                        "type": "libraryEntries",
+                        "attributes": {"ratingTwenty": int(score * 2)},
+                    }
+                },
+                headers=headers,
+                timeout=8,
+            )
+        else:
+            res = requests.post(
+                f"{KITSU_API_URL}/library-entries",
+                json={
+                    "data": {
+                        "type": "libraryEntries",
+                        "attributes": {"ratingTwenty": int(score * 2)},
+                        "relationships": {
+                            "anime": {"data": {"type": "anime", "id": anime_id}},
+                            "user": {"data": {"type": "users", "id": user_id}},
+                        },
+                    }
+                },
+                headers=headers,
+                timeout=8,
+            )
+        if res.status_code in (200, 201, 202):
+            return True, f"Rated {score}/10"
+        return False, f"HTTP {res.status_code}"
+    except Exception as e:
+        return False, str(e)
+
+
+def score_anime_all(anime_title, score, mal_id=None):
+    """Score anime across all connected platforms in parallel and return results."""
+    tasks = {}
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        if is_mal_configured():
+            tasks["MyAnimeList"] = executor.submit(
+                score_anime_mal, anime_title, score, mal_id=mal_id, quiet=True
+            )
+        if is_anilist_configured():
+            tasks["AniList"] = executor.submit(
+                score_anime_anilist, anime_title, score, quiet=True
+            )
+        if is_kitsu_configured():
+            tasks["Kitsu"] = executor.submit(
+                score_anime_kitsu, anime_title, score, quiet=True
+            )
+
+        for p_name, future in tasks.items():
+            try:
+                ok, msg = future.result(timeout=5)
+                results[p_name] = (ok, msg)
+            except Exception as e:
+                results[p_name] = (False, str(e))
+    return results
+
+
+def run_score_command(anime_title=None, target_score=None, mal_id=None):
+    """Interactive anime rating wizard with multi-platform cloud syncing."""
+    load_config()
+    if not (is_mal_configured() or is_anilist_configured() or is_kitsu_configured()):
+        print(
+            f"\n{C_YELLOW}⚠️  No tracking accounts connected. Connect an account first with:{C_RESET}"
+        )
+        print(f"   {C_CYAN}ani-sync auth{C_RESET}\n")
+        return
+
+    if not anime_title:
+        last = get_last_watched()
+        if last:
+            anime_title = last["title"]
+        else:
+            try:
+                anime_title = input(
+                    f"\n{C_BOLD}⭐ Enter anime title to rate: {C_RESET}"
+                ).strip()
+            except (KeyboardInterrupt, EOFError):
+                print("\n")
+                return
+
+    if not anime_title:
+        print(f"{C_RED}No anime title specified.{C_RESET}")
+        return
+
+    if target_score is None:
+        score_labels = [
+            "10 — Masterpiece ⭐⭐⭐⭐⭐",
+            "9  — Great",
+            "8  — Very Good",
+            "7  — Good",
+            "6  — Fine",
+            "5  — Average",
+            "4  — Bad",
+            "3  — Very Bad",
+            "2  — Horrible",
+            "1  — Appalling",
+        ]
+        s_idx = pick_option(
+            f"⭐ Rate '{anime_title[:40]}' (Score 1-10):",
+            score_labels,
+            default_idx=0,
+        )
+        target_score = 10 - s_idx
+
+    print(
+        f"\n{C_CYAN}🔄 Syncing rating ({target_score}/10) to connected platforms...{C_RESET}"
+    )
+    res = score_anime_all(anime_title, target_score, mal_id=mal_id)
+
+    print(
+        f"\n{C_CYAN}╭────────────────────────────────────────────────────────────╮{C_RESET}"
+    )
+    print(
+        f"{C_CYAN}│{C_RESET}  {C_BOLD}{C_MAGENTA}⭐ Score Rating Synced:{C_RESET} {C_WHITE}{C_BOLD}{anime_title[:32]:<32}{C_RESET} {C_CYAN}│{C_RESET}"
+    )
+    print(
+        f"{C_CYAN}├────────────────────────────────────────────────────────────┤{C_RESET}"
+    )
+    for p_name, (ok, msg) in res.items():
+        if ok:
+            print(
+                f"{C_CYAN}│{C_RESET}  {C_GREEN}✓{C_RESET} {C_BOLD}{p_name:<13}{C_RESET} {C_GREEN}{msg}{C_RESET}"
+            )
+        else:
+            print(
+                f"{C_CYAN}│{C_RESET}  {C_YELLOW}⚠{C_RESET} {C_BOLD}{p_name:<13}{C_RESET} {C_YELLOW}{msg}{C_RESET}"
+            )
+    print(
+        f"{C_CYAN}╰────────────────────────────────────────────────────────────╯{C_RESET}\n"
+    )
 
 
 # ----------------------------------------------------------------------
@@ -2747,6 +3015,8 @@ def play_loop(
                 if seasons:
                     menu_opts.append("🎬  Switch Season / Movie in Franchise")
                     actions.append("season")
+                menu_opts.append("⭐  Rate & Score Anime (MAL / AniList / Kitsu)")
+                actions.append("score")
                 menu_opts.append("📥  Sync & Update Watch Library")
                 actions.append("sync")
                 menu_opts.append("🩺  Run System Diagnostics (Doctor)")
@@ -2801,6 +3071,8 @@ def play_loop(
                         download_only=download_only,
                         auto_skip=auto_skip,
                     )
+                elif action == "score":
+                    run_score_command(anime_title=title, mal_id=mal_id)
                 elif action == "sync":
                     sync_all_libraries()
                 elif action == "doctor":
@@ -3106,6 +3378,7 @@ def print_help():
     {C_GREEN}ani-sync trending{C_RESET}
     {C_GREEN}ani-sync schedule{C_RESET}
     {C_GREEN}ani-sync sync{C_RESET}
+    {C_GREEN}ani-sync score "frieren" 10{C_RESET}
     {C_GREEN}ani-sync theme tokyonight{C_RESET}
     {C_GREEN}ani-sync doctor{C_RESET}
     {C_GREEN}ani-sync credits{C_RESET}
@@ -3118,6 +3391,7 @@ def print_help():
     -s, --schedule, schedule  Interactive anime release schedule & calendar
     history, --history        View recent watch history and pick to resume
     sync, --sync, import      Sync & import watch library from all connected platforms
+    score, rate, --score      Rate & score an anime (1-10) on MAL, AniList & Kitsu
     theme, --theme [name]     Select or set color theme (catppuccin, tokyonight, dracula, nord, gruvbox, monokai)
     doctor, check, --doctor   Verify dependencies, system status & credentials
     credits, --credits        Display open-source contributors & project credits
@@ -3188,6 +3462,10 @@ def main():
             "calendar",
             "-s",
             "--schedule",
+            "score",
+            "rate",
+            "--score",
+            "--rate",
         )
     ):
         threading.Thread(
@@ -3201,6 +3479,18 @@ def main():
         else:
             print_help()
             return
+
+    if args and args[0] in ("score", "rate", "--score", "--rate"):
+        anime_query = None
+        target_score = None
+        if len(args) > 1:
+            if args[-1].isdigit() and 1 <= int(args[-1]) <= 10:
+                target_score = int(args[-1])
+                anime_query = " ".join(args[1:-1]).strip() if len(args) > 2 else None
+            else:
+                anime_query = " ".join(args[1:]).strip()
+        run_score_command(anime_title=anime_query, target_score=target_score)
+        return
 
     if args and args[0] in (
         "schedule",

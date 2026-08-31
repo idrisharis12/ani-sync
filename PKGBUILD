@@ -1,6 +1,6 @@
 # Maintainer: Idris Haris <https://github.com/idrisharis12>
 pkgname=ani-sync
-pkgver=2.4.0
+pkgver=2.5.0
 pkgrel=1
 pkgdesc="Stream anime from terminal with 64x turbo speed & automatic MyAnimeList tracking"
 arch=('any')
