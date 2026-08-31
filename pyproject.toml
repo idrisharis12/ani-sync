@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ani-sync"
-version = "2.7.0"
+version = "2.7.1"
 authors = [
   { name="Idris Haris", email="idrisharis@users.noreply.github.com" },
 ]
