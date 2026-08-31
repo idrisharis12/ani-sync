@@ -1,22 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Executable entrypoint for python -m ani_sync."""
+"""Entry point for ``python -m ani_sync``.
 
-import sys
-import ani_sync
+This module now forwards directly to the package's ``main`` function defined in
+``ani_sync.__init__``. The previous indirect import of a non‑existent ``cli``
+module has been removed.
+"""
+
+from . import main
 
 if __name__ == "__main__":
-    import ani_sync.config
-
-    # Execute root script or package entrypoint
-    try:
-        import ani_sync.cli as cli
-
-        cli.main()
-    except (ImportError, AttributeError):
-        import importlib
-
-        mod = importlib.import_module("ani_sync")
-        if hasattr(mod, "main"):
-            mod.main()
-        else:
-            print(f"ani-sync v{ani_sync.config.VERSION}")
+    main()

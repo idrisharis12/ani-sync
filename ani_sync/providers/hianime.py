@@ -2,6 +2,7 @@
 """HiAnime / Zoro high-definition streaming provider."""
 
 import requests
+import urllib.parse
 from ani_sync.config import log_debug
 from ani_sync.providers.base import BaseProvider
 
@@ -11,8 +12,8 @@ class HiAnimeProvider(BaseProvider):
 
     def search(self, query):
         endpoints = [
-            f"https://api.consumet.org/anime/zoro/{query}",
-            f"https://consumet.vercel.app/anime/zoro/{query}",
+            f"https://api.consumet.org/anime/zoro/{urllib.parse.quote_plus(query)}",
+            f"https://consumet.vercel.app/anime/zoro/{urllib.parse.quote_plus(query)}",
         ]
         for url in endpoints:
             try:

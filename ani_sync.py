@@ -98,7 +98,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.9.0"
+VERSION = "2.9.1"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"

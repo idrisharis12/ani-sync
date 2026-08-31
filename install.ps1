@@ -99,6 +99,9 @@ $Ps1Path = "$BinDir\ani-sync.ps1"
 # Copy or download ani_sync.py
 if (Test-Path "$PSScriptRoot\ani_sync.py") {
     Copy-Item "$PSScriptRoot\ani_sync.py" -Destination $ScriptPath -Force
+    if (Test-Path "$PSScriptRoot\ani_sync") {
+        Copy-Item "$PSScriptRoot\ani_sync" -Destination "$InstallDir\ani_sync" -Recurse -Force
+    }
     if (Test-Path "$PSScriptRoot\assets") {
         Copy-Item "$PSScriptRoot\assets" -Destination "$InstallDir\assets" -Recurse -Force
     }

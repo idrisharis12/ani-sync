@@ -36,6 +36,16 @@
 
 ---
 
+## 📦 What's New in v2.9.1
+
+- **🔧 CLI Entry Point Fix** — `ani-sync` and `python -m ani_sync` now work correctly via console script entry point
+- **🔒 Security: URL Encoding** — Provider search queries are now URL-encoded (`urllib.parse.quote_plus`) to prevent malformed URLs and potential injection
+- **🪟 Windows Installer Fix** — `install.ps1` now copies the full `ani_sync` package directory for correct module imports
+- **⚙️ CI Fix** — Added `shell: bash` to the Windows compile step in `release.yml` to prevent PowerShell syntax errors
+- **📦 Version Consistency** — All packaging scripts, formulas, and PKGBUILDs updated to v2.9.1
+
+---
+
 ```text
   📺 ani-sync ❯ 🔍 Search: frieren
   ┌────────────────────────────────────────────────────────────────────────┐

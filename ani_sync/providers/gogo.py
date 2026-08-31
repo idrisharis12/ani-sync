@@ -2,6 +2,7 @@
 """Gogoanime and fast CDN secondary fallback scraper."""
 
 import requests
+import urllib.parse
 from ani_sync.config import log_debug
 from ani_sync.providers.base import BaseProvider
 
@@ -11,8 +12,8 @@ class GogoProvider(BaseProvider):
 
     def search(self, query):
         endpoints = [
-            f"https://api.consumet.org/anime/gogoanime/{query}",
-            f"https://consumet.vercel.app/anime/gogoanime/{query}",
+            f"https://api.consumet.org/anime/gogoanime/{urllib.parse.quote_plus(query)}",
+            f"https://consumet.vercel.app/anime/gogoanime/{urllib.parse.quote_plus(query)}",
         ]
         for url in endpoints:
             try:

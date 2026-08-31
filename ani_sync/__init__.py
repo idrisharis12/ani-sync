@@ -23,7 +23,18 @@ from ani_sync.ui.themes import apply_theme, THEMES, get_current_theme
 __version__ = VERSION
 
 
-# Backward-compatibility alias
+def main():
+    """Entry point for the ``ani-sync`` console script.
+
+    Lazily imports the core CLI implementation and runs it.
+    This keeps imports lightweight for library users.
+    """
+    from . import ani_sync as _core
+
+    _core.main()
+
+
+# Backward‑compatibility alias for old attribute access patterns.
 def __getattr__(name):
     if name == "CURRENT_THEME":
         return themes.get_current_theme()

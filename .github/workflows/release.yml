@@ -41,6 +41,7 @@ jobs:
       - name: Compile Standalone Binaries & Bundles
         env:
           PYTHONUTF8: "1"
+        shell: bash
         run: |
           python build_standalone.py
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
