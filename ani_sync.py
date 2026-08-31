@@ -3581,6 +3581,185 @@ def print_credits():
     )
 
 
+HELP_TOPICS = {
+    "1. 🎬 Streaming & Playback": {
+        "summary": "Direct & accelerated streaming, audio modes, and provider failover.",
+        "text": f"""{C_CYAN}{C_BOLD}🎬 STREAMING & PLAYBACK WORKFLOWS{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}Search & Play:{C_RESET}
+    {C_GREEN}ani-sync "frieren"{C_RESET}
+    {C_GREEN}ani-sync "attack on titan" --dub{C_RESET}
+    {C_GREEN}ani-sync "solo leveling" -e 1 -q 1080p{C_RESET}
+
+• {C_BOLD}Smart Resume:{C_RESET}
+    {C_GREEN}ani-sync continue{C_RESET}  (or {C_GREEN}ani-sync -c{C_RESET})
+    Instantly resumes your last watched anime at Episode N+1 with 0.0s delay.
+
+• {C_BOLD}Direct vs Accelerated Streaming:{C_RESET}
+    {C_GREEN}ani-sync "naruto"{C_RESET}           # 64-socket parallel turbo RAM cache (Zero-buffering)
+    {C_GREEN}ani-sync "naruto" --direct{C_RESET}  # Pure direct HTTP stream without caching
+    {C_GREEN}ani-sync "naruto" --lite{C_RESET}    # Low-memory mode (16 sockets) for Termux/Raspberry Pi
+
+• {C_BOLD}Stream Providers & Failover:{C_RESET}
+    {C_GREEN}ani-sync "bleach" --provider auto{C_RESET}    # Smart auto-failover (Default)
+    {C_GREEN}ani-sync "bleach" --provider anidb{C_RESET}   # Force AniDB HLS backend
+    {C_GREEN}ani-sync "bleach" --provider gogo{C_RESET}    # Force secondary Gogo/Consumet mirror
+""",
+    },
+    "2. 📅 Airing Schedule & Calendar": {
+        "summary": "Real-time AniList release calendar with broadcast countdowns.",
+        "text": f"""{C_CYAN}{C_BOLD}📅 AIRING SCHEDULE & RELEASE CALENDAR{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}Launch Schedule:{C_RESET}
+    {C_GREEN}ani-sync schedule{C_RESET}  (or {C_GREEN}ani-sync -s{C_RESET}, {C_GREEN}ani-sync calendar{C_RESET})
+
+• {C_BOLD}How It Works:{C_RESET}
+    1. Fetches currently releasing anime from AniList GraphQL.
+    2. Shows real-time countdown tags:
+       • [Available Now • Aired 2h 15m ago] -> Selecting streams immediately!
+       • [Airs in 4h 30m] -> Selecting shows countdown card and air time.
+    3. Filter by title instantly using FZF fuzzy search.
+""",
+    },
+    "3. 📥 Batch & Range Downloader": {
+        "summary": "Turbo parallel episode downloading to disk with progress bars.",
+        "text": f"""{C_CYAN}{C_BOLD}📥 TURBO BATCH & RANGE DOWNLOADER{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}Save Destination:{C_RESET}
+    Files are saved to: {C_YELLOW}~/Downloads/ani-sync/<Anime Title>/{C_RESET}
+
+• {C_BOLD}Episode Ranges:{C_RESET}
+    {C_GREEN}ani-sync "jujutsu kaisen" -d -e 1-12{C_RESET}   # Download episodes 1 to 12
+    {C_GREEN}ani-sync "attack on titan" -d -e 1,3,5{C_RESET} # Specific comma-separated episodes
+    {C_GREEN}ani-sync "chainsaw man" -d --all{C_RESET}       # Download entire season
+
+• {C_BOLD}Download Settings:{C_RESET}
+    {C_GREEN}ani-sync "frieren" -d -e 1 -q 1080p{C_RESET}    # High-definition 1080p download
+    Uses 64 parallel TCP fragment sockets per episode with live tqdm progress bars.
+""",
+    },
+    "4. 🎨 24-Bit Aesthetic Themes": {
+        "summary": "TrueColor terminal palettes & dynamic FZF styling.",
+        "text": f"""{C_CYAN}{C_BOLD}🎨 DYNAMIC 24-BIT THEMES ENGINE{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}Theme Switcher:{C_RESET}
+    {C_GREEN}ani-sync theme{C_RESET}              # Open interactive theme selector
+    {C_GREEN}ani-sync theme tokyonight{C_RESET}   # TokyoNight dark aesthetic
+    {C_GREEN}ani-sync theme catppuccin{C_RESET}   # Catppuccin Mocha pastel palette
+    {C_GREEN}ani-sync theme dracula{C_RESET}      # Dracula gothic purple palette
+    {C_GREEN}ani-sync theme nord{C_RESET}         # Nord icy blue arctic palette
+    {C_GREEN}ani-sync theme gruvbox{C_RESET}      # Gruvbox retro warm earth tones
+    {C_GREEN}ani-sync theme monokai{C_RESET}      # Monokai vivid coding palette
+
+• {C_BOLD}On-The-Fly Theme Flag:{C_RESET}
+    {C_GREEN}ani-sync "frieren" --theme tokyonight{C_RESET}
+""",
+    },
+    "5. ⏩ Frame-Accurate AniSkip": {
+        "summary": "Crowdsourced millisecond intro/outro skipping via api.aniskip.com.",
+        "text": f"""{C_CYAN}{C_BOLD}⏩ FRAME-ACCURATE ANISKIP INTEGRATION{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}Auto-Skip Mode:{C_RESET}
+    {C_GREEN}ani-sync "one piece" --skip{C_RESET}
+    Automatically fast-forwards through opening and ending themes.
+
+• {C_BOLD}In-Player Shortcuts (MPV):{C_RESET}
+    {C_CYAN}[Tab]{C_RESET} or {C_CYAN}[i]{C_RESET}  -> Instantly jump past Opening (OP)
+    {C_CYAN}[o]{C_RESET}           -> Instantly jump past Ending (ED)
+    {C_CYAN}[q]{C_RESET}           -> Exit player to post-playback dashboard
+""",
+    },
+    "6. 🎉 Syncplay Watch Together": {
+        "summary": "Synchronized group viewing rooms with friends.",
+        "text": f"""{C_CYAN}{C_BOLD}🎉 SYNCPLAY WATCH TOGETHER PARTY MODE{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}Join / Create Party Room:{C_RESET}
+    {C_GREEN}ani-sync party "anime-night"{C_RESET}
+    {C_GREEN}ani-sync "frieren" --party "anime-night"{C_RESET}
+
+• {C_BOLD}Features:{C_RESET}
+    • Coordinates play, pause, and seek between all viewers worldwide.
+    • Default public server: syncplay.pl:8999
+    • Custom servers can be saved during the interactive wizard.
+""",
+    },
+    "7. ⭐ Rating & Cloud Progress Sync": {
+        "summary": "Multi-platform watch progress and 1-10 scoring across MAL, AniList & Kitsu.",
+        "text": f"""{C_CYAN}{C_BOLD}⭐ RATING & MULTI-PLATFORM CLOUD SYNC{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}In-Terminal Rating:{C_RESET}
+    {C_GREEN}ani-sync score "frieren" 10{C_RESET}     # Rate 10/10 Masterpiece
+    {C_GREEN}ani-sync score{C_RESET}                  # Interactive scoring wizard
+
+• {C_BOLD}Library Auto-Import & Sync:{C_RESET}
+    {C_GREEN}ani-sync sync{C_RESET} (or {C_GREEN}ani-sync import{C_RESET})
+    Pulls and merges your watching/completed lists from MAL, AniList, and Kitsu.
+
+• {C_BOLD}Authentication Setup:{C_RESET}
+    {C_GREEN}ani-sync auth{C_RESET}                   # Interactive platform selector
+    {C_GREEN}ani-sync auth mal{C_RESET}               # Connect MyAnimeList (OAuth2)
+    {C_GREEN}ani-sync auth anilist{C_RESET}           # Connect AniList (OAuth2 PIN)
+    {C_GREEN}ani-sync auth kitsu{C_RESET}             # Connect Kitsu (Email/Password)
+""",
+    },
+    "8. 📱 Android (Termux) & Low-RAM Mode": {
+        "summary": "Optimized mobile streaming and minimal hardware profiles.",
+        "text": f"""{C_CYAN}{C_BOLD}📱 ANDROID (TERMUX) & LOW-RAM HARDWARE{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}Termux on Android:{C_RESET}
+    pkg update && pkg install -y python mpv yt-dlp fzf curl git termux-api
+    curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash
+
+• {C_BOLD}Low-RAM Mode (--lite / --low-ram):{C_RESET}
+    {C_GREEN}ani-sync "frieren" --lite{C_RESET}
+    Reduces socket concurrency (16 sockets) and RAM buffer allocations to 4MB,
+    preventing Out-Of-Memory (OOM) on 512MB RAM machines & phones.
+
+• {C_BOLD}Android App Intents:{C_RESET}
+    If mpv isn't installed in Termux, ani-sync automatically passes video intents
+    to mpv-android, VLC for Android, or MX Player!
+""",
+    },
+    "9. 🩺 Diagnostics & Credits": {
+        "summary": "System health scanner, credentials check, and open-source acknowledgements.",
+        "text": f"""{C_CYAN}{C_BOLD}🩺 DIAGNOSTICS & OPEN-SOURCE ATTRIBUTION{C_RESET}
+────────────────────────────────────────────────────────────
+• {C_BOLD}System Health Doctor:{C_RESET}
+    {C_GREEN}ani-sync doctor{C_RESET} (or {C_GREEN}ani-sync check{C_RESET})
+    Verifies Python, requests, tqdm, mpv, yt-dlp, curl, fzf, OS info, and API tokens.
+
+• {C_BOLD}Open-Source Attribution Roll:{C_RESET}
+    {C_GREEN}ani-sync credits{C_RESET}
+    Full roster of open-source projects, maintainers, and inspirations.
+""",
+    },
+}
+
+
+def run_help_browser(topic_query=None):
+    """Interactive help browser and topic lookup."""
+    if topic_query:
+        topic_query_lower = topic_query.lower()
+        for key, data in HELP_TOPICS.items():
+            if (
+                topic_query_lower in key.lower()
+                or topic_query_lower in data["summary"].lower()
+            ):
+                print(data["text"])
+                return
+        print(f"\n{C_YELLOW}No specific help page found for '{topic_query}'.{C_RESET}")
+        print(
+            f"Available topics: stream, schedule, download, theme, aniskip, party, score, termux, doctor\n"
+        )
+        return
+
+    # Interactive FZF Topic Browser
+    options = [f"{k:<35} — {v['summary']}" for k, v in HELP_TOPICS.items()]
+    idx = pick_option("📚 ani-sync Interactive Help & Manual:", options, default_idx=0)
+    selected_key = list(HELP_TOPICS.keys())[idx]
+    print(HELP_TOPICS[selected_key]["text"])
+
+
 def print_help():
     print(
         f"""{C_CYAN}{C_BOLD}ani-sync v{VERSION}{C_RESET} - Stream anime in terminal and auto-sync watch progress
@@ -3596,8 +3775,9 @@ def print_help():
     {C_GREEN}ani-sync theme tokyonight{C_RESET}
     {C_GREEN}ani-sync doctor{C_RESET}
     {C_GREEN}ani-sync credits{C_RESET}
+    {C_GREEN}ani-sync help download{C_RESET}
     {C_GREEN}ani-sync "attack on titan" --dub{C_RESET}
-    {C_GREEN}ani-sync "jujutsu kaisen" -d -e 1{C_RESET}
+    {C_GREEN}ani-sync "jujutsu kaisen" -d -e 1-12{C_RESET}
 
 {C_BOLD}Options:{C_RESET}
     -c, --continue, continue  Resume last watched anime (plays next episode)
@@ -3610,6 +3790,7 @@ def print_help():
     theme, --theme [name]     Select or set color theme (catppuccin, tokyonight, dracula, nord, gruvbox, monokai)
     doctor, check, --doctor   Verify dependencies, system status & credentials
     credits, --credits        Display open-source contributors & project credits
+    manual, cheatsheet, cheat Interactive in-terminal manual and topic browser
     -e, --episode <num|range> Episode number, comma-list, or range (e.g. -e 1, -e 1-12, -e 1,3,5)
     -a, --all                 Target all episodes in the season (used with -d for batch download)
     -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
@@ -3622,7 +3803,11 @@ def print_help():
     --no-fzf                  Disable fzf fuzzy search (use numbered menus)
     --player <player>         Media player executable (default: mpv)
     -U, --update, update      Check and update ani-sync to the latest version
-    -h, --help                Show this help menu
+    -h, --help, help          Show this help menu (or: 'ani-sync help <topic>')
+
+{C_BOLD}Interactive Manual & Topic Help:{C_RESET}
+    Run {C_CYAN}ani-sync manual{C_RESET} or {C_CYAN}ani-sync help <topic>{C_RESET} for detailed guides:
+    {C_DIM}Topics: stream, schedule, download, theme, aniskip, party, score, termux, doctor{C_RESET}
 
 {C_BOLD}Authentication (Multi-Platform Tracking):{C_RESET}
     auth                      Interactive auth picker (MAL / AniList / Kitsu)
@@ -3634,11 +3819,6 @@ def print_help():
     {C_CYAN}[Tab]{C_RESET} or {C_CYAN}[i]{C_RESET}         Skip anime intro / opening (+85 seconds / AniSkip)
     {C_CYAN}[o]{C_RESET}                   Skip anime outro / ending (AniSkip)
     {C_CYAN}[q]{C_RESET}                   Quit player and return to post-playback controls
-
-{C_BOLD}FZF Fuzzy Search:{C_RESET}
-    FZF interactive fuzzy filtering is automatically configured and styled with your
-    active theme palette for all search results, episode selections, and menus.
-    Use {C_YELLOW}--no-fzf{C_RESET} to force classic numbered menus.
 """
     )
 
@@ -3703,10 +3883,18 @@ def main():
             args = []
         party_room = configured_room
 
+    if args and args[0] in ("manual", "cheatsheet", "cheat", "guide"):
+        subtopic = args[1] if len(args) > 1 else None
+        run_help_browser(subtopic)
+        return
+
     if not args or args[0] in ("-h", "--help", "help"):
         if not args:
             # Interactive prompt if no arguments
             pass
+        elif len(args) > 1 and not args[1].startswith("-"):
+            run_help_browser(args[1])
+            return
         else:
             print_help()
             return
