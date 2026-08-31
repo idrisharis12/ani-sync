@@ -75,7 +75,9 @@ class TestHistory(unittest.TestCase):
                 config.CONFIG_DIR = Path(tmpdir)
                 config.HISTORY_PATH = hist_file
 
-                config.save_history("frieren-1234", "Frieren", 5, quality="1080p", mode="sub")
+                config.save_history(
+                    "frieren-1234", "Frieren", 5, quality="1080p", mode="sub"
+                )
 
                 data = config.load_history()
                 self.assertIn("history", data)
@@ -108,6 +110,7 @@ class TestQualitySorting(unittest.TestCase):
 class TestMultiProvider(unittest.TestCase):
     def test_provider_registry(self):
         from ani_sync.providers.manager import PROVIDERS
+
         self.assertIn("anidb", PROVIDERS)
         self.assertIn("gogo", PROVIDERS)
         self.assertIn("hianime", PROVIDERS)

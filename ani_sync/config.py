@@ -30,7 +30,11 @@ def get_config_dir():
     """Return OS-appropriate config directory (AppData on Windows, ~/.config on Linux/macOS/Termux)."""
     if IS_WINDOWS:
         appdata = os.environ.get("APPDATA")
-        p = Path(appdata) / "ani-sync" if appdata else Path.home() / ".config" / "ani-sync"
+        p = (
+            Path(appdata) / "ani-sync"
+            if appdata
+            else Path.home() / ".config" / "ani-sync"
+        )
     else:
         p = Path.home() / ".config" / "ani-sync"
     try:

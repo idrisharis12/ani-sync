@@ -12,7 +12,16 @@ import zipfile
 from pathlib import Path
 
 from ani_sync.config import IS_WINDOWS, IS_TERMUX, log_debug
-from ani_sync.ui.themes import C_BOLD, C_CYAN, C_DIM, C_GREEN, C_RED, C_RESET, C_YELLOW, _FZF_THEME_COLORS
+from ani_sync.ui.themes import (
+    C_BOLD,
+    C_CYAN,
+    C_DIM,
+    C_GREEN,
+    C_RED,
+    C_RESET,
+    C_YELLOW,
+    _FZF_THEME_COLORS,
+)
 
 _FZF_ENABLED = True
 
@@ -98,7 +107,6 @@ def _download_fzf_binary():
 
 def run_fzf_menu(items, prompt="Select: ", header="", preview=None):
     """Run interactive FZF fuzzy menu with numbered menu fallback."""
-    global _FZF_ENABLED
     if not items:
         return None
 
@@ -141,12 +149,15 @@ def run_fzf_menu(items, prompt="Select: ", header="", preview=None):
     for idx, item in enumerate(items, 1):
         clean_item = item
         import re
+
         clean_item = re.sub(r"\033\[[0-9;]*m", "", clean_item)
         print(f"  {C_GREEN}{idx:2d}.{C_RESET} {clean_item}")
 
     while True:
         try:
-            choice = input(f"\n{C_BOLD}Select number [1-{len(items)}] (or 'q' to quit): {C_RESET}").strip()
+            choice = input(
+                f"\n{C_BOLD}Select number [1-{len(items)}] (or 'q' to quit): {C_RESET}"
+            ).strip()
             if choice.lower() in ("q", "quit", "exit"):
                 return None
             if choice.isdigit() and 1 <= int(choice) <= len(items):

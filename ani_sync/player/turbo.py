@@ -31,7 +31,9 @@ def turbo_play(
 
     # 1. Instant local playback if cached
     if cache_file.exists() and cache_file.stat().st_size > 5 * 1024 * 1024:
-        print(f"\n{C_GREEN}{C_BOLD}⚡ Episode loaded from turbo cache — 0.0s instant start!{C_RESET}")
+        print(
+            f"\n{C_GREEN}{C_BOLD}⚡ Episode loaded from turbo cache — 0.0s instant start!{C_RESET}"
+        )
         if download_only:
             print(f"{C_GREEN}✓ File ready at: {cache_file}{C_RESET}")
             return True
@@ -50,14 +52,18 @@ def turbo_play(
     if download_only:
         has_ytdlp = shutil.which("yt-dlp") is not None
         if not has_ytdlp:
-            print(f"{C_RED}❌ yt-dlp is required for downloading anime episodes.{C_RESET}")
+            print(
+                f"{C_RED}❌ yt-dlp is required for downloading anime episodes.{C_RESET}"
+            )
             return False
 
         concurrency = "16" if (low_ram or IS_TERMUX) else "32"
         buffer_size = "4M" if (low_ram or IS_TERMUX) else "16M"
         chunk_size = "2M" if (low_ram or IS_TERMUX) else "10M"
 
-        print(f"\n{C_CYAN}{C_BOLD}📥 Downloading Episode {ep_num} via multi-connection turbo engine...{C_RESET}")
+        print(
+            f"\n{C_CYAN}{C_BOLD}📥 Downloading Episode {ep_num} via multi-connection turbo engine...{C_RESET}"
+        )
         dl_cmd = [
             "yt-dlp",
             "-N",
@@ -120,7 +126,9 @@ def turbo_play(
     return res
 
 
-def prefetch_episode(next_ep_data, title, preferred_quality=None, mode="sub", slug=None):
+def prefetch_episode(
+    next_ep_data, title, preferred_quality=None, mode="sub", slug=None
+):
     """Background pre-fetch of next episode so it loads in 0.0s."""
     try:
         ep_num = next_ep_data.get("number")

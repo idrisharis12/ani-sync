@@ -44,12 +44,20 @@ def get_auto_skip_script(auto_skip=False, aniskip_data=None):
     cache_dir = get_cache_dir()
     script_path = cache_dir / "ani_skip.lua"
 
-    op_start = aniskip_data.get("op")[0] if (aniskip_data and aniskip_data.get("op")) else 0.0
-    op_end = aniskip_data.get("op")[1] if (aniskip_data and aniskip_data.get("op")) else 85.0
+    op_start = (
+        aniskip_data.get("op")[0] if (aniskip_data and aniskip_data.get("op")) else 0.0
+    )
+    op_end = (
+        aniskip_data.get("op")[1] if (aniskip_data and aniskip_data.get("op")) else 85.0
+    )
     has_exact_op = bool(aniskip_data and aniskip_data.get("op"))
 
-    ed_start = aniskip_data.get("ed")[0] if (aniskip_data and aniskip_data.get("ed")) else None
-    ed_end = aniskip_data.get("ed")[1] if (aniskip_data and aniskip_data.get("ed")) else None
+    ed_start = (
+        aniskip_data.get("ed")[0] if (aniskip_data and aniskip_data.get("ed")) else None
+    )
+    ed_end = (
+        aniskip_data.get("ed")[1] if (aniskip_data and aniskip_data.get("ed")) else None
+    )
     has_exact_ed = bool(aniskip_data and aniskip_data.get("ed"))
 
     lua_code = f"""

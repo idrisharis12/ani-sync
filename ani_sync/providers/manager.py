@@ -13,7 +13,9 @@ PROVIDERS = {
 }
 
 
-def resolve_streams(episode_id, mode="sub", anime_slug=None, ep_num=1, provider_name="auto"):
+def resolve_streams(
+    episode_id, mode="sub", anime_slug=None, ep_num=1, provider_name="auto"
+):
     """Fetch streams with automatic fallback across AniDB, Gogo, and HiAnime providers."""
     provider_name = (provider_name or "auto").lower()
 

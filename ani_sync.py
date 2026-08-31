@@ -47,7 +47,11 @@ def get_config_dir():
     """Return OS-appropriate config directory (AppData on Windows, ~/.config on Linux/macOS/Termux)."""
     if IS_WINDOWS:
         appdata = os.environ.get("APPDATA")
-        p = Path(appdata) / "ani-sync" if appdata else Path.home() / ".config" / "ani-sync"
+        p = (
+            Path(appdata) / "ani-sync"
+            if appdata
+            else Path.home() / ".config" / "ani-sync"
+        )
     else:
         p = Path.home() / ".config" / "ani-sync"
     try:
@@ -2407,7 +2411,9 @@ def turbo_play(
     if download_only:
         has_ytdlp = shutil.which("yt-dlp") is not None
         if not has_ytdlp:
-            print(f"{C_RED}❌ yt-dlp is required for downloading anime episodes.{C_RESET}")
+            print(
+                f"{C_RED}❌ yt-dlp is required for downloading anime episodes.{C_RESET}"
+            )
             return False
 
         concurrency = "16" if (low_ram or IS_TERMUX) else "32"

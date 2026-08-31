@@ -22,6 +22,7 @@ from ani_sync.ui.themes import apply_theme, THEMES, get_current_theme
 
 __version__ = VERSION
 
+
 # Backward-compatibility alias
 def __getattr__(name):
     if name == "CURRENT_THEME":

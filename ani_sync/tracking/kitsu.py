@@ -36,7 +36,9 @@ def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
     token, user_id = get_kitsu_env()
     if not token or not user_id:
         if not quiet:
-            print(f"{C_YELLOW}ℹ️  Kitsu sync skipped (run 'ani-sync auth kitsu'){C_RESET}")
+            print(
+                f"{C_YELLOW}ℹ️  Kitsu sync skipped (run 'ani-sync auth kitsu'){C_RESET}"
+            )
         return False, "Not configured"
 
     if not quiet:
@@ -49,7 +51,12 @@ def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
     }
     try:
         # 1. Search anime ID
-        r = requests.get(f"{KITSU_API_URL}/anime", headers=headers, params={"filter[text]": anime_title, "page[limit]": 1}, timeout=10)
+        r = requests.get(
+            f"{KITSU_API_URL}/anime",
+            headers=headers,
+            params={"filter[text]": anime_title, "page[limit]": 1},
+            timeout=10,
+        )
         if r.status_code != 200:
             return False, "Search failed"
         results = r.json().get("data", [])
@@ -75,10 +82,17 @@ def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
                     "attributes": {"progress": episode_num, "status": "current"},
                 }
             }
-            patch_res = requests.patch(f"{KITSU_API_URL}/library-entries/{entry_id}", headers=headers, json=payload, timeout=10)
+            patch_res = requests.patch(
+                f"{KITSU_API_URL}/library-entries/{entry_id}",
+                headers=headers,
+                json=payload,
+                timeout=10,
+            )
             if patch_res.status_code == 200:
                 if not quiet:
-                    print(f"{C_GREEN}✓ Successfully synced Episode {episode_num} to Kitsu!{C_RESET}")
+                    print(
+                        f"{C_GREEN}✓ Successfully synced Episode {episode_num} to Kitsu!{C_RESET}"
+                    )
                 return True, "Synced"
         else:
             payload = {
@@ -91,10 +105,17 @@ def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
                     },
                 }
             }
-            post_res = requests.post(f"{KITSU_API_URL}/library-entries", headers=headers, json=payload, timeout=10)
+            post_res = requests.post(
+                f"{KITSU_API_URL}/library-entries",
+                headers=headers,
+                json=payload,
+                timeout=10,
+            )
             if post_res.status_code == 201:
                 if not quiet:
-                    print(f"{C_GREEN}✓ Created entry and synced Episode {episode_num} to Kitsu!{C_RESET}")
+                    print(
+                        f"{C_GREEN}✓ Created entry and synced Episode {episode_num} to Kitsu!{C_RESET}"
+                    )
                 return True, "Synced"
     except Exception as e:
         log_debug(f"Kitsu sync error: {e}")

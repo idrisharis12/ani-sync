@@ -15,7 +15,7 @@ _CUSTOM_PROXY = None
 
 def set_custom_proxy(proxy_url):
     """Set global custom proxy for all HTTP requests."""
-    global _CUSTOM_PROXY, _HTTP_SESSION
+    global _CUSTOM_PROXY
     _CUSTOM_PROXY = proxy_url
     if _HTTP_SESSION is not None and proxy_url:
         _HTTP_SESSION.proxies.update({"http": proxy_url, "https": proxy_url})
@@ -59,7 +59,12 @@ def get_http_session():
                 "Upgrade-Insecure-Requests": "1",
             }
         )
-        proxy = _CUSTOM_PROXY or os.getenv("HTTPS_PROXY") or os.getenv("HTTP_PROXY") or os.getenv("ALL_PROXY")
+        proxy = (
+            _CUSTOM_PROXY
+            or os.getenv("HTTPS_PROXY")
+            or os.getenv("HTTP_PROXY")
+            or os.getenv("ALL_PROXY")
+        )
         if proxy:
             _HTTP_SESSION.proxies.update({"http": proxy, "https": proxy})
     return _HTTP_SESSION
@@ -94,7 +99,9 @@ def http_get(url, is_json=False, timeout=12, headers=None):
         ]
         if _CUSTOM_PROXY:
             cmd.extend(["-x", _CUSTOM_PROXY])
-        out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode("utf-8", errors="ignore")
+        out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode(
+            "utf-8", errors="ignore"
+        )
         if out.strip():
             return json.loads(out) if is_json else out
     except Exception as e:

@@ -19,7 +19,9 @@ class GogoProvider(BaseProvider):
                 r = requests.get(url, timeout=5)
                 if r.status_code == 200:
                     results = r.json().get("results", [])
-                    return [{"title": x.get("title"), "slug": x.get("id")} for x in results]
+                    return [
+                        {"title": x.get("title"), "slug": x.get("id")} for x in results
+                    ]
             except Exception:
                 pass
         return []
@@ -34,7 +36,10 @@ class GogoProvider(BaseProvider):
                 r = requests.get(url, timeout=5)
                 if r.status_code == 200:
                     episodes = r.json().get("episodes", [])
-                    return [{"number": ep.get("number"), "id": ep.get("id")} for ep in episodes]
+                    return [
+                        {"number": ep.get("number"), "id": ep.get("id")}
+                        for ep in episodes
+                    ]
             except Exception:
                 pass
         return []

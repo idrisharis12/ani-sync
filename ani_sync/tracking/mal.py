@@ -10,7 +10,16 @@ import webbrowser
 import requests
 
 from ani_sync.config import CONFIG_PATH, _append_config, load_config, log_debug
-from ani_sync.ui.themes import C_BLUE, C_BOLD, C_CYAN, C_GREEN, C_RED, C_RESET, C_YELLOW, C_DIM
+from ani_sync.ui.themes import (
+    C_BLUE,
+    C_BOLD,
+    C_CYAN,
+    C_GREEN,
+    C_RED,
+    C_RESET,
+    C_YELLOW,
+    C_DIM,
+)
 
 TOKEN_URL = "https://myanimelist.net/v1/oauth2/token"
 AUTH_URL = "https://myanimelist.net/v1/oauth2/authorize"
@@ -69,11 +78,11 @@ def refresh_mal_token():
             new_refresh = token_json.get("refresh_token")
             if new_refresh and new_refresh != refresh_token:
                 save_config(client_id, client_secret, new_refresh)
-            
+
             access_token = token_json.get("access_token")
-            expires_in = token_json.get("expires_in", 2592000) # default 30 days
+            expires_in = token_json.get("expires_in", 2592000)  # default 30 days
             _CACHED_ACCESS_TOKEN = access_token
-            _TOKEN_EXPIRES_AT = now + expires_in - 300 # 5 minute safety buffer
+            _TOKEN_EXPIRES_AT = now + expires_in - 300  # 5 minute safety buffer
             return access_token
     except Exception as e:
         log_debug(f"MAL token refresh exception: {e}")
@@ -88,7 +97,9 @@ def search_mal_id(title):
     clean_title = re_clean_title(title)
     params = {"q": clean_title, "limit": 5}
     try:
-        res = requests.get(f"{API_URL}/anime", headers=headers, params=params, timeout=10)
+        res = requests.get(
+            f"{API_URL}/anime", headers=headers, params=params, timeout=10
+        )
         if res.status_code == 200:
             data = res.json()
             if data.get("data"):
@@ -100,7 +111,13 @@ def search_mal_id(title):
 
 def re_clean_title(t):
     import re
-    t = re.sub(r"\b(TV|Movie|OVA|ONA|Special|Season \d+|Part \d+)\b", "", t, flags=re.IGNORECASE)
+
+    t = re.sub(
+        r"\b(TV|Movie|OVA|ONA|Special|Season \d+|Part \d+)\b",
+        "",
+        t,
+        flags=re.IGNORECASE,
+    )
     t = re.sub(r"[^\w\s]", " ", t)
     return " ".join(t.split())
 
@@ -109,7 +126,9 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None, quiet=False):
     """Sync episode progress to MyAnimeList."""
     if not is_mal_configured():
         if not quiet:
-            print(f"{C_YELLOW}ℹ️  MAL sync skipped (Run 'ani-sync auth' to connect MyAnimeList){C_RESET}")
+            print(
+                f"{C_YELLOW}ℹ️  MAL sync skipped (Run 'ani-sync auth' to connect MyAnimeList){C_RESET}"
+            )
         return False, "Not configured"
 
     if not quiet:
@@ -117,14 +136,18 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None, quiet=False):
     access_token = refresh_mal_token()
     if not access_token:
         if not quiet:
-            print(f"{C_RED}⚠️  Failed to refresh MyAnimeList access token. Try running 'ani-sync auth'.{C_RESET}")
+            print(
+                f"{C_RED}⚠️  Failed to refresh MyAnimeList access token. Try running 'ani-sync auth'.{C_RESET}"
+            )
         return False, "Token refresh failed"
 
     if not mal_id:
         mal_id = search_mal_id(anime_title)
         if not mal_id:
             if not quiet:
-                print(f"{C_YELLOW}⚠️  Could not locate '{anime_title}' on MyAnimeList.{C_RESET}")
+                print(
+                    f"{C_YELLOW}⚠️  Could not locate '{anime_title}' on MyAnimeList.{C_RESET}"
+                )
             return False, "Anime not found"
 
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -134,11 +157,15 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None, quiet=False):
         res = requests.put(url, headers=headers, data=data, timeout=10)
         if res.status_code == 200:
             if not quiet:
-                print(f"{C_GREEN}✓  Successfully synced Episode {episode_num} to MyAnimeList!{C_RESET}")
+                print(
+                    f"{C_GREEN}✓  Successfully synced Episode {episode_num} to MyAnimeList!{C_RESET}"
+                )
             return True, "Synced"
         else:
             if not quiet:
-                print(f"{C_RED}❌ MAL API Error ({res.status_code}): {res.text}{C_RESET}")
+                print(
+                    f"{C_RED}❌ MAL API Error ({res.status_code}): {res.text}{C_RESET}"
+                )
             return False, f"API Error {res.status_code}"
     except Exception as e:
         if not quiet:

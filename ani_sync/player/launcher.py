@@ -9,7 +9,15 @@ from pathlib import Path
 
 from ani_sync.config import IS_TERMUX, IS_WINDOWS, USER_AGENT, load_config
 from ani_sync.player.aniskip import fetch_aniskip_times, get_auto_skip_script
-from ani_sync.ui.themes import C_BOLD, C_CYAN, C_DIM, C_GREEN, C_MAGENTA, C_RESET, C_YELLOW
+from ani_sync.ui.themes import (
+    C_BOLD,
+    C_CYAN,
+    C_DIM,
+    C_GREEN,
+    C_MAGENTA,
+    C_RESET,
+    C_YELLOW,
+)
 
 
 def find_player_binary(player="mpv"):
@@ -31,7 +39,10 @@ def find_player_binary(player="mpv"):
         if player == "mpv":
             candidates = [
                 Path.home() / "scoop" / "apps" / "mpv" / "current" / "mpv.exe",
-                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "mpv" / "mpv.exe",
+                Path(os.environ.get("LOCALAPPDATA", ""))
+                / "Programs"
+                / "mpv"
+                / "mpv.exe",
                 Path("C:/Program Files/mpv/mpv.exe"),
                 Path("C:/Program Files (x86)/mpv/mpv.exe"),
                 Path("C:/tools/mpv/mpv.exe"),
@@ -49,9 +60,15 @@ def find_player_binary(player="mpv"):
                     return str(c)
 
     if sys.platform == "darwin":
-        if player == "iina" and Path("/Applications/IINA.app/Contents/MacOS/iina-cli").exists():
+        if (
+            player == "iina"
+            and Path("/Applications/IINA.app/Contents/MacOS/iina-cli").exists()
+        ):
             return "/Applications/IINA.app/Contents/MacOS/iina-cli"
-        if player == "vlc" and Path("/Applications/VLC.app/Contents/MacOS/VLC").exists():
+        if (
+            player == "vlc"
+            and Path("/Applications/VLC.app/Contents/MacOS/VLC").exists()
+        ):
             return "/Applications/VLC.app/Contents/MacOS/VLC"
 
     return player
@@ -90,7 +107,9 @@ def launch_player(
                 "--server",
                 s_server,
             ]
-            print(f"\n{C_MAGENTA}{C_BOLD}🎉 Syncplay Party Active:{C_RESET} Room '{C_CYAN}{party_room}{C_RESET}' on {C_YELLOW}{s_server}{C_RESET}")
+            print(
+                f"\n{C_MAGENTA}{C_BOLD}🎉 Syncplay Party Active:{C_RESET} Room '{C_CYAN}{party_room}{C_RESET}' on {C_YELLOW}{s_server}{C_RESET}"
+            )
             proc = subprocess.run(cmd)
             return proc.returncode == 0
 
@@ -98,7 +117,16 @@ def launch_player(
     if player_bin == "termux-open":
         cmd = ["termux-open", target_path]
     elif player_bin == "am":
-        cmd = ["am", "start", "-a", "android.intent.action.VIEW", "-d", target_path, "-t", "video/*"]
+        cmd = [
+            "am",
+            "start",
+            "-a",
+            "android.intent.action.VIEW",
+            "-d",
+            target_path,
+            "-t",
+            "video/*",
+        ]
     elif player == "mpv" or "mpv" in Path(player_bin).stem.lower():
         demux_bytes = "150M" if (low_ram or IS_TERMUX) else "500M"
         back_bytes = "30M" if (low_ram or IS_TERMUX) else "100M"
@@ -125,14 +153,30 @@ def launch_player(
             "--network-timeout=20",
             "--msg-level=ffmpeg=error",
         ]
-        skip_script = get_auto_skip_script(auto_skip=auto_skip, aniskip_data=aniskip_data)
+        skip_script = get_auto_skip_script(
+            auto_skip=auto_skip, aniskip_data=aniskip_data
+        )
         if skip_script:
             cmd.append(f"--script={skip_script}")
         cmd.append(target_path)
     elif player == "vlc" or "vlc" in Path(player_bin).stem.lower():
-        cmd = [player_bin, "--play-and-exit", f"--meta-title={media_title}", "--network-caching=3000", "--http-reconnect", target_path]
+        cmd = [
+            player_bin,
+            "--play-and-exit",
+            f"--meta-title={media_title}",
+            "--network-caching=3000",
+            "--http-reconnect",
+            target_path,
+        ]
     elif player == "iina" or "iina" in Path(player_bin).stem.lower():
-        cmd = [player_bin, f"--mpv-force-media-title={media_title}", "--mpv-cache=yes", "--mpv-demuxer-max-bytes=500M", "--mpv-demuxer-readahead-secs=300", target_path]
+        cmd = [
+            player_bin,
+            f"--mpv-force-media-title={media_title}",
+            "--mpv-cache=yes",
+            "--mpv-demuxer-max-bytes=500M",
+            "--mpv-demuxer-readahead-secs=300",
+            target_path,
+        ]
     else:
         cmd = [player_bin, target_path]
 
@@ -145,8 +189,12 @@ def launch_player(
         if aniskip_data.get("ed"):
             s, e = aniskip_data["ed"]
             skip_info.append(f"ED: {s:.0f}s-{e:.0f}s")
-        print(f"{C_GREEN}⚡ AniSkip Active:{C_RESET} {C_BOLD}{' • '.join(skip_info)}{C_RESET}")
-    print(f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro | [o] Skip Outro | [q] Quit{C_RESET}\n")
+        print(
+            f"{C_GREEN}⚡ AniSkip Active:{C_RESET} {C_BOLD}{' • '.join(skip_info)}{C_RESET}"
+        )
+    print(
+        f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro | [o] Skip Outro | [q] Quit{C_RESET}\n"
+    )
 
     proc = subprocess.run(cmd)
     return proc.returncode == 0

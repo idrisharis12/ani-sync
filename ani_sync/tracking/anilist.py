@@ -29,7 +29,9 @@ def sync_episode_to_anilist(anime_title, episode_num, quiet=False):
     token = get_anilist_env()
     if not token:
         if not quiet:
-            print(f"{C_YELLOW}ℹ️  AniList sync skipped (run 'ani-sync auth anilist'){C_RESET}")
+            print(
+                f"{C_YELLOW}ℹ️  AniList sync skipped (run 'ani-sync auth anilist'){C_RESET}"
+            )
         return False, "Not configured"
 
     if not quiet:
@@ -46,7 +48,12 @@ def sync_episode_to_anilist(anime_title, episode_num, quiet=False):
     """
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     try:
-        r = requests.post(ANILIST_API_URL, json={"query": query, "variables": {"search": anime_title}}, headers=headers, timeout=10)
+        r = requests.post(
+            ANILIST_API_URL,
+            json={"query": query, "variables": {"search": anime_title}},
+            headers=headers,
+            timeout=10,
+        )
         if r.status_code != 200:
             return False, "Media search failed"
         data = r.json()
@@ -67,13 +74,22 @@ def sync_episode_to_anilist(anime_title, episode_num, quiet=False):
         """
         r2 = requests.post(
             ANILIST_API_URL,
-            json={"query": mutation, "variables": {"mediaId": media_id, "progress": episode_num, "status": "CURRENT"}},
+            json={
+                "query": mutation,
+                "variables": {
+                    "mediaId": media_id,
+                    "progress": episode_num,
+                    "status": "CURRENT",
+                },
+            },
             headers=headers,
             timeout=10,
         )
         if r2.status_code == 200:
             if not quiet:
-                print(f"{C_GREEN}✓ Successfully synced Episode {episode_num} to AniList!{C_RESET}")
+                print(
+                    f"{C_GREEN}✓ Successfully synced Episode {episode_num} to AniList!{C_RESET}"
+                )
             return True, "Synced"
     except Exception as e:
         log_debug(f"AniList sync error: {e}")

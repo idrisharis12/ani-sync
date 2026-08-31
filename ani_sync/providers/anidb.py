@@ -18,7 +18,9 @@ class AniDBProvider(BaseProvider):
     def search(self, query):
         url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
         html_text = http_get(url)
-        matches = re.findall(r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL)
+        matches = re.findall(
+            r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
+        )
         results = []
         seen = set()
         for slug, raw_title in matches:
@@ -38,12 +40,16 @@ class AniDBProvider(BaseProvider):
         season_section = re.search(r">Seasons<.*?>Details<", html_text, re.DOTALL)
         if season_section:
             sec_text = season_section.group(0)
-            s_matches = re.findall(r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text)
+            s_matches = re.findall(
+                r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text
+            )
             seen = {slug}
             for s_slug, s_title in s_matches:
                 if s_slug not in seen:
                     seen.add(s_slug)
-                    seasons.append({"slug": s_slug, "title": html.unescape(s_title).strip()})
+                    seasons.append(
+                        {"slug": s_slug, "title": html.unescape(s_title).strip()}
+                    )
         return {"mal_id": mal_id, "seasons": seasons}
 
     def get_episodes(self, slug):
@@ -81,11 +87,15 @@ class AniDBProvider(BaseProvider):
                     for i, line in enumerate(lines):
                         if line.startswith("#EXT-X-STREAM-INF"):
                             res_match = re.search(r"RESOLUTION=\d+x(\d+)", line)
-                            quality_label = f"{res_match.group(1)}p" if res_match else "Auto"
+                            quality_label = (
+                                f"{res_match.group(1)}p" if res_match else "Auto"
+                            )
                             if i + 1 < len(lines):
                                 stream_link = lines[i + 1].strip()
                                 if not stream_link.startswith("http"):
-                                    stream_link = urllib.parse.urljoin(master_m3u8_url, stream_link)
+                                    stream_link = urllib.parse.urljoin(
+                                        master_m3u8_url, stream_link
+                                    )
                                 streams[quality_label] = stream_link
 
                     if not streams:

@@ -29,7 +29,9 @@ class DiscordRPC:
                 import socket
 
                 load_config()
-                client_id = os.getenv("DISCORD_CLIENT_ID", "1543718626400403466").strip()
+                client_id = os.getenv(
+                    "DISCORD_CLIENT_ID", "1543718626400403466"
+                ).strip()
                 if not client_id:
                     return
 
@@ -44,7 +46,9 @@ class DiscordRPC:
                             try:
                                 sock = open(pipe_name, "r+b", buffering=0)
                                 is_win_pipe = True
-                                log_debug(f"Connected to Windows Discord Named Pipe: {pipe_name}")
+                                log_debug(
+                                    f"Connected to Windows Discord Named Pipe: {pipe_name}"
+                                )
                                 break
                             except Exception as pe:
                                 log_debug(f"Failed to open pipe {pipe_name}: {pe}")
@@ -53,7 +57,9 @@ class DiscordRPC:
                     candidates = [
                         f"/run/user/{uid}/discord-ipc-0",
                         f"/run/user/{uid}/app/com.discordapp.Discord/discord-ipc-0",
-                        os.path.join(os.environ.get("XDG_RUNTIME_DIR", ""), "discord-ipc-0"),
+                        os.path.join(
+                            os.environ.get("XDG_RUNTIME_DIR", ""), "discord-ipc-0"
+                        ),
                         "/tmp/discord-ipc-0",
                     ]
                     for c in candidates:
