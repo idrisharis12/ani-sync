@@ -23,6 +23,7 @@
 - [✨ Core Features](#-core-features)
 - [⚡ How It Works: The Turbo Speed Architecture](#-how-it-works-the-turbo-speed-architecture)
 - [📦 Installation](#-installation)
+  - [⚡ Standalone Pre-Compiled Binaries (No Python Required)](#-standalone-pre-compiled-binaries-no-python-required)
   - [🪟 Windows (PowerShell / Winget / Scoop)](#-windows-powershell--winget--scoop)
   - [🐧 Linux & 🍎 macOS (One-Line Curl Installer)](#-linux--macos-one-line-curl-installer)
   - [🏹 Arch Linux (AUR / PKGBUILD)](#-arch-linux-aur--pkgbuild)
@@ -110,6 +111,18 @@ Traditional web scrapers and terminal anime players stream video sequentially us
 ---
 
 ## 📦 Installation
+
+### ⚡ Standalone Pre-Compiled Binaries (No Python Required)
+If you do not have Python installed, you can download self-contained, standalone single-file executables from the [**GitHub Releases**](https://github.com/idrisharis12/ani-sync/releases):
+
+| OS / Architecture | Standalone Executable | One-Line Install Command |
+| :--- | :--- | :--- |
+| 🐧 **Linux (x86_64)** | [`ani-sync-linux-x86_64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
+| 🪟 **Windows (x64)** | [`ani-sync-windows-x86_64.exe`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-windows-x86_64.exe) | `irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 \| iex` |
+| 🍎 **macOS (Apple Silicon)** | [`ani-sync-macos-arm64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
+| 📦 **Debian / Ubuntu** | [`ani-sync_2.0.0_all.deb`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb) | `curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb && sudo apt install ./ani-sync_2.0.0_all.deb` |
+
+---
 
 ### 🪟 Windows (PowerShell / Winget / Scoop)
 Run this single command in **PowerShell** (Run as Administrator or standard User):
