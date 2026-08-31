@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="ani-sync",
-    version="2.5.0",
+    version="2.6.0",
     description="Stream anime from your terminal and automatically sync watch progress to MyAnimeList",
     author="Idris Haris",
     url="https://github.com/idrisharis12/ani-sync",

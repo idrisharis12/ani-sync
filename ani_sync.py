@@ -70,7 +70,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.5.0"
+VERSION = "2.6.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -1929,46 +1929,84 @@ def get_episodes(slug):
     return data.get("episodes", [])
 
 
-def get_episode_streams(episode_id, mode="sub"):
-    """Fetch m3u8 streams and available qualities for an episode."""
-    url = f"{ANIDB_BASE}/api/frontend/episode/{episode_id}/languages"
-    data = http_get(url, is_json=True)
-    languages = data.get("languages", [])
-
-    target_code = "eng" if mode == "dub" else "jpn"
-    embed_url = None
-    for lang in languages:
-        if lang.get("code") == target_code:
-            embed_url = lang.get("embed_url")
-            break
-    if not embed_url and languages:
-        embed_url = languages[0].get("embed_url")
-
-    if not embed_url:
-        return {}
-
-    embed_html = http_get(embed_url)
-    m3u8_match = re.search(r"file:\s*['\"]([^'\"]+)['\"]", embed_html)
-    if not m3u8_match:
-        return {}
-
-    master_m3u8_url = m3u8_match.group(1)
-    master_content = http_get(master_m3u8_url)
-
+def get_episode_streams(
+    episode_id,
+    mode="sub",
+    anime_slug=None,
+    ep_num=1,
+    provider="auto",
+):
+    """Fetch m3u8 streams with resilient multi-provider auto-failover."""
     streams = {}
-    lines = master_content.splitlines()
-    for i, line in enumerate(lines):
-        if line.startswith("#EXT-X-STREAM-INF"):
-            res_match = re.search(r"RESOLUTION=\d+x(\d+)", line)
-            quality_label = f"{res_match.group(1)}p" if res_match else "Auto"
-            if i + 1 < len(lines):
-                stream_link = lines[i + 1].strip()
-                if not stream_link.startswith("http"):
-                    stream_link = urllib.parse.urljoin(master_m3u8_url, stream_link)
-                streams[quality_label] = stream_link
 
-    if not streams:
-        streams["Auto / Best"] = master_m3u8_url
+    # Provider 1: AniDB HLS Backend (Primary)
+    if provider in ("auto", "anidb") and episode_id:
+        try:
+            url = f"{ANIDB_BASE}/api/frontend/episode/{episode_id}/languages"
+            data = http_get(url, is_json=True)
+            languages = data.get("languages", [])
+
+            target_code = "eng" if mode == "dub" else "jpn"
+            embed_url = None
+            for lang in languages:
+                if lang.get("code") == target_code:
+                    embed_url = lang.get("embed_url")
+                    break
+            if not embed_url and languages:
+                embed_url = languages[0].get("embed_url")
+
+            if embed_url:
+                embed_html = http_get(embed_url)
+                m3u8_match = re.search(r"file:\s*['\"]([^'\"]+)['\"]", embed_html)
+                if m3u8_match:
+                    master_m3u8_url = m3u8_match.group(1)
+                    master_content = http_get(master_m3u8_url)
+
+                    lines = master_content.splitlines()
+                    for i, line in enumerate(lines):
+                        if line.startswith("#EXT-X-STREAM-INF"):
+                            res_match = re.search(r"RESOLUTION=\d+x(\d+)", line)
+                            quality_label = (
+                                f"{res_match.group(1)}p" if res_match else "Auto"
+                            )
+                            if i + 1 < len(lines):
+                                stream_link = lines[i + 1].strip()
+                                if not stream_link.startswith("http"):
+                                    stream_link = urllib.parse.urljoin(
+                                        master_m3u8_url, stream_link
+                                    )
+                                streams[quality_label] = stream_link
+
+                    if not streams:
+                        streams["Auto / Best"] = master_m3u8_url
+        except Exception:
+            pass
+
+    if streams:
+        return streams
+
+    # Provider 2: Secondary Mirror Failover (Gogo / Consumet fast CDN)
+    if anime_slug and provider in ("auto", "gogo", "secondary"):
+        clean_slug = anime_slug.rsplit("-", 1)[0]
+        fallback_endpoints = [
+            f"https://api.consumet.org/anime/gogoanime/watch/{clean_slug}-episode-{ep_num}",
+            f"https://consumet.vercel.app/anime/gogoanime/watch/{clean_slug}-episode-{ep_num}",
+        ]
+        for fb_url in fallback_endpoints:
+            try:
+                res = requests.get(fb_url, timeout=5)
+                if res.status_code == 200:
+                    sources = res.json().get("sources", [])
+                    for s in sources:
+                        q = s.get("quality", "Auto / Best")
+                        if q == "default":
+                            q = "Auto / Best"
+                        streams[q] = s.get("url")
+                    if streams:
+                        break
+            except Exception:
+                pass
+
     return streams
 
 
@@ -2368,7 +2406,12 @@ def batch_download_anime(
         if dest_file.exists() and dest_file.stat().st_size > 5 * 1024 * 1024:
             return (ep_num, True, "Cached")
 
-        streams = get_episode_streams(ep_obj["id"], mode=mode)
+        streams = get_episode_streams(
+            ep_obj["id"],
+            mode=mode,
+            anime_slug=anime.get("slug"),
+            ep_num=ep_num,
+        )
         if not streams:
             return (ep_num, False, "No streams")
 
@@ -2449,7 +2492,9 @@ def batch_download_anime(
     print(f"📁 {C_CYAN}{download_dir}{C_RESET}\n")
 
 
-def prefetch_episode(next_ep_data, title, preferred_quality=None, mode="sub"):
+def prefetch_episode(
+    next_ep_data, title, preferred_quality=None, mode="sub", slug=None
+):
     """Background pre-fetch of next episode so it loads in 0.0 seconds."""
     try:
         ep_num = next_ep_data.get("number")
@@ -2459,7 +2504,7 @@ def prefetch_episode(next_ep_data, title, preferred_quality=None, mode="sub"):
         if cache_file.exists() and cache_file.stat().st_size > 5 * 1024 * 1024:
             return
 
-        streams = get_episode_streams(ep_id, mode=mode)
+        streams = get_episode_streams(ep_id, mode=mode, anime_slug=slug, ep_num=ep_num)
         if not streams:
             return
 
@@ -2814,7 +2859,7 @@ def play_loop(
         print(
             f"\n{C_CYAN}Resolving streams for Episode {ep_num} ({mode.upper()})...{C_RESET}"
         )
-        streams = get_episode_streams(ep_id, mode=mode)
+        streams = get_episode_streams(ep_id, mode=mode, anime_slug=slug, ep_num=ep_num)
         if not streams:
             print(
                 f"{C_RED}❌ Could not resolve video streams for Episode {ep_num}.{C_RESET}"
@@ -2851,13 +2896,25 @@ def play_loop(
             if current_idx + 1 < len(episodes):
                 threading.Thread(
                     target=prefetch_episode,
-                    args=(episodes[current_idx + 1], title, preferred_quality, mode),
+                    args=(
+                        episodes[current_idx + 1],
+                        title,
+                        preferred_quality,
+                        mode,
+                        slug,
+                    ),
                     daemon=True,
                 ).start()
             if current_idx + 2 < len(episodes):
                 threading.Thread(
                     target=prefetch_episode,
-                    args=(episodes[current_idx + 2], title, preferred_quality, mode),
+                    args=(
+                        episodes[current_idx + 2],
+                        title,
+                        preferred_quality,
+                        mode,
+                        slug,
+                    ),
                     daemon=True,
                 ).start()
 
@@ -3400,6 +3457,7 @@ def print_help():
     -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
     --skip, --auto-skip       Automatically skip anime opening/intro (+85s / AniSkip)
     -d, --download            Download episode(s) locally without opening player (supports batch ranges)
+    --provider <name>         Stream backend provider (auto, anidb, gogo, secondary)
     --direct                  Stream directly without multi-threaded local turbo cache
     --dub                     Play English dub if available (default: Japanese sub)
     --no-fzf                  Disable fzf fuzzy search (use numbered menus)
@@ -3635,6 +3693,7 @@ def main():
     download_all = False
     preferred_quality = None
     mode = "sub"
+    provider = "auto"
     player = "mpv"
     direct = False
     download_only = False
@@ -3685,6 +3744,10 @@ def main():
             _FZF_ENABLED = False
         elif arg == "--dub":
             mode = "dub"
+        elif arg == "--provider":
+            if i + 1 < len(args):
+                provider = args[i + 1].lower()
+                i += 1
         elif arg == "--player":
             if i + 1 < len(args):
                 player = args[i + 1]

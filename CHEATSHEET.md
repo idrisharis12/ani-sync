@@ -41,6 +41,7 @@
 | **Batch Download Range** | `ani-sync "jujutsu kaisen" -d -e 1-12` |
 | **Download Entire Season** | `ani-sync "chainsaw man" -d --all` |
 | **Rate & Score Anime** | `ani-sync score "frieren" 10` *(or `ani-sync score`)* |
+| **Select Stream Provider** | `ani-sync "naruto" --provider gogo` *(or `anidb`, `auto`)* |
 | **Change Color Theme** | `ani-sync theme tokyonight` *(or `catppuccin`, `dracula`, `nord`, `gruvbox`)* |
 | **Verify System Health** | `ani-sync doctor` |
 | **Open-Source Credits** | `ani-sync credits` |
