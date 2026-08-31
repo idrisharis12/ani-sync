@@ -2206,6 +2206,7 @@ def launch_player(
     auto_skip=False,
     mal_id=None,
     party_room=None,
+    low_ram=False,
 ):
     """Launch the chosen media player with title, stream/file, and optimal smooth playback."""
     media_title = f"{title} - Episode {ep_num}"
@@ -2259,6 +2260,10 @@ def launch_player(
             "video/*",
         ]
     elif player == "mpv" or "mpv" in Path(player_bin).stem.lower():
+        demux_bytes = "150M" if (low_ram or IS_TERMUX) else "500M"
+        back_bytes = "30M" if (low_ram or IS_TERMUX) else "100M"
+        readahead = "60" if (low_ram or IS_TERMUX) else "300"
+        stream_buf = "4MiB" if (low_ram or IS_TERMUX) else "16MiB"
         cmd = [
             player_bin,
             f"--force-media-title={media_title}",
@@ -2267,6 +2272,17 @@ def launch_player(
             "--hwdec=auto-safe",
             "--profile=fast",
             "--audio-buffer=0.8",
+            "--cache=yes",
+            f"--demuxer-max-bytes={demux_bytes}",
+            f"--demuxer-max-back-bytes={back_bytes}",
+            f"--demuxer-readahead-secs={readahead}",
+            f"--stream-buffer-size={stream_buf}",
+            "--cache-pause=no",
+            "--cache-pause-initial=no",
+            "--force-seekable=yes",
+            "--demuxer-seekable-cache=yes",
+            "--hls-bitrate=max",
+            "--network-timeout=20",
             "--msg-level=ffmpeg=error",
         ]
         skip_script = get_auto_skip_script(
@@ -2280,12 +2296,17 @@ def launch_player(
             player_bin,
             "--play-and-exit",
             f"--meta-title={media_title}",
+            "--network-caching=3000",
+            "--http-reconnect",
             target_path,
         ]
     elif player == "iina" or "iina" in Path(player_bin).stem.lower():
         cmd = [
             player_bin,
             f"--mpv-force-media-title={media_title}",
+            "--mpv-cache=yes",
+            "--mpv-demuxer-max-bytes=500M",
+            "--mpv-demuxer-readahead-secs=300",
             target_path,
         ]
     else:
@@ -2323,15 +2344,15 @@ def turbo_play(
     party_room=None,
     low_ram=False,
 ):
-    """Zero-buffering maximum-speed playback using parallel multi-connections."""
+    """Zero-latency instant playback with high-throughput RAM buffer and local cache fallback."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_file = CACHE_DIR / f"{safe_title}.mp4"
 
-    # 1. Instant Play if already in cache
+    # 1. Instant Play if already in cache (e.g. from background prefetch)
     if cache_file.exists() and cache_file.stat().st_size > 5 * 1024 * 1024:
         print(
-            f"\n{C_GREEN}{C_BOLD}⚡ Episode already cached locally — Starting instantly (0.0s latency)!{C_RESET}"
+            f"\n{C_GREEN}{C_BOLD}⚡ Episode loaded from turbo cache — 0.0s instant start!{C_RESET}"
         )
         if download_only:
             print(f"{C_GREEN}✓ File ready at: {cache_file}{C_RESET}")
@@ -2344,96 +2365,69 @@ def turbo_play(
             auto_skip=auto_skip,
             mal_id=mal_id,
             party_room=party_room,
+            low_ram=low_ram,
         )
 
-    has_ytdlp = shutil.which("yt-dlp") is not None
-
-    if direct or not has_ytdlp:
-        return launch_player(
-            stream_url,
-            title,
-            ep_num,
-            player=player,
-            auto_skip=auto_skip,
-            mal_id=mal_id,
-            party_room=party_room,
-        )
-
-    concurrency = "16" if (low_ram or IS_TERMUX) else "64"
-    buffer_size = "4M" if (low_ram or IS_TERMUX) else "16M"
-    chunk_size = "2M" if (low_ram or IS_TERMUX) else "10M"
-    mode_label = (
-        "16 Parallel Sockets (Lite/Low-RAM Mode)"
-        if (low_ram or IS_TERMUX)
-        else "64 Parallel Multi-Connections"
-    )
-
-    print(f"\n{C_CYAN}{C_BOLD}🚀 MAXIMUM TURBO SPEED ({mode_label})...{C_RESET}")
-    print(
-        f"{C_DIM}Saturating maximum line bandwidth for 100% buffer-free local playback.{C_RESET}\n"
-    )
-
-    dl_cmd = [
-        "yt-dlp",
-        "-N",
-        concurrency,
-        "--concurrent-fragments",
-        concurrency,
-        "--socket-timeout",
-        "5",
-        "--buffer-size",
-        buffer_size,
-        "--http-chunk-size",
-        chunk_size,
-        "10M",
-        "--fragment-retries",
-        "10",
-        "--retries",
-        "5",
-        "--add-header",
-        "Referer: https://anidb.app/",
-        "--add-header",
-        "Origin: https://anidb.app",
-        "--user-agent",
-        USER_AGENT,
-        "--no-warnings",
-        "--no-part",
-        "-o",
-        str(cache_file),
-        stream_url,
-    ]
-
-    try:
-        subprocess.run(dl_cmd)
-    except Exception:
-        # Fallback to direct player playback if yt-dlp fails
-        return launch_player(
-            stream_url,
-            title,
-            ep_num,
-            player=player,
-            auto_skip=auto_skip,
-            mal_id=mal_id,
-            party_room=party_room,
-        )
-
+    # 2. Download-only Mode (ani-sync -d / --download)
     if download_only:
-        print(f"\n{C_GREEN}{C_BOLD}✓ Download complete:{C_RESET} {cache_file}")
-        return True
+        has_ytdlp = shutil.which("yt-dlp") is not None
+        if not has_ytdlp:
+            print(f"{C_RED}❌ yt-dlp is required for downloading anime episodes.{C_RESET}")
+            return False
 
-    target_to_play = (
-        str(cache_file)
-        if (cache_file.exists() and cache_file.stat().st_size > 5 * 1024 * 1024)
-        else stream_url
-    )
+        concurrency = "16" if (low_ram or IS_TERMUX) else "32"
+        buffer_size = "4M" if (low_ram or IS_TERMUX) else "16M"
+        chunk_size = "2M" if (low_ram or IS_TERMUX) else "10M"
+
+        print(
+            f"\n{C_CYAN}{C_BOLD}📥 Downloading Episode {ep_num} via multi-connection turbo engine...{C_RESET}"
+        )
+        dl_cmd = [
+            "yt-dlp",
+            "-N",
+            concurrency,
+            "--concurrent-fragments",
+            concurrency,
+            "--socket-timeout",
+            "10",
+            "--buffer-size",
+            buffer_size,
+            "--http-chunk-size",
+            chunk_size,
+            "--fragment-retries",
+            "10",
+            "--retries",
+            "5",
+            "--add-header",
+            "Referer: https://anidb.app/",
+            "--add-header",
+            "Origin: https://anidb.app",
+            "--user-agent",
+            USER_AGENT,
+            "--no-warnings",
+            "--no-part",
+            "-o",
+            str(cache_file),
+            stream_url,
+        ]
+        try:
+            subprocess.run(dl_cmd, check=True)
+            print(f"\n{C_GREEN}{C_BOLD}✓ Download complete:{C_RESET} {cache_file}")
+            return True
+        except Exception as e:
+            print(f"{C_RED}❌ Download failed: {e}{C_RESET}")
+            return False
+
+    # 3. Instant Streaming Playback (0s delay + deep RAM buffer)
     res = launch_player(
-        target_to_play,
+        stream_url,
         title,
         ep_num,
         player=player,
         auto_skip=auto_skip,
         mal_id=mal_id,
         party_room=party_room,
+        low_ram=low_ram,
     )
 
     # Cache cleanup: Keep newest ~4GB of anime, delete older
@@ -2613,15 +2607,15 @@ def prefetch_episode(
         dl_cmd = [
             "yt-dlp",
             "-N",
-            "64",
+            "8",
             "--concurrent-fragments",
-            "64",
+            "8",
             "--socket-timeout",
             "5",
             "--buffer-size",
-            "16M",
+            "8M",
             "--http-chunk-size",
-            "10M",
+            "4M",
             "--fragment-retries",
             "10",
             "--retries",
@@ -3034,25 +3028,13 @@ def play_loop(
                 quality_used = sorted_qualities[0]
                 selected_url = streams[quality_used]
 
-        # Background pre-fetch next 2 episodes so upcoming episodes load in 0.0s
+        # Background pre-fetch next episode so upcoming episode loads in 0.0s
         if not direct and not download_only:
             if current_idx + 1 < len(episodes):
                 threading.Thread(
                     target=prefetch_episode,
                     args=(
                         episodes[current_idx + 1],
-                        title,
-                        preferred_quality,
-                        mode,
-                        slug,
-                    ),
-                    daemon=True,
-                ).start()
-            if current_idx + 2 < len(episodes):
-                threading.Thread(
-                    target=prefetch_episode,
-                    args=(
-                        episodes[current_idx + 2],
                         title,
                         preferred_quality,
                         mode,
