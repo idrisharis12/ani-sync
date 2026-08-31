@@ -617,10 +617,26 @@ export DISCORD_CLIENT_ID="1543718626400403466"
 
 ## 💖 Credits & Acknowledgements
 
-Special thanks and credit to the open-source projects that inspired `ani-sync`:
+`ani-sync` was built on the shoulders of giants. Special thanks and deepest gratitude to the open-source projects, APIs, and developer communities that inspired its design and powered its capabilities:
 
-- **[ani-cli](https://github.com/pystardust/ani-cli)** by *pystardust* — The groundbreaking CLI anime player that pioneered command-line streaming.
-- **[mal-cli](https://github.com/mdomke/mal-cli)** by *mdomke* — The pioneering command-line interface for MyAnimeList tracking.
+### 🎬 CLI Anime Pioneers & Inspirations
+- **[ani-cli](https://github.com/pystardust/ani-cli)** by *pystardust* — The trailblazing terminal anime player that pioneered command-line video streaming and proved that anime belongs in the terminal.
+- **[mal-cli](https://github.com/mdomke/mal-cli)** by *mdomke* — The pioneering CLI tool for MyAnimeList tracking that inspired automated episode synchronization.
+
+### ⚡ Media Players & Terminal Engines
+- **[mpv](https://github.com/mpv-player/mpv)** — The gold-standard, ultra-fast, extensible open-source media player powering hardware-accelerated video decoding, OSD notifications, and Lua script auto-skip integration.
+- **[fzf](https://github.com/junegunn/fzf)** by *junegunn* — The blazingly fast, interactive fuzzy finder that gives `ani-sync` its sleek, responsive terminal search, episode picker, and history navigation.
+- **[VLC](https://www.videolan.org/vlc/)** & **[IINA](https://iina.io/)** — Outstanding cross-platform players supported natively by `ani-sync`.
+
+### 🌐 Tracking Platforms & Anime Metadata APIs
+- **[MyAnimeList API](https://myanimelist.net/apiconfig)** — The official OAuth 2.0 API enabling real-time episode progress tracking and anime library synchronization.
+- **[AniList GraphQL API](https://anilist.co)** — Modern, powerful GraphQL API providing comprehensive anime metadata, cover art, and cloud list sync.
+- **[Kitsu JSON:API](https://kitsu.io)** — Clean JSON:API standard enabling seamless anime tracking and library management.
+- **[AniDB](https://anidb.app)** — Exhaustive anime catalog and episode database engine.
+
+### 🛠️ Protocols & Acceleration Architectures
+- **[Discord IPC Protocol](https://discord.com/developers/docs/topics/rpc)** — Local IPC Unix domain socket / Windows named pipe protocol enabling zero-dependency Rich Presence broadcasts and clickable GitHub profile buttons.
+- **[aria2 & Swarm Downloaders](https://github.com/aria2/aria2)** — The parallel segmented downloading concept that inspired `ani-sync`'s 64x multi-connection zero-buffering engine.
 
 ---
 
