@@ -2287,6 +2287,7 @@ def turbo_play(
             mal_id=mal_id,
             party_room=party_room,
             low_ram=low_ram,
+        volume=volume,
             volume=CONFIG.get("volume"),
         )
 
@@ -2352,6 +2353,7 @@ def turbo_play(
         mal_id=mal_id,
         party_room=party_room,
         low_ram=low_ram,
+        volume=volume,
         volume=CONFIG.get("volume"),
     )
 
@@ -2984,6 +2986,7 @@ def play_loop(
             mal_id=mal_id,
             party_room=party_room,
             low_ram=low_ram,
+        volume=volume,
         )
 
         # Stop Discord Rich Presence on player close
@@ -3956,6 +3959,7 @@ def main():
     auto_skip = False
     use_fzf = True
     low_ram = False
+    volume = CONFIG.get("volume")
 
     i = 0
     while i < len(args):
@@ -4010,6 +4014,10 @@ def main():
         elif arg == "--provider":
             if i + 1 < len(args):
                 provider = args[i + 1].lower()
+                i += 1
+        elif arg in ("-v", "--volume"):
+            if i + 1 < len(args):
+                volume = args[i + 1]
                 i += 1
         elif arg in ("--low-ram", "--lite"):
             low_ram = True
@@ -4123,6 +4131,7 @@ def main():
         auto_skip=auto_skip,
         party_room=party_room,
         low_ram=low_ram,
+        volume=volume,
     )
 
 
