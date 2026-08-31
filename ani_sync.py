@@ -70,7 +70,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.6.0"
+VERSION = "2.7.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -2179,11 +2179,44 @@ def launch_player(
     player="mpv",
     auto_skip=False,
     mal_id=None,
+    party_room=None,
 ):
     """Launch the chosen media player with title, stream/file, and optimal smooth playback."""
     media_title = f"{title} - Episode {ep_num}"
     player_bin = find_player_binary(player)
     aniskip_data = fetch_aniskip_times(mal_id, ep_num) if mal_id else None
+
+    # Check for Syncplay Watch Together Party mode
+    if party_room:
+        syncplay_bin = shutil.which("syncplay") or shutil.which("syncplay.exe")
+        if syncplay_bin:
+            load_config()
+            s_user = os.getenv("SYNCPLAY_NAME") or os.getenv("USER") or "Otaku"
+            s_server = os.getenv("SYNCPLAY_SERVER") or "syncplay.pl:8999"
+            cmd = [
+                syncplay_bin,
+                f"--player-path={player_bin}",
+                target_path,
+                "--name",
+                s_user,
+                "--room",
+                party_room,
+                "--server",
+                s_server,
+            ]
+            print(
+                f"\n{C_MAGENTA}{C_BOLD}🎉 Syncplay Party Mode Active:{C_RESET} Room '{C_CYAN}{party_room}{C_RESET}' on {C_YELLOW}{s_server}{C_RESET}"
+            )
+            print(f"{C_DIM}Synchronizing playback with room members...{C_RESET}\n")
+            proc = subprocess.run(cmd)
+            return proc.returncode == 0
+        else:
+            print(
+                f"\n{C_YELLOW}⚠️  Syncplay not found on system path.{C_RESET} Falling back to direct MPV playback."
+            )
+            print(
+                f"{C_DIM}To enable sync rooms, install syncplay (e.g. sudo pacman -S syncplay / brew install syncplay){C_RESET}"
+            )
 
     cmd = []
     if player == "mpv" or "mpv" in Path(player_bin).stem.lower():
@@ -2248,6 +2281,7 @@ def turbo_play(
     download_only=False,
     auto_skip=False,
     mal_id=None,
+    party_room=None,
 ):
     """Zero-buffering maximum-speed playback using 64 parallel multi-connections."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
@@ -2269,6 +2303,7 @@ def turbo_play(
             player=player,
             auto_skip=auto_skip,
             mal_id=mal_id,
+            party_room=party_room,
         )
 
     has_ytdlp = shutil.which("yt-dlp") is not None
@@ -2281,6 +2316,7 @@ def turbo_play(
             player=player,
             auto_skip=auto_skip,
             mal_id=mal_id,
+            party_room=party_room,
         )
 
     print(
@@ -2321,8 +2357,17 @@ def turbo_play(
 
     try:
         subprocess.run(dl_cmd)
-    except Exception as e:
-        print(f"{C_RED}Download error: {e}{C_RESET}")
+    except Exception:
+        # Fallback to direct player playback if yt-dlp fails
+        return launch_player(
+            stream_url,
+            title,
+            ep_num,
+            player=player,
+            auto_skip=auto_skip,
+            mal_id=mal_id,
+            party_room=party_room,
+        )
 
     if download_only:
         print(f"\n{C_GREEN}{C_BOLD}✓ Download complete:{C_RESET} {cache_file}")
@@ -2340,6 +2385,7 @@ def turbo_play(
         player=player,
         auto_skip=auto_skip,
         mal_id=mal_id,
+        party_room=party_room,
     )
 
     # Cache cleanup: Keep newest ~4GB of anime, delete older
@@ -2809,6 +2855,53 @@ def _fzf_pick(title, options):
     return 0
 
 
+def run_party_wizard(room_arg=None):
+    """Interactive Watch Party / Syncplay Room Configuration."""
+    load_config()
+    print(
+        f"\n{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
+    print(
+        f"{C_MAGENTA}{C_BOLD}          🎉 ani-sync Syncplay Watch Together Party         {C_RESET}"
+    )
+    print(
+        f"{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
+
+    saved_room = os.getenv("SYNCPLAY_ROOM", "ani-sync-party")
+    saved_user = os.getenv("SYNCPLAY_NAME", os.getenv("USER") or "Otaku")
+    saved_server = os.getenv("SYNCPLAY_SERVER", "syncplay.pl:8999")
+
+    try:
+        room = (
+            room_arg
+            or input(
+                f"\n{C_BOLD}Enter Party Room Name [{saved_room}]: {C_RESET}"
+            ).strip()
+            or saved_room
+        )
+        user = (
+            input(f"{C_BOLD}Enter Your Nickname [{saved_user}]: {C_RESET}").strip()
+            or saved_user
+        )
+        server = (
+            input(f"{C_BOLD}Enter Server Host [{saved_server}]: {C_RESET}").strip()
+            or saved_server
+        )
+    except (KeyboardInterrupt, EOFError):
+        print("\n")
+        return None
+
+    _append_config("SYNCPLAY_ROOM", room)
+    _append_config("SYNCPLAY_NAME", user)
+    _append_config("SYNCPLAY_SERVER", server)
+
+    print(
+        f"\n{C_GREEN}✓ Party room configured! Ready to stream in room '{room}' on {server}.{C_RESET}\n"
+    )
+    return room
+
+
 # ----------------------------------------------------------------------
 # Main Interactive Flow
 # ----------------------------------------------------------------------
@@ -2821,6 +2914,7 @@ def play_loop(
     direct=False,
     download_only=False,
     auto_skip=False,
+    party_room=None,
 ):
     """Watch loop with next, replay, previous, change episode/quality/season."""
     slug = anime["slug"]
@@ -2931,6 +3025,7 @@ def play_loop(
             download_only=download_only,
             auto_skip=auto_skip,
             mal_id=mal_id,
+            party_room=party_room,
         )
 
         # Stop Discord Rich Presence on player close
@@ -3432,6 +3527,7 @@ def print_help():
 {C_BOLD}Usage:{C_RESET}
     {C_GREEN}ani-sync <anime name>{C_RESET}
     {C_GREEN}ani-sync continue{C_RESET}
+    {C_GREEN}ani-sync party "anime-room"{C_RESET}
     {C_GREEN}ani-sync trending{C_RESET}
     {C_GREEN}ani-sync schedule{C_RESET}
     {C_GREEN}ani-sync sync{C_RESET}
@@ -3444,6 +3540,7 @@ def print_help():
 
 {C_BOLD}Options:{C_RESET}
     -c, --continue, continue  Resume last watched anime (plays next episode)
+    party, --party [room]     Syncplay Watch Together synchronized party mode
     -t, --trending, trending  Browse top airing and trending anime
     -s, --schedule, schedule  Interactive anime release schedule & calendar
     history, --history        View recent watch history and pick to resume
@@ -3529,6 +3626,20 @@ def main():
         threading.Thread(
             target=update_self, kwargs={"quiet": True}, daemon=True
         ).start()
+
+    party_room = None
+
+    if args and args[0] in ("party", "watchparty"):
+        room_name = args[1] if len(args) > 1 and not args[1].startswith("-") else None
+        configured_room = run_party_wizard(room_name)
+        if not configured_room:
+            return
+        remaining_args = [a for j, a in enumerate(args) if j > 0 and a != room_name]
+        if remaining_args:
+            args = remaining_args
+        else:
+            args = []
+        party_room = configured_room
 
     if not args or args[0] in ("-h", "--help", "help"):
         if not args:
@@ -3744,6 +3855,12 @@ def main():
             _FZF_ENABLED = False
         elif arg == "--dub":
             mode = "dub"
+        elif arg in ("--party", "--syncplay"):
+            if i + 1 < len(args) and not args[i + 1].startswith("-"):
+                party_room = args[i + 1]
+                i += 1
+            else:
+                party_room = os.getenv("SYNCPLAY_ROOM", "ani-sync-party")
         elif arg == "--provider":
             if i + 1 < len(args):
                 provider = args[i + 1].lower()
@@ -3856,6 +3973,7 @@ def main():
         direct=direct,
         download_only=download_only,
         auto_skip=auto_skip,
+        party_room=party_room,
     )
 
 
