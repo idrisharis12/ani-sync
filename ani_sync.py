@@ -4,6 +4,7 @@
 exec python3 "$0" "$@"
 """
 
+import concurrent.futures
 import html
 import io
 import json
@@ -99,6 +100,7 @@ C_GREEN = "\033[92m"
 C_YELLOW = "\033[93m"
 C_MAGENTA = "\033[95m"
 C_RED = "\033[91m"
+C_WHITE = "\033[97m"
 C_BOLD = "\033[1m"
 C_DIM = "\033[2m"
 C_RESET = "\033[0m"
@@ -290,20 +292,24 @@ def refresh_mal_token():
     return None
 
 
-def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
+def sync_episode_to_mal(anime_title, episode_num, mal_id=None, quiet=False):
+    """Sync episode progress to MyAnimeList."""
     if not is_mal_configured():
-        print(
-            f"{C_YELLOW}ℹ️  MAL sync skipped (Run 'ani-sync auth' to connect MyAnimeList){C_RESET}"
-        )
-        return False
+        if not quiet:
+            print(
+                f"{C_YELLOW}ℹ️  MAL sync skipped (Run 'ani-sync auth' to connect MyAnimeList){C_RESET}"
+            )
+        return False, "Not configured"
 
-    print(f"\n{C_CYAN}🔄  Syncing episode {episode_num} to MyAnimeList...{C_RESET}")
+    if not quiet:
+        print(f"\n{C_CYAN}🔄  Syncing episode {episode_num} to MyAnimeList...{C_RESET}")
     access_token = refresh_mal_token()
     if not access_token:
-        print(
-            f"{C_RED}⚠️  Failed to refresh MyAnimeList access token. Try running 'ani-sync auth'.{C_RESET}"
-        )
-        return False
+        if not quiet:
+            print(
+                f"{C_RED}⚠️  Failed to refresh MyAnimeList access token. Try running 'ani-sync auth'.{C_RESET}"
+            )
+        return False, "Token refresh failed"
 
     headers = {"Authorization": f"Bearer {access_token}"}
 
@@ -314,7 +320,7 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
                 f"{API_URL}/anime",
                 params={"q": anime_title, "limit": 1},
                 headers=headers,
-                timeout=10,
+                timeout=8,
             )
             if search_res.status_code == 200:
                 data = search_res.json()
@@ -325,8 +331,11 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
             pass
 
     if not mal_id:
-        print(f"{C_YELLOW}⚠️  Could not find MAL entry for '{anime_title}'{C_RESET}")
-        return False
+        if not quiet:
+            print(
+                f"{C_YELLOW}⚠️  Could not find MAL entry for '{anime_title}'{C_RESET}"
+            )
+        return False, f"Anime not found on MAL"
 
     try:
         update_url = f"{API_URL}/anime/{mal_id}/my_list_status"
@@ -341,20 +350,24 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None):
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/x-www-form-urlencoded",
             },
-            timeout=10,
+            timeout=8,
         )
         if res.status_code in (200, 201):
-            print(
-                f"{C_GREEN}{C_BOLD}✅  MAL Synced:{C_RESET} Episode {episode_num} marked as watched!"
-            )
-            return True
+            if not quiet:
+                print(
+                    f"{C_GREEN}{C_BOLD}✅  MAL Synced:{C_RESET} Episode {episode_num} marked as watched!"
+                )
+            return True, f"Episode {episode_num} marked as watched"
         else:
-            print(
-                f"{C_RED}❌  MAL Sync update failed ({res.status_code}): {res.text}{C_RESET}"
-            )
+            if not quiet:
+                print(
+                    f"{C_RED}❌  MAL Sync update failed ({res.status_code}): {res.text}{C_RESET}"
+                )
+            return False, f"HTTP {res.status_code} Error"
     except Exception as e:
-        print(f"{C_RED}❌  MAL Sync error: {e}{C_RESET}")
-    return False
+        if not quiet:
+            print(f"{C_RED}❌  MAL Sync error: {e}{C_RESET}")
+        return False, str(e)
 
 
 # ----------------------------------------------------------------------
@@ -471,10 +484,10 @@ def run_anilist_auth():
         print(f"{C_RED}❌ Connection error: {e}{C_RESET}")
 
 
-def sync_episode_to_anilist(anime_title, episode_num):
+def sync_episode_to_anilist(anime_title, episode_num, quiet=False):
     """Sync episode progress to AniList."""
     if not is_anilist_configured():
-        return False
+        return False, "Not configured"
     token = os.getenv("ANILIST_TOKEN", "").strip()
     headers = {
         "Authorization": f"Bearer {token}",
@@ -489,13 +502,13 @@ def sync_episode_to_anilist(anime_title, episode_num):
             ANILIST_API_URL,
             json={"query": search_query},
             headers={"Content-Type": "application/json"},
-            timeout=10,
+            timeout=8,
         )
         media = (
             res.json().get("data", {}).get("Media") if res.status_code == 200 else None
         )
         if not media:
-            return False
+            return False, "Anime not found on AniList"
         media_id = media["id"]
         total_eps = media.get("episodes")
         status = "COMPLETED" if total_eps and episode_num >= total_eps else "CURRENT"
@@ -511,17 +524,21 @@ def sync_episode_to_anilist(anime_title, episode_num):
             ANILIST_API_URL,
             json={"query": update_mutation},
             headers=headers,
-            timeout=10,
+            timeout=8,
         )
         if res.status_code == 200:
             entry = res.json().get("data", {}).get("SaveMediaListEntry", {})
-            print(
-                f"{C_GREEN}{C_BOLD}✅  AniList Synced:{C_RESET} Episode {entry.get('progress', episode_num)} marked as {entry.get('status', status).lower()}!"
-            )
-            return True
+            status_text = entry.get("status", status).lower()
+            if not quiet:
+                print(
+                    f"{C_GREEN}{C_BOLD}✅  AniList Synced:{C_RESET} Episode {entry.get('progress', episode_num)} marked as {status_text}!"
+                )
+            return True, f"Episode {episode_num} marked as {status_text}"
     except Exception as e:
-        print(f"{C_RED}❌  AniList Sync error: {e}{C_RESET}")
-    return False
+        if not quiet:
+            print(f"{C_RED}❌  AniList Sync error: {e}{C_RESET}")
+        return False, str(e)
+    return False, "Failed"
 
 
 # ----------------------------------------------------------------------
@@ -610,10 +627,10 @@ def refresh_kitsu_token():
     return None
 
 
-def sync_episode_to_kitsu(anime_title, episode_num):
+def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
     """Sync episode progress to Kitsu."""
     if not is_kitsu_configured():
-        return False
+        return False, "Not configured"
     token = os.getenv("KITSU_TOKEN", "").strip()
     kitsu_headers = {
         "Authorization": f"Bearer {token}",
@@ -626,37 +643,37 @@ def sync_episode_to_kitsu(anime_title, episode_num):
             f"{KITSU_API_URL}/anime",
             params={"filter[text]": anime_title, "page[limit]": 1},
             headers={"Accept": "application/vnd.api+json"},
-            timeout=10,
+            timeout=8,
         )
         if res.status_code != 200:
-            return False
+            return False, f"Kitsu search error ({res.status_code})"
         results = res.json().get("data", [])
         if not results:
-            return False
+            return False, "Anime not found on Kitsu"
         anime_id = results[0]["id"]
 
         # Get user ID
         res = requests.get(
             f"{KITSU_API_URL}/users?filter[self]=true",
             headers=kitsu_headers,
-            timeout=10,
+            timeout=8,
         )
         if res.status_code != 200:
             # Token might be expired, try refresh
             new_token = refresh_kitsu_token()
             if not new_token:
-                return False
+                return False, "Token refresh failed"
             kitsu_headers["Authorization"] = f"Bearer {new_token}"
             res = requests.get(
                 f"{KITSU_API_URL}/users?filter[self]=true",
                 headers=kitsu_headers,
-                timeout=10,
+                timeout=8,
             )
             if res.status_code != 200:
-                return False
+                return False, "User profile fetch failed"
         users = res.json().get("data", [])
         if not users:
-            return False
+            return False, "User profile not found"
         user_id = users[0]["id"]
 
         # Find existing library entry
@@ -664,7 +681,7 @@ def sync_episode_to_kitsu(anime_title, episode_num):
             f"{KITSU_API_URL}/library-entries",
             params={"filter[userId]": user_id, "filter[animeId]": anime_id},
             headers=kitsu_headers,
-            timeout=10,
+            timeout=8,
         )
         entries = res.json().get("data", []) if res.status_code == 200 else []
 
@@ -680,7 +697,7 @@ def sync_episode_to_kitsu(anime_title, episode_num):
                     }
                 },
                 headers=kitsu_headers,
-                timeout=10,
+                timeout=8,
             )
         else:
             res = requests.post(
@@ -696,37 +713,49 @@ def sync_episode_to_kitsu(anime_title, episode_num):
                     }
                 },
                 headers=kitsu_headers,
-                timeout=10,
+                timeout=8,
             )
 
         if res.status_code in (200, 201, 202):
-            print(
-                f"{C_GREEN}{C_BOLD}✅  Kitsu Synced:{C_RESET} Episode {episode_num} marked as watching!"
-            )
-            return True
+            if not quiet:
+                print(
+                    f"{C_GREEN}{C_BOLD}✅  Kitsu Synced:{C_RESET} Episode {episode_num} marked as watching!"
+                )
+            return True, f"Episode {episode_num} marked as watching"
     except Exception as e:
-        print(f"{C_RED}❌  Kitsu Sync error: {e}{C_RESET}")
-    return False
+        if not quiet:
+            print(f"{C_RED}❌  Kitsu Sync error: {e}{C_RESET}")
+        return False, str(e)
+    return False, "Failed"
 
 
 def sync_all_platforms(anime_title, episode_num, mal_id=None):
-    """Sync episode progress to all configured tracking platforms."""
-    # MAL
-    sync_episode_to_mal(anime_title, episode_num, mal_id=mal_id)
-    # AniList (background)
-    if is_anilist_configured():
-        threading.Thread(
-            target=sync_episode_to_anilist,
-            args=(anime_title, episode_num),
-            daemon=True,
-        ).start()
-    # Kitsu (background)
-    if is_kitsu_configured():
-        threading.Thread(
-            target=sync_episode_to_kitsu,
-            args=(anime_title, episode_num),
-            daemon=True,
-        ).start()
+    """Sync episode progress to all configured tracking platforms in parallel and return results dictionary."""
+    tasks = {}
+    sync_results = {}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        if is_mal_configured():
+            tasks["MyAnimeList"] = executor.submit(
+                sync_episode_to_mal, anime_title, episode_num, mal_id=mal_id, quiet=True
+            )
+        if is_anilist_configured():
+            tasks["AniList"] = executor.submit(
+                sync_episode_to_anilist, anime_title, episode_num, quiet=True
+            )
+        if is_kitsu_configured():
+            tasks["Kitsu"] = executor.submit(
+                sync_episode_to_kitsu, anime_title, episode_num, quiet=True
+            )
+
+        for p_name, future in tasks.items():
+            try:
+                ok, msg = future.result(timeout=4)
+                sync_results[p_name] = (ok, msg)
+            except Exception as e:
+                sync_results[p_name] = (False, str(e))
+
+    return sync_results
 
 
 # ----------------------------------------------------------------------
@@ -1864,6 +1893,17 @@ def pick_option(title, options, default_idx=0, use_fzf=True):
     search filtering, arrow-key navigation, and instant selection.
     Falls back to a clean numbered menu when fzf is not available.
     """
+    if not options:
+        return 0
+
+    if len(options) == 1:
+        clean_title = re.sub(r"\033\[[0-9;]*m", "", title).strip()
+        clean_opt = re.sub(r"\033\[[0-9;]*m", "", options[0]).strip()
+        print(
+            f"\n{C_CYAN}ℹ️  {clean_title} {C_BOLD}{C_YELLOW}{clean_opt}{C_RESET} {C_GREEN}(Auto-selected){C_RESET}"
+        )
+        return 0
+
     if use_fzf and _FZF_ENABLED and _has_fzf() and len(options) > 1:
         try:
             result = _fzf_pick(title, options)
@@ -1872,17 +1912,25 @@ def pick_option(title, options, default_idx=0, use_fzf=True):
         except Exception:
             pass  # Fallback to numbered menu
 
-    # Classic numbered menu fallback
-    print(f"\n{C_CYAN}{C_BOLD}{title}{C_RESET}")
-    print(f"{C_DIM}{'-' * len(title)}{C_RESET}")
+    # Sleek styled numbered menu fallback
+    clean_t = re.sub(r"\033\[[0-9;]*m", "", title).strip()
+    raw_lengths = [len(re.sub(r"\033\[[0-9;]*m", "", str(o))) for o in options]
+    box_width = max(len(clean_t) + 6, max(raw_lengths) + 12, 46)
+
+    print(f"\n{C_CYAN}╭{'─' * box_width}╮{C_RESET}")
+    print(f"{C_CYAN}│{C_RESET}  {C_BOLD}{C_MAGENTA}{clean_t}{C_RESET}")
+    print(f"{C_CYAN}├{'─' * box_width}┤{C_RESET}")
     for idx, opt in enumerate(options, 1):
+        is_default = (idx - 1) == default_idx
         prefix = f"{C_GREEN}{C_BOLD}[{idx}]{C_RESET}"
-        print(f"  {prefix} {opt}")
+        def_tag = f" {C_YELLOW}(default){C_RESET}" if is_default else ""
+        print(f"{C_CYAN}│{C_RESET}  {prefix} {opt}{def_tag}")
+    print(f"{C_CYAN}╰{'─' * box_width}╯{C_RESET}")
 
     while True:
         try:
             choice = input(
-                f"\n{C_BOLD}Select [1-{len(options)}] (default: {default_idx+1}): {C_RESET}"
+                f"{C_BOLD}Select [1-{len(options)}] (default: {default_idx+1}) ❯ {C_RESET}"
             ).strip()
             if not choice:
                 return default_idx
@@ -2071,8 +2119,19 @@ def play_loop(
         # Record to local history
         save_history(slug, title, ep_num, quality=quality_used, mode=mode)
 
-        # Auto-sync to all configured tracking platforms (MAL, AniList, Kitsu)
-        sync_all_platforms(title, ep_num, mal_id=mal_id)
+        # Auto-sync to all configured tracking platforms (MAL, AniList, Kitsu) in parallel
+        has_tracking = (
+            is_mal_configured() or is_anilist_configured() or is_kitsu_configured()
+        )
+        sync_res = {}
+        if has_tracking:
+            print(
+                f"\n{C_CYAN}🔄 Syncing progress to connected platforms...{C_RESET}",
+                end="",
+                flush=True,
+            )
+            sync_res = sync_all_platforms(title, ep_num, mal_id=mal_id)
+            print("\r" + " " * 60 + "\r", end="", flush=True)
 
         # Interactive post-playback controls
         while True:
@@ -2084,37 +2143,48 @@ def play_loop(
                 else None
             )
 
+            # Modern Aesthetic Completion & Action Card
+            card_width = 62
+            display_title = title if len(title) <= 34 else title[:31] + "..."
+            print(f"\n{C_CYAN}╭{'─' * card_width}╮{C_RESET}")
             print(
-                f"\n{C_CYAN}╭────────────────────────────────────────────────────────────╮{C_RESET}"
-            )
-            print(
-                f"{C_CYAN}│{C_RESET}  {C_MAGENTA}{C_BOLD}🎬 Episode {ep_num} Completed{C_RESET} • {C_GREEN}Tracked to MAL / AniList / Kitsu{C_RESET}  {C_CYAN}│{C_RESET}"
-            )
-            print(
-                f"{C_CYAN}╰────────────────────────────────────────────────────────────╯{C_RESET}"
+                f"{C_CYAN}│{C_RESET}  {C_MAGENTA}{C_BOLD}🎬 Episode {ep_num} Completed{C_RESET} • {C_WHITE}{C_BOLD}{display_title:<36}{C_RESET} {C_CYAN}│{C_RESET}"
             )
 
-            controls_hint = []
+            if has_tracking and sync_res:
+                print(f"{C_CYAN}├{'─' * card_width}┤{C_RESET}")
+                for p_name, (p_ok, p_msg) in sync_res.items():
+                    if p_ok:
+                        status_line = f"  {C_GREEN}✓{C_RESET} {C_BOLD}{p_name:<13}{C_RESET} {C_GREEN}{p_msg}{C_RESET}"
+                    else:
+                        status_line = f"  {C_YELLOW}⚠{C_RESET} {C_BOLD}{p_name:<13}{C_RESET} {C_YELLOW}{p_msg}{C_RESET}"
+                    print(f"{C_CYAN}│{C_RESET}{status_line}")
+
+            print(f"{C_CYAN}├{'─' * card_width}┤{C_RESET}")
+
+            # Formatted action rows
             if has_next:
-                controls_hint.append(
-                    f"{C_GREEN}{C_BOLD}[Enter/n]{C_RESET} Next (Ep {next_num})"
-                )
-            controls_hint.append(f"{C_CYAN}[r]{C_RESET} Replay")
-            if has_prev:
-                controls_hint.append(f"{C_BLUE}[p]{C_RESET} Previous")
-            controls_hint.append(f"{C_YELLOW}[s]{C_RESET} Select Ep")
-            controls_hint.append(f"{C_YELLOW}[q]{C_RESET} Quality")
-            if seasons:
-                controls_hint.append(f"{C_YELLOW}[S]{C_RESET} Season")
-            controls_hint.append(f"{C_MAGENTA}[m]{C_RESET} Menu (FZF)")
-            controls_hint.append(f"{C_RED}[x]{C_RESET} Quit")
+                row1 = f"  {C_GREEN}{C_BOLD}[Enter/n]{C_RESET} Next (Ep {next_num})  │  {C_CYAN}[r]{C_RESET} Replay Ep {ep_num}  │  {C_YELLOW}[p]{C_RESET} Prev"
+            else:
+                row1 = f"  {C_CYAN}[r]{C_RESET} Replay Ep {ep_num}  │  {C_YELLOW}[p]{C_RESET} Previous Episode"
 
-            print("  " + "  •  ".join(controls_hint))
+            if seasons:
+                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep │ {C_YELLOW}[q]{C_RESET} Quality │ {C_YELLOW}[S]{C_RESET} Season │ {C_MAGENTA}[m]{C_RESET} Menu (FZF) │ {C_RED}[x]{C_RESET} Quit"
+            else:
+                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep  │  {C_YELLOW}[q]{C_RESET} Quality  │  {C_MAGENTA}[m]{C_RESET} Menu (FZF)  │  {C_RED}[x]{C_RESET} Quit"
+
+            print(f"{C_CYAN}│{C_RESET}{row1}")
+            print(f"{C_CYAN}│{C_RESET}{row2}")
+            print(f"{C_CYAN}╰{'─' * card_width}╯{C_RESET}")
 
             try:
-                cmd = input(f"\n{C_BOLD}Choice ❯ {C_RESET}").strip()
+                cmd = input(f"{C_BOLD}Choice ❯ {C_RESET}").strip()
             except (KeyboardInterrupt, EOFError):
-                print("\n")
+                print(
+                    f"\n{C_MAGENTA}╭────────────────────────────────────────────────────────────╮{C_RESET}"
+                    f"\n{C_MAGENTA}│{C_RESET}  {C_GREEN}{C_BOLD}✨ Thanks for using ani-sync! Sayonara! 👋{C_RESET}                 {C_MAGENTA}│{C_RESET}"
+                    f"\n{C_MAGENTA}╰────────────────────────────────────────────────────────────╯{C_RESET}\n"
+                )
                 return
 
             if (not cmd and has_next) or cmd.lower() in ("n", "next"):
@@ -2133,17 +2203,25 @@ def play_loop(
                     f"Episode {e.get('number', i+1)}" for i, e in enumerate(episodes)
                 ]
                 current_idx = pick_option(
-                    "Select Episode:", ep_options, default_idx=current_idx
+                    f"Select Episode for '{title[:32]}':",
+                    ep_options,
+                    default_idx=current_idx,
                 )
                 break
             elif cmd.lower() in ("q", "quality"):
                 q_options = list(streams.keys())
-                q_idx = pick_option("Select Quality:", q_options, default_idx=0)
+                q_idx = pick_option(
+                    f"Select Video Quality (Current: {quality_used}):",
+                    q_options,
+                    default_idx=0,
+                )
                 preferred_quality = q_options[q_idx]
                 break
             elif cmd.lower() in ("s", "season") and seasons:
                 s_options = [s["title"] for s in seasons]
-                s_idx = pick_option("Select Season / Movie:", s_options, default_idx=0)
+                s_idx = pick_option(
+                    "Select Season / Movie in Franchise:", s_options, default_idx=0
+                )
                 return play_loop(
                     seasons[s_idx],
                     initial_ep_idx=0,
@@ -2158,27 +2236,31 @@ def play_loop(
                 menu_opts = []
                 actions = []
                 if has_next:
-                    menu_opts.append(f"▶  Play Next Episode (Episode {next_num})")
+                    menu_opts.append(f"▶   Play Next Episode (Episode {next_num})")
                     actions.append("next")
-                menu_opts.append(f"🔄 Replay Current Episode (Episode {ep_num})")
+                menu_opts.append(f"🔄  Replay Current Episode (Episode {ep_num})")
                 actions.append("replay")
                 if has_prev:
-                    menu_opts.append("⏮  Play Previous Episode")
+                    menu_opts.append(
+                        f"⏮   Play Previous Episode (Episode {ep_num-1 if ep_num > 1 else 1})"
+                    )
                     actions.append("prev")
-                menu_opts.append("📋 Select Different Episode (FZF)")
+                menu_opts.append("📋  Select Different Episode (FZF Finder)")
                 actions.append("select")
-                menu_opts.append(f"🎯 Change Video Quality (Currently: {quality_used})")
+                menu_opts.append(f"🎯  Change Video Quality (Current: {quality_used})")
                 actions.append("quality")
                 if seasons:
-                    menu_opts.append("🎬 Switch Season / Movie in Franchise")
+                    menu_opts.append("🎬  Switch Season / Movie in Franchise")
                     actions.append("season")
-                menu_opts.append("📥 Sync & Update Watch Library")
+                menu_opts.append("📥  Sync & Update Watch Library")
                 actions.append("sync")
-                menu_opts.append("❌ Exit ani-sync")
+                menu_opts.append("🩺  Run System Diagnostics (Doctor)")
+                actions.append("doctor")
+                menu_opts.append("❌  Exit ani-sync")
                 actions.append("quit")
 
                 selected_action_idx = pick_option(
-                    "Playback Actions Menu:", menu_opts, default_idx=0
+                    "Playback Actions & Navigation Menu", menu_opts, default_idx=0
                 )
                 action = actions[selected_action_idx]
                 if action == "next":
@@ -2195,18 +2277,24 @@ def play_loop(
                         for i, e in enumerate(episodes)
                     ]
                     current_idx = pick_option(
-                        "Select Episode:", ep_options, default_idx=current_idx
+                        f"Select Episode for '{title[:32]}':",
+                        ep_options,
+                        default_idx=current_idx,
                     )
                     break
                 elif action == "quality":
                     q_options = list(streams.keys())
-                    q_idx = pick_option("Select Quality:", q_options, default_idx=0)
+                    q_idx = pick_option(
+                        f"Select Video Quality (Current: {quality_used}):",
+                        q_options,
+                        default_idx=0,
+                    )
                     preferred_quality = q_options[q_idx]
                     break
                 elif action == "season":
                     s_options = [s["title"] for s in seasons]
                     s_idx = pick_option(
-                        "Select Season / Movie:", s_options, default_idx=0
+                        "Select Season / Movie in Franchise:", s_options, default_idx=0
                     )
                     return play_loop(
                         seasons[s_idx],
@@ -2220,13 +2308,21 @@ def play_loop(
                     )
                 elif action == "sync":
                     sync_all_libraries()
+                elif action == "doctor":
+                    run_doctor()
                 elif action == "quit":
                     print(
-                        f"{C_GREEN}Thanks for using ani-sync! Sayonara! 👋{C_RESET}\n"
+                        f"\n{C_MAGENTA}╭────────────────────────────────────────────────────────────╮{C_RESET}"
+                        f"\n{C_MAGENTA}│{C_RESET}  {C_GREEN}{C_BOLD}✨ Thanks for using ani-sync! Sayonara! 👋{C_RESET}                 {C_MAGENTA}│{C_RESET}"
+                        f"\n{C_MAGENTA}╰────────────────────────────────────────────────────────────╯{C_RESET}\n"
                     )
                     return
             elif cmd.lower() in ("x", "quit", "exit"):
-                print(f"{C_GREEN}Thanks for using ani-sync! Sayonara! 👋{C_RESET}\n")
+                print(
+                    f"\n{C_MAGENTA}╭────────────────────────────────────────────────────────────╮{C_RESET}"
+                    f"\n{C_MAGENTA}│{C_RESET}  {C_GREEN}{C_BOLD}✨ Thanks for using ani-sync! Sayonara! 👋{C_RESET}                 {C_MAGENTA}│{C_RESET}"
+                    f"\n{C_MAGENTA}╰────────────────────────────────────────────────────────────╯{C_RESET}\n"
+                )
                 return
             else:
                 print(
