@@ -70,7 +70,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.3.0"
+VERSION = "2.4.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -2050,6 +2050,137 @@ def turbo_play(
     return res
 
 
+def batch_download_anime(
+    anime,
+    episodes,
+    target_ep_nums=None,
+    preferred_quality=None,
+    mode="sub",
+):
+    """Download multiple anime episodes in parallel with progress bar and organized disk storage."""
+    title = anime["title"]
+
+    if not target_ep_nums:
+        selected_eps = episodes
+    else:
+        selected_eps = [e for e in episodes if e.get("number") in target_ep_nums]
+
+    if not selected_eps:
+        print(f"\n{C_RED}❌ No matching episodes found to download.{C_RESET}\n")
+        return
+
+    # Choose destination folder: ~/Downloads/ani-sync/<Anime Title>/
+    download_dir = Path.home() / "Downloads" / "ani-sync" / sanitize_filename(title)
+    download_dir.mkdir(parents=True, exist_ok=True)
+
+    print(
+        f"\n{C_CYAN}╭────────────────────────────────────────────────────────────╮{C_RESET}"
+    )
+    print(
+        f"{C_CYAN}│{C_RESET}  {C_BOLD}{C_MAGENTA}📥 Turbo Batch Downloader (64 Connections/File){C_RESET}           {C_CYAN}│{C_RESET}"
+    )
+    print(
+        f"{C_CYAN}├────────────────────────────────────────────────────────────┤{C_RESET}"
+    )
+    print(
+        f"{C_CYAN}│{C_RESET}  Anime:       {C_WHITE}{C_BOLD}{title[:40]:<40}{C_RESET} {C_CYAN}│{C_RESET}"
+    )
+    print(
+        f"{C_CYAN}│{C_RESET}  Episodes:    {C_YELLOW}{len(selected_eps)} episode(s) selected{C_RESET}"
+    )
+    print(f"{C_CYAN}│{C_RESET}  Destination: {C_GREEN}{download_dir}{C_RESET}")
+    print(
+        f"{C_CYAN}╰────────────────────────────────────────────────────────────╯{C_RESET}\n"
+    )
+
+    def download_one(ep_obj):
+        ep_num = ep_obj.get("number", 1)
+        safe_ep_title = sanitize_filename(f"{title}_EP{ep_num}")
+        dest_file = download_dir / f"{safe_ep_title}.mp4"
+        if dest_file.exists() and dest_file.stat().st_size > 5 * 1024 * 1024:
+            return (ep_num, True, "Cached")
+
+        streams = get_episode_streams(ep_obj["id"], mode=mode)
+        if not streams:
+            return (ep_num, False, "No streams")
+
+        qual = (
+            preferred_quality
+            if (preferred_quality and preferred_quality in streams)
+            else next(iter(streams))
+        )
+        url = streams[qual]
+
+        dl_cmd = [
+            "yt-dlp",
+            "-N",
+            "64",
+            "--concurrent-fragments",
+            "64",
+            "--socket-timeout",
+            "5",
+            "--buffer-size",
+            "16M",
+            "--http-chunk-size",
+            "10M",
+            "--fragment-retries",
+            "10",
+            "--retries",
+            "5",
+            "--add-header",
+            "Referer: https://anidb.app/",
+            "--add-header",
+            "Origin: https://anidb.app",
+            "--user-agent",
+            USER_AGENT,
+            "--no-warnings",
+            "--quiet",
+            "--no-part",
+            "-o",
+            str(dest_file),
+            url,
+        ]
+        try:
+            subprocess.run(dl_cmd, check=True)
+            return (ep_num, True, f"{qual}")
+        except Exception as e:
+            return (ep_num, False, f"{e}")
+
+    try:
+        from tqdm import tqdm
+
+        has_tqdm = True
+    except ImportError:
+        has_tqdm = False
+
+    results = []
+    pbar = None
+    if has_tqdm:
+        pbar = tqdm(
+            total=len(selected_eps),
+            desc="  📥 Downloading Episodes",
+            unit="ep",
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {executor.submit(download_one, ep): ep for ep in selected_eps}
+        for fut in concurrent.futures.as_completed(futures):
+            res = fut.result()
+            results.append(res)
+            if pbar:
+                pbar.update(1)
+                pbar.set_postfix({"Ep": f"{res[0]} {'✓' if res[1] else '✗'}"})
+
+    if pbar:
+        pbar.close()
+
+    success_count = sum(1 for _, ok, _ in results if ok)
+    print(
+        f"\n{C_GREEN}{C_BOLD}✅ Batch Download Completed: {success_count}/{len(selected_eps)} episodes successfully saved to:{C_RESET}"
+    )
+    print(f"📁 {C_CYAN}{download_dir}{C_RESET}\n")
+
+
 def prefetch_episode(next_ep_data, title, preferred_quality=None, mode="sub"):
     """Background pre-fetch of next episode so it loads in 0.0 seconds."""
     try:
@@ -2990,10 +3121,11 @@ def print_help():
     theme, --theme [name]     Select or set color theme (catppuccin, tokyonight, dracula, nord, gruvbox, monokai)
     doctor, check, --doctor   Verify dependencies, system status & credentials
     credits, --credits        Display open-source contributors & project credits
-    -e, --episode <num>       Jump directly to specified episode number
+    -e, --episode <num|range> Episode number, comma-list, or range (e.g. -e 1, -e 1-12, -e 1,3,5)
+    -a, --all                 Target all episodes in the season (used with -d for batch download)
     -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
     --skip, --auto-skip       Automatically skip anime opening/intro (+85s / AniSkip)
-    -d, --download            Download episode locally without opening player
+    -d, --download            Download episode(s) locally without opening player (supports batch ranges)
     --direct                  Stream directly without multi-threaded local turbo cache
     --dub                     Play English dub if available (default: Japanese sub)
     --no-fzf                  Disable fzf fuzzy search (use numbered menus)
@@ -3209,6 +3341,8 @@ def main():
     # Parse Flags
     query_parts = []
     episode_target = None
+    target_episodes_list = None
+    download_all = False
     preferred_quality = None
     mode = "sub"
     player = "mpv"
@@ -3222,8 +3356,27 @@ def main():
         arg = args[i]
         if arg in ("-e", "--episode", "-r", "--range"):
             if i + 1 < len(args):
-                episode_target = int(args[i + 1])
+                ep_val = args[i + 1]
+                if "-" in ep_val or ".." in ep_val:
+                    sep = "-" if "-" in ep_val else ".."
+                    parts = ep_val.split(sep, 1)
+                    if parts[0].isdigit() and parts[1].isdigit():
+                        target_episodes_list = list(
+                            range(int(parts[0]), int(parts[1]) + 1)
+                        )
+                        episode_target = target_episodes_list[0]
+                elif "," in ep_val:
+                    target_episodes_list = [
+                        int(x.strip()) for x in ep_val.split(",") if x.strip().isdigit()
+                    ]
+                    if target_episodes_list:
+                        episode_target = target_episodes_list[0]
+                elif ep_val.isdigit():
+                    episode_target = int(ep_val)
+                    target_episodes_list = [episode_target]
                 i += 1
+        elif arg in ("--all", "-a"):
+            download_all = True
         elif arg in ("-q", "--quality"):
             if i + 1 < len(args):
                 preferred_quality = args[i + 1]
@@ -3312,7 +3465,20 @@ def main():
         print(f"{C_RED}❌ No episodes found for {chosen_anime['title']}.{C_RESET}")
         return
 
-    # Pick Episode
+    # Check for batch download execution
+    if download_only and (
+        download_all or (target_episodes_list and len(target_episodes_list) > 1)
+    ):
+        batch_download_anime(
+            chosen_anime,
+            episodes,
+            target_ep_nums=None if download_all else target_episodes_list,
+            preferred_quality=preferred_quality,
+            mode=mode,
+        )
+        return
+
+    # Pick Episode for single play/download
     ep_idx = 0
     if episode_target:
         for idx, ep in enumerate(episodes):
@@ -3322,7 +3488,9 @@ def main():
     elif len(episodes) > 1:
         ep_options = [f"Episode {e.get('number', i+1)}" for i, e in enumerate(episodes)]
         ep_idx = pick_option(
-            f"Select Episode for '{chosen_anime['title']}':", ep_options, default_idx=0
+            f"Select Episode for '{chosen_anime['title']}':",
+            ep_options,
+            default_idx=0,
         )
 
     # Launch Playback Loop
