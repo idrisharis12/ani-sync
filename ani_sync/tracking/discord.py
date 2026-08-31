@@ -54,23 +54,29 @@ class DiscordRPC:
                                 log_debug(f"Failed to open pipe {pipe_name}: {pe}")
                 else:
                     uid = os.getuid()
-                    candidates = [
-                        f"/run/user/{uid}/discord-ipc-0",
-                        f"/run/user/{uid}/app/com.discordapp.Discord/discord-ipc-0",
-                        os.path.join(
-                            os.environ.get("XDG_RUNTIME_DIR", ""), "discord-ipc-0"
-                        ),
-                        "/tmp/discord-ipc-0",
+                    base_paths = [
+                        f"/run/user/{uid}/",
+                        f"/run/user/{uid}/app/com.discordapp.Discord/",
+                        f"/run/user/{uid}/snap.discord/",
+                        os.environ.get("XDG_RUNTIME_DIR", "") + "/",
+                        "/tmp/",
                     ]
-                    for c in candidates:
-                        if os.path.exists(c):
-                            try:
-                                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                                sock.connect(c)
-                                log_debug(f"Connected to Unix Discord socket: {c}")
-                                break
-                            except Exception as se:
-                                log_debug(f"Failed to connect socket {c}: {se}")
+                    
+                    for base in base_paths:
+                        if not base or base == "/":
+                            continue
+                        for i in range(10):
+                            c = os.path.join(base, f"discord-ipc-{i}")
+                            if os.path.exists(c):
+                                try:
+                                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                                    sock.connect(c)
+                                    log_debug(f"Connected to Unix Discord socket: {c}")
+                                    break
+                                except Exception as se:
+                                    log_debug(f"Failed to connect socket {c}: {se}")
+                        if sock:
+                            break
 
                 if not sock:
                     log_debug("No active Discord IPC socket found.")

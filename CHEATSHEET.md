@@ -120,6 +120,7 @@ ani-sync update --quiet   # Silent mode (used in cron / scripts)
 | Flag | Long Flag | Description | Default | Example |
 | :--- | :--- | :--- | :--- | :--- |
 | `-c` | `--continue` | Resume last anime from next episode | `false` | `ani-sync -c` |
+| `-v <num>` | `--volume` | Set default mpv volume level | `None` | `ani-sync "frieren" -v 50` |
 | `-s` | `--schedule` | Browse airing release calendar & countdowns | `false` | `ani-sync -s` |
 | `-t` | `--trending` | Browse top trending & seasonal anime | `false` | `ani-sync -t` |
 | | `--party [room]` | Stream in Syncplay Watch Together group room | `false` | `ani-sync "frieren" --party "night"` |

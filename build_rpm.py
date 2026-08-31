@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-VERSION = "2.10.1"
+VERSION = "2.10.2"
 PACKAGE_NAME = "ani-sync"
 DIST_DIR = Path("dist")
 DIST_DIR.mkdir(exist_ok=True)

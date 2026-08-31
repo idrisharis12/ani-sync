@@ -36,6 +36,14 @@
 
 ---
 
+## 📦 What's New in v2.10.2
+
+- **🎮 Fixed Discord Rich Presence** — Repaired the zero-dependency Discord IPC module to successfully detect Unix sockets across Flatpak, Snap, and native Discord installations.
+- **🔊 MPV Volume Control** — Added a native `-v` / `--volume` flag and config setting to explicitly control MPV's launch volume.
+- **⚡ Background Auto-Update Fix** — Solved a critical bug where the invisible background updater would unexpectedly run the interactive shell installer and crash the terminal.
+
+---
+
 ## 📦 What's New in v2.10.0
 
 - **🚀 Massive Architecture Overhaul** — The 4,000+ line monolithic script has been successfully refactored into the `ani_sync` Python package, fixing namespace collisions and enabling better programmatic usage.
