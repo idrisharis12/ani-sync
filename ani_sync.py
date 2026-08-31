@@ -70,7 +70,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -93,17 +93,111 @@ ANILIST_REDIRECT_URI = "https://anilist.co/api/v2/oauth/pin"
 KITSU_API_URL = "https://kitsu.io/api/edge"
 KITSU_TOKEN_URL = "https://kitsu.io/api/oauth/token"
 
-# Terminal Colors
-C_BLUE = "\033[94m"
-C_CYAN = "\033[96m"
-C_GREEN = "\033[92m"
-C_YELLOW = "\033[93m"
-C_MAGENTA = "\033[95m"
-C_RED = "\033[91m"
-C_WHITE = "\033[97m"
+# Terminal Colors & Dynamic Theme Engine
+THEMES = {
+    "default": {
+        "blue": "\033[94m",
+        "cyan": "\033[96m",
+        "green": "\033[92m",
+        "yellow": "\033[93m",
+        "magenta": "\033[95m",
+        "red": "\033[91m",
+        "white": "\033[97m",
+        "fzf_colors": "header:bold:cyan,info:yellow,prompt:bold:magenta,pointer:bold:cyan,marker:bold:green,border:cyan",
+    },
+    "tokyonight": {
+        "blue": "\033[38;2;122;162;247m",
+        "cyan": "\033[38;2;125;207;255m",
+        "green": "\033[38;2;158;206;106m",
+        "yellow": "\033[38;2;224;175;104m",
+        "magenta": "\033[38;2;187;154;247m",
+        "red": "\033[38;2;247;118;142m",
+        "white": "\033[38;2;192;202;245m",
+        "fzf_colors": "bg+:#283457,bg:#1a1b26,spinner:#ff007c,hl:#5883cf,fg:#c0caf5,header:#7aa2f7,info:#e0af68,pointer:#7dcfff,marker:#9ece6a,prompt:#bb9af7,hl+:#ff007c,border:#7aa2f7",
+    },
+    "catppuccin": {
+        "blue": "\033[38;2;137;180;250m",
+        "cyan": "\033[38;2;148;226;213m",
+        "green": "\033[38;2;166;227;161m",
+        "yellow": "\033[38;2;249;226;175m",
+        "magenta": "\033[38;2;203;166;247m",
+        "red": "\033[38;2;243;139;168m",
+        "white": "\033[38;2;205;214;244m",
+        "fzf_colors": "bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8,fg:#cdd6f4,header:#89b4fa,info:#cba6f7,pointer:#f5e0dc,marker:#b4befe,prompt:#cba6f7,hl+:#f38ba8,border:#cba6f7",
+    },
+    "dracula": {
+        "blue": "\033[38;2;98;114;164m",
+        "cyan": "\033[38;2;139;233;253m",
+        "green": "\033[38;2;80;250;123m",
+        "yellow": "\033[38;2;241;250;140m",
+        "magenta": "\033[38;2;255;121;198m",
+        "red": "\033[38;2;255;85;85m",
+        "white": "\033[38;2;248;248;242m",
+        "fzf_colors": "bg+:#44475a,bg:#282a36,spinner:#f8f8f2,hl:#bd93f9,fg:#f8f8f2,header:#8be9fd,info:#ffb86c,pointer:#ff79c6,marker:#50fa7b,prompt:#bd93f9,hl+:#ff79c6,border:#bd93f9",
+    },
+    "gruvbox": {
+        "blue": "\033[38;2;131;165;152m",
+        "cyan": "\033[38;2;142;192;124m",
+        "green": "\033[38;2;184;187;38m",
+        "yellow": "\033[38;2;250;189;47m",
+        "magenta": "\033[38;2;211;134;155m",
+        "red": "\033[38;2;251;73;52m",
+        "white": "\033[38;2;235;219;178m",
+        "fzf_colors": "bg+:#3c3836,bg:#282828,spinner:#ebdbb2,hl:#fabd2f,fg:#ebdbb2,header:#fe8019,info:#b8bb26,pointer:#fb4934,marker:#b8bb26,prompt:#fabd2f,hl+:#fb4934,border:#fe8019",
+    },
+    "nord": {
+        "blue": "\033[38;2;129;161;193m",
+        "cyan": "\033[38;2;136;192;208m",
+        "green": "\033[38;2;163;190;140m",
+        "yellow": "\033[38;2;235;203;139m",
+        "magenta": "\033[38;2;180;142;173m",
+        "red": "\033[38;2;191;97;106m",
+        "white": "\033[38;2;236;239;244m",
+        "fzf_colors": "bg+:#3b4252,bg:#2e3440,spinner:#eceff4,hl:#88c0d0,fg:#eceff4,header:#81a1c1,info:#ebcb8b,pointer:#88c0d0,marker:#a3be8c,prompt:#b48ead,hl+:#88c0d0,border:#88c0d0",
+    },
+    "monokai": {
+        "blue": "\033[38;2;102;217;239m",
+        "cyan": "\033[38;2;166;226;46m",
+        "green": "\033[38;2;166;226;46m",
+        "yellow": "\033[38;2;230;219;116m",
+        "magenta": "\033[38;2;249;38;114m",
+        "red": "\033[38;2;249;38;114m",
+        "white": "\033[38;2;248;248;242m",
+        "fzf_colors": "bg+:#3e3d32,bg:#272822,spinner:#f8f8f2,hl:#e6db74,fg:#f8f8f2,header:#66d9ef,info:#a6e22e,pointer:#f92672,marker:#a6e22e,prompt:#f92672,hl+:#fd971f,border:#66d9ef",
+    },
+}
+
+CURRENT_THEME = "default"
+C_BLUE = THEMES["default"]["blue"]
+C_CYAN = THEMES["default"]["cyan"]
+C_GREEN = THEMES["default"]["green"]
+C_YELLOW = THEMES["default"]["yellow"]
+C_MAGENTA = THEMES["default"]["magenta"]
+C_RED = THEMES["default"]["red"]
+C_WHITE = THEMES["default"]["white"]
 C_BOLD = "\033[1m"
 C_DIM = "\033[2m"
 C_RESET = "\033[0m"
+_FZF_THEME_COLORS = THEMES["default"]["fzf_colors"]
+
+
+def apply_theme(name):
+    """Apply terminal color theme and FZF palette dynamically."""
+    global CURRENT_THEME, C_BLUE, C_CYAN, C_GREEN, C_YELLOW, C_MAGENTA, C_RED, C_WHITE, _FZF_THEME_COLORS
+    name_clean = name.lower().strip()
+    if name_clean not in THEMES:
+        return False
+    t = THEMES[name_clean]
+    CURRENT_THEME = name_clean
+    C_BLUE = t["blue"]
+    C_CYAN = t["cyan"]
+    C_GREEN = t["green"]
+    C_YELLOW = t["yellow"]
+    C_MAGENTA = t["magenta"]
+    C_RED = t["red"]
+    C_WHITE = t["white"]
+    _FZF_THEME_COLORS = t["fzf_colors"]
+    return True
 
 
 # ----------------------------------------------------------------------
@@ -124,6 +218,11 @@ def load_config():
                             os.environ[key] = val
         except Exception:
             pass
+
+    # Apply saved theme if configured
+    saved_theme = os.environ.get("THEME")
+    if saved_theme:
+        apply_theme(saved_theme)
 
 
 def _append_config(key, value):
@@ -2091,7 +2190,7 @@ def _fzf_pick(title, options):
         "--prompt=  🔍 Search ❯ ",
         "--pointer=▶ ",
         "--marker=✦ ",
-        "--color=header:bold:cyan,info:yellow,prompt:bold:magenta,pointer:bold:cyan,marker:bold:green,border:cyan",
+        f"--color={_FZF_THEME_COLORS}",
         "--ansi",
         "--no-scrollbar",
         "--cycle",
@@ -2630,6 +2729,32 @@ def run_doctor():
     print(f"\n{C_GREEN}Doctor check completed.{C_RESET}\n")
 
 
+def run_theme_picker(target_theme=None):
+    """Interactive theme selector and persistent switcher."""
+    if target_theme:
+        if apply_theme(target_theme):
+            _append_config("THEME", target_theme)
+            print(
+                f"\n{C_GREEN}{C_BOLD}✓ Theme set to '{target_theme}' and saved to configuration!{C_RESET}\n"
+            )
+            return
+        else:
+            print(f"\n{C_RED}Unknown theme '{target_theme}'.{C_RESET}")
+            print(f"Available themes: {', '.join(THEMES.keys())}\n")
+            return
+
+    options = [f"{name.capitalize():<12} — {name} palette" for name in THEMES.keys()]
+    idx = pick_option(
+        "🎨 Select Terminal & FZF Aesthetic Theme:", options, default_idx=0
+    )
+    selected_name = list(THEMES.keys())[idx]
+    apply_theme(selected_name)
+    _append_config("THEME", selected_name)
+    print(
+        f"\n{C_GREEN}{C_BOLD}✨ Active theme changed to '{selected_name}' and saved!{C_RESET}\n"
+    )
+
+
 def print_credits():
     """Display credits and acknowledgements for open-source contributors and inspirations."""
     print(
@@ -2681,6 +2806,9 @@ def print_credits():
         f"  • {C_YELLOW}{C_BOLD}AniList{C_RESET}     (GraphQL API)      - Modern anime metadata & cloud list tracking."
     )
     print(
+        f"  • {C_YELLOW}{C_BOLD}AniSkip{C_RESET}     (AniSkip Community)- Frame-accurate crowd-sourced OP/ED timestamps."
+    )
+    print(
         f"  • {C_YELLOW}{C_BOLD}Kitsu{C_RESET}       (JSON:API)         - High-speed anime database & watch progress."
     )
     print(
@@ -2701,6 +2829,7 @@ def print_help():
     {C_GREEN}ani-sync continue{C_RESET}
     {C_GREEN}ani-sync trending{C_RESET}
     {C_GREEN}ani-sync sync{C_RESET}
+    {C_GREEN}ani-sync theme tokyonight{C_RESET}
     {C_GREEN}ani-sync doctor{C_RESET}
     {C_GREEN}ani-sync credits{C_RESET}
     {C_GREEN}ani-sync "attack on titan" --dub{C_RESET}
@@ -2711,11 +2840,12 @@ def print_help():
     -t, --trending, trending  Browse top airing and trending anime
     history, --history        View recent watch history and pick to resume
     sync, --sync, import      Sync & import watch library from all connected platforms
+    theme, --theme [name]     Select or set color theme (catppuccin, tokyonight, dracula, nord, gruvbox, monokai)
     doctor, check, --doctor   Verify dependencies, system status & credentials
     credits, --credits        Display open-source contributors & project credits
     -e, --episode <num>       Jump directly to specified episode number
     -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
-    --skip, --auto-skip       Automatically skip anime opening/intro (+85s)
+    --skip, --auto-skip       Automatically skip anime opening/intro (+85s / AniSkip)
     -d, --download            Download episode locally without opening player
     --direct                  Stream directly without multi-threaded local turbo cache
     --dub                     Play English dub if available (default: Japanese sub)
@@ -2731,13 +2861,13 @@ def print_help():
     auth kitsu                Connect Kitsu account
 
 {C_BOLD}Player Keybindings:{C_RESET}
-    {C_CYAN}[Tab]{C_RESET} or {C_CYAN}[i]{C_RESET}         Skip anime intro / opening (+85 seconds)
-    {C_CYAN}[o]{C_RESET}                   Skip anime outro / ending
+    {C_CYAN}[Tab]{C_RESET} or {C_CYAN}[i]{C_RESET}         Skip anime intro / opening (+85 seconds / AniSkip)
+    {C_CYAN}[o]{C_RESET}                   Skip anime outro / ending (AniSkip)
     {C_CYAN}[q]{C_RESET}                   Quit player and return to post-playback controls
 
 {C_BOLD}FZF Fuzzy Search:{C_RESET}
-    FZF interactive fuzzy filtering is automatically configured and enabled
-    by default for all search results, episode selections, and history menus.
+    FZF interactive fuzzy filtering is automatically configured and styled with your
+    active theme palette for all search results, episode selections, and menus.
     Use {C_YELLOW}--no-fzf{C_RESET} to force classic numbered menus.
 """
     )
@@ -2745,6 +2875,16 @@ def print_help():
 
 def main():
     args = sys.argv[1:]
+
+    # Early theme flag extraction
+    if "--theme" in args:
+        try:
+            t_idx = args.index("--theme")
+            if t_idx + 1 < len(args):
+                apply_theme(args[t_idx + 1])
+                args = [a for j, a in enumerate(args) if j not in (t_idx, t_idx + 1)]
+        except Exception:
+            pass
 
     # Asynchronous background auto-updater for all Linux distributions & macOS
     if not (
@@ -2763,6 +2903,8 @@ def main():
             "--check",
             "credits",
             "--credits",
+            "theme",
+            "themes",
         )
     ):
         threading.Thread(
@@ -2776,6 +2918,11 @@ def main():
         else:
             print_help()
             return
+
+    if args and args[0] in ("theme", "themes", "--theme"):
+        target_t = args[1] if len(args) > 1 else None
+        run_theme_picker(target_t)
+        return
 
     if args and args[0] in ("credits", "--credits", "credit", "thanks", "authors"):
         print_credits()

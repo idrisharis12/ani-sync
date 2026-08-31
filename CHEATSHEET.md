@@ -36,8 +36,9 @@
 | **Sync Cloud Libraries** | `ani-sync sync` *(or `ani-sync import`)* |
 | **Play Episode 1 in 1080p** | `ani-sync "solo leveling" -e 1 -q 1080p` |
 | **Stream English Dub** | `ani-sync "attack on titan" --dub` |
-| **Auto-Skip Opening Theme** | `ani-sync "chainsaw man" --skip` |
+| **Auto-Skip Opening (AniSkip)** | `ani-sync "chainsaw man" --skip` |
 | **Download Episode to Disk** | `ani-sync "jujutsu kaisen" -e 1 -d` |
+| **Change Color Theme** | `ani-sync theme tokyonight` *(or `catppuccin`, `dracula`, `nord`, `gruvbox`)* |
 | **Verify System Health** | `ani-sync doctor` |
 | **Open-Source Credits** | `ani-sync credits` |
 | **Update ani-sync** | `ani-sync update` *(or `ani-sync -U`)* |
