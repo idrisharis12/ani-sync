@@ -1986,12 +1986,16 @@ def _fzf_pick(title, options):
     proc = subprocess.run(
         fzf_cmd,
         input=input_text,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=None,
         text=True,
     )
 
     if proc.returncode != 0 or not proc.stdout.strip():
-        return None  # User cancelled (Esc/Ctrl-C)
+        if proc.returncode in (1, 130):
+            # User cancelled via Esc or Ctrl+C
+            sys.exit(0)
+        return None
 
     selected = proc.stdout.strip()
     num_match = re.match(r"^(\d+)\.", selected)
@@ -2348,6 +2352,9 @@ def update_self(quiet=False):
 
         v_match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', remote_code)
         remote_version = v_match.group(1) if v_match else "latest"
+
+        if remote_version == VERSION and quiet:
+            return
 
         targets = [
             Path(__file__).resolve(),
