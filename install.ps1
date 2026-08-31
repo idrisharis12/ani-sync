@@ -1,41 +1,18 @@
 # ==============================================================================
-# ani-sync Windows PowerShell Installer
-# Stream anime in terminal and auto-sync progress to MyAnimeList
+# ani-sync Windows Universal Auto-Installer
+# Automatically installs ani-sync, FZF fuzzy search, yt-dlp, MPV, and Python dependencies
 # ==============================================================================
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 Write-Host ""
 Write-Host "  ============================================" -ForegroundColor Cyan
-Write-Host "        ani-sync Windows Installer           " -ForegroundColor Cyan
+Write-Host "        ani-sync Windows Universal Installer  " -ForegroundColor Cyan
+Write-Host "     Stream Anime & Auto-Sync Watch Progress  " -ForegroundColor Cyan
 Write-Host "  ============================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Check Python
-Write-Host "[1/4] Checking Python installation..." -ForegroundColor Yellow
-if (-not (Get-Command python -ErrorAction SilentlyContinue) -and -not (Get-Command py -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ Python is not installed or not in PATH." -ForegroundColor Red
-    Write-Host "Please install Python from https://www.python.org/downloads/ or via:" -ForegroundColor Yellow
-    Write-Host "  winget install Python.Python.3.12" -ForegroundColor Cyan
-    exit 1
-}
-
-# 2. Install Python dependencies
-Write-Host "[2/4] Installing Python dependencies (requests, tqdm)..." -ForegroundColor Yellow
-python -m pip install --quiet --upgrade requests tqdm
-
-# 3. Check for mpv & yt-dlp
-Write-Host "[3/4] Checking media player & acceleration tools..." -ForegroundColor Yellow
-if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
-    Write-Host "⚠️  MPV not detected. Recommended for zero-buffering playback." -ForegroundColor DarkYellow
-    Write-Host "You can install it with: winget install mpv.net (or scoop install mpv)" -ForegroundColor DarkGray
-}
-if (-not (Get-Command yt-dlp -ErrorAction SilentlyContinue)) {
-    Write-Host "⚠️  yt-dlp not detected. Recommended for 64x turbo multi-connections." -ForegroundColor DarkYellow
-    Write-Host "You can install it with: winget install yt-dlp (or scoop install yt-dlp)" -ForegroundColor DarkGray
-}
-
-# 4. Set up install directories
+# Directories
 $InstallDir = "$env:LOCALAPPDATA\ani-sync"
 $BinDir = "$env:USERPROFILE\.local\bin"
 
@@ -46,37 +23,110 @@ if (-not (Test-Path $BinDir)) {
     New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
 }
 
+# 1. Check Python
+Write-Host "[1/5] Checking Python installation..." -ForegroundColor Yellow
+$HasPython = (Get-Command python -ErrorAction SilentlyContinue) -or (Get-Command py -ErrorAction SilentlyContinue)
+if (-not $HasPython) {
+    Write-Host "Python not found. Attempting automatic installation via winget..." -ForegroundColor Yellow
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        winget install Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements
+    } else {
+        Write-Host "❌ Python is not installed. Please install Python from https://www.python.org/downloads/" -ForegroundColor Red
+        exit 1
+    }
+}
+
+# 2. Install Python dependencies
+Write-Host "[2/5] Installing Python dependencies (requests, tqdm, yt-dlp)..." -ForegroundColor Yellow
+python -m pip install --quiet --upgrade requests tqdm yt-dlp 2>$null
+
+# 3. Check and Auto-Install FZF (Interactive Fuzzy Search)
+Write-Host "[3/5] Setting up interactive FZF fuzzy search..." -ForegroundColor Yellow
+$HasFzf = (Get-Command fzf -ErrorAction SilentlyContinue) -or (Test-Path "$BinDir\fzf.exe") -or (Test-Path "$InstallDir\fzf.exe")
+if (-not $HasFzf) {
+    $FzfInstalled = $false
+    # Try Winget
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Write-Host "  Installing FZF via winget..." -ForegroundColor DarkGray
+        winget install junegunn.fzf --silent --accept-source-agreements --accept-package-agreements 2>$null
+        if (Get-Command fzf -ErrorAction SilentlyContinue) { $FzfInstalled = $true }
+    }
+    # Try Scoop
+    if (-not $FzfInstalled -and (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        Write-Host "  Installing FZF via scoop..." -ForegroundColor DarkGray
+        scoop install fzf 2>$null
+        if (Get-Command fzf -ErrorAction SilentlyContinue) { $FzfInstalled = $true }
+    }
+    # Direct GitHub binary download fallback
+    if (-not $FzfInstalled) {
+        Write-Host "  Downloading standalone FZF binary from GitHub releases..." -ForegroundColor DarkGray
+        try {
+            $FzfZip = "$env:TEMP\fzf_win.zip"
+            $FzfUrl = "https://github.com/junegunn/fzf/releases/download/v0.60.3/fzf-0.60.3-windows_amd64.zip"
+            Invoke-WebRequest -Uri $FzfUrl -OutFile $FzfZip -UseBasicParsing
+            Expand-Archive -Path $FzfZip -DestinationPath $BinDir -Force
+            Copy-Item "$BinDir\fzf.exe" -Destination "$InstallDir\fzf.exe" -Force -ErrorAction SilentlyContinue
+            Remove-Item $FzfZip -Force -ErrorAction SilentlyContinue
+            $FzfInstalled = $true
+            Write-Host "  ✓ Standalone FZF installed to $BinDir\fzf.exe" -ForegroundColor Green
+        } catch {
+            Write-Host "  ⚠️ Could not auto-download FZF. Numbered menus will be used as fallback." -ForegroundColor DarkYellow
+        }
+    }
+} else {
+    Write-Host "  ✓ FZF is already installed." -ForegroundColor Green
+}
+
+# 4. Check for MPV & yt-dlp
+Write-Host "[4/5] Checking media player & stream acceleration..." -ForegroundColor Yellow
+if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
+    Write-Host "  MPV not detected. Attempting install via winget..." -ForegroundColor DarkGray
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        winget install mpv.net --silent --accept-source-agreements --accept-package-agreements 2>$null
+    }
+    if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
+        Write-Host "  ⚠️  MPV recommended for zero-buffering playback. Install with: winget install mpv.net" -ForegroundColor DarkYellow
+    }
+}
+
+# 5. Install ani-sync scripts and wrappers
+Write-Host "[5/5] Installing ani-sync..." -ForegroundColor Yellow
+
 $ScriptPath = "$InstallDir\ani_sync.py"
 $CmdPath = "$BinDir\ani-sync.cmd"
 $Ps1Path = "$BinDir\ani-sync.ps1"
 
-Write-Host "[4/4] Installing ani-sync..." -ForegroundColor Yellow
-
 # Copy or download ani_sync.py
 if (Test-Path "$PSScriptRoot\ani_sync.py") {
     Copy-Item "$PSScriptRoot\ani_sync.py" -Destination $ScriptPath -Force
+    if (Test-Path "$PSScriptRoot\assets") {
+        Copy-Item "$PSScriptRoot\assets" -Destination "$InstallDir\assets" -Recurse -Force
+    }
 } else {
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync.py" -OutFile $ScriptPath
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync.py" -OutFile $ScriptPath -UseBasicParsing
 }
 
 # Create CMD wrapper
-$CmdContent = "@echo off`r`npython `"$ScriptPath`" %*"
+$CmdContent = "@echo off`r`nset PATH=$BinDir;%PATH%`r`npython `"$ScriptPath`" %*"
 Set-Content -Path $CmdPath -Value $CmdContent -Force
 
 # Create PowerShell wrapper
-$Ps1Content = "python `"$ScriptPath`" @args"
+$Ps1Content = "`$env:PATH = `"$BinDir;`$env:PATH`"`r`npython `"$ScriptPath`" @args"
 Set-Content -Path $Ps1Path -Value $Ps1Content -Force
 
 # Add to User PATH if missing
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($UserPath -notlike "*$BinDir*") {
     [Environment]::SetEnvironmentVariable("Path", "$UserPath;$BinDir", "User")
-    $env:Path += ";$BinDir"
+    $env:Path = "$BinDir;$env:Path"
     Write-Host "✓ Added $BinDir to User PATH." -ForegroundColor Green
 }
 
 Write-Host ""
-Write-Host "✓ Successfully installed ani-sync on Windows!" -ForegroundColor Green
-Write-Host "Run 'ani-sync <anime name>' in CMD or PowerShell to start." -ForegroundColor Cyan
-Write-Host "To link your MyAnimeList account: ani-sync auth" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Green
+Write-Host "           ✓ Successfully installed ani-sync!               " -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor Green
+Write-Host "Run 'ani-sync <anime name>' or 'ani-sync' to start." -ForegroundColor Cyan
+Write-Host "To link your tracking accounts: ani-sync auth" -ForegroundColor Cyan
+Write-Host "To check system status:         ani-sync doctor" -ForegroundColor Cyan
 Write-Host ""

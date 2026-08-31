@@ -5,6 +5,7 @@
     "license": "MIT",
     "depends": [
         "python",
+        "fzf",
         "mpv",
         "yt-dlp"
     ],

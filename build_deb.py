@@ -20,7 +20,7 @@ Version: {VERSION}
 Section: utils
 Priority: optional
 Architecture: all
-Depends: python3, python3-requests, python3-tqdm, mpv, curl
+Depends: python3, python3-requests, python3-tqdm, mpv, yt-dlp, curl, fzf
 Maintainer: Idris Haris <https://github.com/idrisharis12/ani-sync>
 Description: Terminal anime streamer and MyAnimeList auto-sync client
  Stream anime episodes directly in your terminal and automatically

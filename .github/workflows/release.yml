@@ -39,6 +39,8 @@ jobs:
           pip install pyinstaller requests
 
       - name: Compile Standalone Binaries & Bundles
+        env:
+          PYTHONUTF8: "1"
         run: |
           python build_standalone.py
 

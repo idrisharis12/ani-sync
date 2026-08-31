@@ -1,0 +1,22 @@
+pkgbase = ani-sync
+	pkgdesc = Stream anime from terminal with 64x turbo speed & automatic multi-platform tracking (MAL/AniList/Kitsu)
+	pkgver = 2.0.0
+	pkgrel = 1
+	url = https://github.com/idrisharis12/ani-sync
+	arch = any
+	license = MIT
+	makedepends = git
+	makedepends = python-setuptools
+	depends = python
+	depends = python-requests
+	depends = python-tqdm
+	depends = mpv
+	depends = yt-dlp
+	depends = curl
+	depends = fzf
+	optdepends = vlc: Alternative video player support
+	optdepends = discord: Discord Rich Presence support
+	source = ani-sync-2.0.0.tar.gz::https://github.com/idrisharis12/ani-sync/archive/refs/tags/v2.0.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = ani-sync

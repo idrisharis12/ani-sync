@@ -1,54 +1,79 @@
 <p align="center">
-  <img src="assets/ani-sync_logo.jpeg" alt="ani-sync logo" width="280" />
+  <img src="assets/ani-sync_logo.jpeg" alt="ani-sync logo" width="280" style="border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);" />
 </p>
 
-<h1 align="center">ani-sync</h1>
+<h1 align="center">📺 ani-sync</h1>
 
 <p align="center">
-  <b>Stream anime from your terminal with 64x multi-connection turbo speed and automatically sync watch progress to MyAnimeList, AniList & Kitsu.</b>
+  <b>The Ultimate High-Performance Terminal Anime Streaming & Multi-Platform Auto-Sync Engine</b>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python&logoColor=white" alt="Python 3.8+" />
-  <img src="https://img.shields.io/badge/Speed-64x%20Turbo-brightgreen" alt="64x Turbo Speed" />
-  <img src="https://img.shields.io/badge/Buffer-Zero--Buffering-success" alt="Zero Buffering" />
-  <img src="https://img.shields.io/badge/Tracking-MAL%20%7C%20AniList%20%7C%20Kitsu-blueviolet" alt="Multi-Platform Tracking" />
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" />
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-informational" alt="Platform" />
+  <i>Stream any anime from your terminal with <b>64x multi-socket turbo speed</b>, <b>100% zero-buffering</b> playback, and automatic real-time watch progress sync to <b>MyAnimeList</b>, <b>AniList</b> & <b>Kitsu</b>.</i>
+</p>
+
+<p align="center">
+  <a href="https://github.com/idrisharis12/ani-sync/stargazers"><img src="https://img.shields.io/github/stars/idrisharis12/ani-sync?style=flat-square&logo=github&color=gold" alt="GitHub Stars" /></a>
+  <a href="https://github.com/idrisharis12/ani-sync/releases"><img src="https://img.shields.io/github/v/release/idrisharis12/ani-sync?style=flat-square&color=brightgreen" alt="Release" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.8+" /></a>
+  <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform" />
+  <img src="https://img.shields.io/badge/Speed-64x%20Turbo-00C853?style=flat-square" alt="64x Turbo Speed" />
+  <img src="https://img.shields.io/badge/Tracking-MAL%20%7C%20AniList%20%7C%20Kitsu-7C4DFF?style=flat-square" alt="Multi-Platform Tracking" />
+</p>
+
+<p align="center">
+  <a href="#-quick-installation">🚀 Quick Install</a> •
+  <a href="CHEATSHEET.md">📋 Detailed CheatSheet</a> •
+  <a href="#-core-features">✨ Core Features</a> •
+  <a href="#-detailed-usage--feature-guide">📖 User Guide</a> •
+  <a href="#-multi-platform-tracking--discord-setup">🔑 Auth Setup</a> •
+  <a href="#-system-diagnostics--doctor-command">🩺 Doctor</a>
 </p>
 
 ---
 
-## 📖 Table of Contents
+```text
+  📺 ani-sync ❯ 🔍 Search: frieren
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ ▶  1. Frieren: Beyond Journey's End (28 Episodes) [720p/1080p]         │
+  │    2. Frieren: Beyond Journey's End Season 2                           │
+  │    3. Sousou no Frieren (Special Mini Anime)                           │
+  └────────────────────────────────────────────────────────────────────────┘
+  ⚡ [Turbo Swarm: 64 Sockets Active] ──► [RAM-Disk: /dev/shm] ──► [MPV: 0.00s Delay]
+  🔄 [Cloud Sync: MAL ✓ | AniList ✓ | Kitsu ✓] ──► [Discord Presence: Active 🎮]
+```
+
+---
+
+## 📑 Table of Contents
 - [✨ Core Features](#-core-features)
-- [⚡ How It Works: The Turbo Speed Architecture](#-how-it-works-the-turbo-speed-architecture)
-- [📦 Installation](#-installation)
-  - [⚡ Standalone Pre-Compiled Binaries (No Python Required)](#-standalone-pre-compiled-binaries-no-python-required)
-  - [🪟 Windows (PowerShell / Winget / Scoop)](#-windows-powershell--winget--scoop)
-  - [🐧 Linux & 🍎 macOS (One-Line Curl Installer)](#-linux--macos-one-line-curl-installer)
+- [⚡ Turbo-Speed Swarm Architecture](#-turbo-speed-swarm-architecture)
+- [📦 Quick Installation](#-quick-installation)
+  - [🪟 Windows (One-Line PowerShell / Winget)](#-windows-one-line-powershell--winget)
+  - [🐧 Linux & 🍎 macOS (One-Line Universal Installer)](#-linux--macos-one-line-universal-installer)
   - [🏹 Arch Linux (AUR / PKGBUILD)](#-arch-linux-aur--pkgbuild)
   - [📦 Debian / Ubuntu (`.deb`)](#-debian--ubuntu-deb)
-  - [🐍 Python Pip (Cross-Platform)](#-python-pip-cross-platform)
-  - [Prerequisites & System Dependencies](#prerequisites--system-dependencies)
+  - [⚡ Standalone Pre-Compiled Binaries](#-standalone-pre-compiled-binaries)
 - [🚀 Detailed Usage & Feature Guide](#-detailed-usage--feature-guide)
-  - [1. Search & Stream by Anime Name](#1-search--stream-by-anime-name)
+  - [1. 🔍 Interactive Anime Search & Stream](#1--interactive-anime-search--stream)
   - [2. ⏪ Smart Resume & Continue Watching (`-c`)](#2--smart-resume--continue-watching--c)
   - [3. 🔥 Top Airing & Trending Anime (`-t`)](#3--top-airing--trending-anime--t)
-  - [4. 📺 View & Manage Watch History](#4--view--manage-watch-history)
-  - [5. 🎬 Seasons, Movies & Episode Selection](#5--seasons-movies--episode-selection)
+  - [4. 📺 View & Resume from Watch History](#4--view--resume-from-watch-history)
+  - [5. 🎬 Seasons, Movies & Episode Picker](#5--seasons-movies--episode-picker)
   - [6. 🎯 Multi-Resolution Quality Selection (1080p, 720p, etc.)](#6--multi-resolution-quality-selection-1080p-720p-etc)
   - [7. 🎙️ Japanese Subtitles vs English Dub (`--dub`)](#7-️-japanese-subtitles-vs-english-dub---dub)
   - [8. ⏩ Auto-Skip Anime Opening & Ending (`--skip`)](#8--auto-skip-anime-opening--ending---skip)
   - [9. 📥 High-Speed Offline Download Mode (`-d`)](#9--high-speed-offline-download-mode--d)
   - [10. 🎮 Interactive Post-Playback Controls](#10--interactive-post-playback-controls)
-  - [11. 🎧 Custom Media Player Support](#11--custom-media-player-support)
-  - [12. 💬 Discord Rich Presence Integration](#12--discord-rich-presence-integration)
-  - [13. 🔍 Interactive FZF Fuzzy Search](#13--interactive-fzf-fuzzy-search)
-  - [14. 🔄 Multi-Platform Tracking (MAL + AniList + Kitsu)](#14--multi-platform-tracking-mal--anilist--kitsu)
-  - [15. 📥 Multi-Platform Library Auto-Import & Full Sync (`ani-sync sync`)](#15--multi-platform-library-auto-import--full-sync-ani-sync-sync)
-- [📋 CLI Cheat Sheet & Flag Reference](#-cli-cheat-sheet--flag-reference)
-- [🔄 Universal Auto-Updates](#-universal-auto-updates)
-- [🔑 Multi-Platform Tracking Setup](#-multi-platform-tracking-setup)
+  - [11. 🔍 Live FZF Fuzzy Search (Auto-Configured)](#11--live-fzf-fuzzy-search-auto-configured)
+  - [12. 🔄 Multi-Platform Auto-Tracking (MAL + AniList + Kitsu)](#12--multi-platform-auto-tracking-mal--anilist--kitsu)
+  - [13. 📥 Multi-Platform Library Auto-Import & Sync (`ani-sync sync`)](#13--multi-platform-library-auto-import--sync-ani-sync-sync)
+  - [14. 💬 Discord Rich Presence Integration](#14--discord-rich-presence-integration)
+- [📋 CLI Cheat Sheet & Command Matrix](#-cli-cheat-sheet--command-matrix)
+- [🔑 Multi-Platform Tracking & Discord Setup](#-multi-platform-tracking--discord-setup)
+- [🩺 System Diagnostics & Doctor Command](#-system-diagnostics--doctor-command)
+- [🔄 Universal Self-Updating System](#-universal-self-updating-system)
 - [💖 Credits & Acknowledgements](#-credits--acknowledgements)
 - [📄 License](#-license)
 
@@ -58,89 +83,70 @@
 
 | Feature | Description |
 | :--- | :--- |
-| ⚡ **64x Turbo Swarm Engine** | Requests **64 video fragments simultaneously in parallel**, downloading full episodes in **~3–5 seconds** and saturating your full Wi-Fi/fiber line speed. |
-| 🚀 **100% Zero-Buffering Playback** | Plays from local fast storage — eliminates all stutter, mid-video pauses, and 30-second buffering freezes. |
-| 💾 **RAM-Disk Caching (`/dev/shm`)** | Automatically utilizes Linux tmpfs shared memory at **10,000+ MB/s** for 0ms seek latency and 0 SSD wear. |
+| ⚡ **64x Turbo Swarm Engine** | Requests **64 video fragments simultaneously in parallel**, pulling full episodes in **~3–5 seconds** and saturating your full Wi-Fi/fiber line speed. |
+| 🚀 **100% Zero-Buffering Playback** | Streams from local accelerated caching — completely eliminates all video stutter, mid-stream pauses, and 30-second buffering freezes. |
+| 💾 **RAM-Disk In-Memory Caching (`/dev/shm`)** | Automatically utilizes Linux tmpfs shared memory at **10,000+ MB/s** for 0ms seek latency, instant rewinds, and 0 SSD wear. |
 | ⏩ **Dual-Episode Pre-Fetching** | Silently preloads Episodes N+1 and N+2 in the background so next episodes start in **0.00s instantly**. |
-| 🔄 **Automatic MyAnimeList Sync** | Automatically updates and increments your watched episode count on **MyAnimeList** via the official OAuth2 API upon finishing an episode. |
-| 🔄 **Multi-Platform Tracking** | Simultaneously sync watch progress to **MyAnimeList**, **AniList**, and **Kitsu** — all in background threads. |
-| 🔍 **FZF Fuzzy Search** | When `fzf` is installed, all menus use **interactive fuzzy filtering** with live search. Falls back to numbered menus gracefully. |
-| ⏩ **Auto-Skip Opening/Ending** | Pass `--skip` to auto-skip the anime OP, or press `Tab`/`i`/`o` during playback for instant manual skip (+85s). |
-| ⏪ **Smart Continue Watching** | Run `ani-sync continue` to resume right where you left off. |
-| 🔥 **Trending & Airing Browser** | Run `ani-sync trending` to instantly pick from the top currently airing and popular anime. |
-| 🎬 **Seasons, OVAs & Movies** | Seamlessly navigate through multiple seasons, spin-offs, and movies in a single franchise. |
+| 🔄 **Multi-Platform Tracking** | Simultaneously syncs watch progress to **MyAnimeList**, **AniList**, and **Kitsu** — all in background threads. |
+| 🔍 **Interactive FZF Fuzzy Search** | All menus use **live keystroke fuzzy filtering** with instant arrow-key navigation. **100% automatically installed & configured**! |
+| ⏩ **Auto-Skip Opening/Ending** | Pass `--skip` to auto-skip anime intros (+85s), or press `Tab`/`i`/`o` during playback for instant manual skip (+85s). |
+| ⏪ **Smart Continue Watching** | Run `ani-sync continue` (or `ani-sync -c`) to resume your last watched anime from the next episode. |
+| 🔥 **Trending & Airing Browser** | Run `ani-sync trending` (or `ani-sync -t`) to browse and watch top seasonal releases. |
+| 🎬 **Seasons, OVAs & Movies** | Seamless franchise navigation: effortlessly switch between seasons, movies, and spin-offs. |
 | 🎯 **Multi-Resolution Picker** | Choose between 720p HD (instant zero-buffer default), 1080p Full HD, 480p, and 360p. |
 | 📥 **Offline Download Mode** | Pass `-d` / `--download` to save complete episodes locally without opening the player. |
 | 🪟 **Cross-Platform Native Support** | Works out of the box on **Windows (PowerShell/CMD)**, **Linux**, and **macOS**. |
-| 💬 **Discord Rich Presence** | Automatically broadcasts what anime and episode you are enjoying to your Discord profile in real-time. |
+| 💬 **Discord Rich Presence** | Automatically displays your current anime, episode number, elapsed time, and clickable GitHub links on Discord. |
+| 🩺 **Built-in System Doctor** | Run `ani-sync doctor` to verify dependencies, package versions, binary paths, and credentials with one command. |
 | 🔒 **100% Privacy & Security** | Zero telemetry, zero external trackers, and your API credentials remain strictly on your local machine. |
 
 ---
 
-## ⚡ How It Works: The Turbo Speed Architecture
+## ⚡ Turbo-Speed Swarm Architecture
 
-Traditional web scrapers and terminal anime players stream video sequentially using a single HTTP connection. When remote anime CDN servers throttle single-thread speeds to ~50 KB/s, playback freezes every 2–3 seconds.
+Traditional web scrapers stream video sequentially using a single HTTP connection. When remote anime CDN servers throttle single-thread speeds to ~50 KB/s, playback freezes every 2–3 seconds.
 
 `ani-sync` solves this with a **4-tier acceleration pipeline**:
 
-```
-[ Remote HLS Stream ]
-       │
-       ▼  (64 Parallel Concurrent Sockets — Max Network Pipe Saturation)
-[ ⚡ Turbo Multi-Thread Swarm Engine ]
-       │
-       ▼  (10,000+ MB/s RAM-to-RAM Bus Transfer)
-[ 💾 RAM Disk (/dev/shm) / Local Cache ] ◄── (Silent Pre-fetch of Next 2 Episodes in Background)
-       │
-       ▼  (GPU Hardware Acceleration: Intel VAAPI / AMD / NVDEC)
-[ 🎬 MPV Player / Smooth Zero-Buffering Playback ]
-       │
-       ▼  (On Finished Playback)
-[ 🔄 MyAnimeList Auto-Sync API ]
+```mermaid
+flowchart TD
+    A[🌐 Remote HLS / CDN Stream] -->|64 Concurrent Sockets| B(⚡ Turbo Swarm Engine yt-dlp)
+    B -->|10,000+ MB/s Memory Bus| C[💾 RAM Disk /dev/shm Cache]
+    C -->|GPU Hardware Decoding| D[🎬 MPV Zero-Buffering Playback]
+    C -.->|Silent Background Thread| E[⏩ Pre-fetch Episodes N+1 & N+2]
+    D -->|On Episode Completion| F{🔄 Cloud Sync Engine}
+    F -->|OAuth2 REST API| G[🔵 MyAnimeList]
+    F -->|GraphQL Mutation| H[🟣 AniList]
+    F -->|JSON:API Endpoint| I[🟠 Kitsu]
+    D -.->|IPC Named Pipe| J[💬 Discord Rich Presence]
 ```
 
-1. **64-Connection Swarm Engine (`yt-dlp -N 64 --concurrent-fragments 64`)**:
-   Instead of downloading 1 chunk at a time, `ani-sync` requests 64 fragments simultaneously across multiple TCP sockets with 16MB socket buffers.
-2. **RAM Disk In-Memory Storage (`/dev/shm`)**:
-   Linux systems automatically utilize tmpfs RAM storage, eliminating disk read/write bottlenecks.
-3. **GPU Hardware Decoding (`--hwdec=auto-safe`, `--profile=fast`, `--audio-buffer=0.8`)**:
-   Offloads video decoding from CPU to your GPU, keeping CPU usage under 5% and preventing audio underruns or frame drops.
-4. **Predictive Dual Pre-fetch**:
-   While Episode 1 is playing, Episodes 2 and 3 are preloaded in the background.
+1. **64-Connection Swarm Engine (`yt-dlp -N 64 --concurrent-fragments 64`)**: Requests 64 fragments simultaneously across parallel TCP sockets with 16MB socket buffers.
+2. **RAM-Disk In-Memory Storage (`/dev/shm`)**: Linux systems automatically utilize tmpfs RAM storage, eliminating disk read/write bottlenecks.
+3. **GPU Hardware Decoding (`--hwdec=auto-safe`, `--profile=fast`)**: Offloads video decoding from CPU to your GPU, keeping CPU usage under 5% and preventing audio underruns or frame drops.
+4. **Predictive Dual Pre-fetch**: While Episode 1 is playing, Episodes 2 and 3 are preloaded in the background.
 
 ---
 
-## 📦 Installation
+## 📦 Quick Installation
 
-### ⚡ Standalone Pre-Compiled Binaries (No Python Required)
-If you do not have Python installed, you can download self-contained, standalone single-file executables from the [**GitHub Releases**](https://github.com/idrisharis12/ani-sync/releases):
+> [!TIP]
+> **Zero Manual Setup Required**: The installer scripts automatically detect your system package manager and install **ani-sync, FZF fuzzy search, MPV, yt-dlp, and Python dependencies** out of the box!
 
-| OS / Architecture | Standalone Executable | One-Line Install Command |
-| :--- | :--- | :--- |
-| 🐧 **Linux (x86_64)** | [`ani-sync-linux-x86_64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
-| 🪟 **Windows (x64)** | [`ani-sync-windows-x86_64.exe`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-windows-x86_64.exe) | `irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 \| iex` |
-| 🍎 **macOS (Apple Silicon)** | [`ani-sync-macos-arm64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
-| 📦 **Debian / Ubuntu** | [`ani-sync_2.0.0_all.deb`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb) | `curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb && sudo apt install ./ani-sync_2.0.0_all.deb` |
-
----
-
-### 🪟 Windows (PowerShell / Winget / Scoop)
+### 🪟 Windows (One-Line PowerShell / Winget)
 Run this single command in **PowerShell** (Run as Administrator or standard User):
-
 ```powershell
 irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 | iex
 ```
-
 *Or install dependencies via Winget:*
 ```powershell
-winget install Python.Python.3.12 mpv.net yt-dlp
+winget install Python.Python.3.12 junegunn.fzf mpv.net yt-dlp
 ```
 
 ---
 
-### 🐧 Linux & 🍎 macOS (One-Line Curl Installer)
+### 🐧 Linux & 🍎 macOS (One-Line Universal Installer)
 Run this single command in your terminal:
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash
 ```
@@ -167,7 +173,6 @@ makepkg -si
 
 ### 📦 Debian / Ubuntu (`.deb`)
 Download and install the native Debian package:
-
 ```bash
 curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb
 sudo apt install -y ./ani-sync_2.0.0_all.deb
@@ -175,55 +180,22 @@ sudo apt install -y ./ani-sync_2.0.0_all.deb
 
 ---
 
-### 🐍 Python Pip (Cross-Platform)
-```bash
-pip install --user git+https://github.com/idrisharis12/ani-sync.git
-```
+### ⚡ Standalone Pre-Compiled Binaries
+No Python installation required:
 
----
-
-### Prerequisites & System Dependencies
-
-`ani-sync` requires **Python 3.8+**, **`yt-dlp`**, and **`mpv`** (or VLC).
-
-#### 🪟 Windows (Winget or Scoop)
-```powershell
-winget install Python.Python.3.12 mpv.net yt-dlp
-# Or using Scoop: scoop install python mpv yt-dlp
-```
-
-#### 🏹 Arch Linux / Manjaro
-```bash
-sudo pacman -S python python-pip git mpv yt-dlp curl
-pip install --user requests tqdm
-```
-
-#### 🐧 Ubuntu / Debian / Pop!_OS / Mint
-```bash
-sudo apt update
-sudo apt install -y python3 python3-pip git mpv yt-dlp curl
-pip install --user requests tqdm
-```
-
-#### 🎩 Fedora / RHEL
-```bash
-sudo dnf install -y python3 python3-pip git mpv yt-dlp curl
-pip install --user requests tqdm
-```
-
-#### 🍎 macOS (Homebrew)
-```bash
-brew install python mpv yt-dlp curl
-pip3 install requests tqdm
-```
+| OS / Architecture | Standalone Executable | One-Line Install Command |
+| :--- | :--- | :--- |
+| 🐧 **Linux (x86_64)** | [`ani-sync-linux-x86_64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
+| 🪟 **Windows (x64)** | [`ani-sync-windows-x86_64.exe`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-windows-x86_64.exe) | `irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 \| iex` |
+| 🍎 **macOS (Apple Silicon)** | [`ani-sync-macos-arm64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
+| 📦 **Debian / Ubuntu** | [`ani-sync_2.0.0_all.deb`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb) | `curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb && sudo apt install ./ani-sync_2.0.0_all.deb` |
 
 ---
 
 ## 🚀 Detailed Usage & Feature Guide
 
-### 1. Search & Stream by Anime Name
+### 1. 🔍 Interactive Anime Search & Stream
 Search for any anime title directly from your terminal:
-
 ```bash
 ani-sync "frieren"
 ani-sync "attack on titan"
@@ -238,7 +210,6 @@ ani-sync
 
 ### 2. ⏪ Smart Resume & Continue Watching (`-c`)
 Quickly jump back into the anime you were last watching. `ani-sync` automatically tracks your progress and starts the **next episode**:
-
 ```bash
 ani-sync continue
 # or
@@ -249,7 +220,6 @@ ani-sync -c
 
 ### 3. 🔥 Top Airing & Trending Anime (`-t`)
 Browse and watch currently airing seasonal anime without typing a search query:
-
 ```bash
 ani-sync trending
 # or
@@ -258,19 +228,17 @@ ani-sync -t
 
 ---
 
-### 4. 📺 View & Manage Watch History
+### 4. 📺 View & Resume from Watch History
 Review your recently watched anime and choose any entry to instantly resume:
-
 ```bash
 ani-sync history
 ```
 
 ---
 
-### 5. 🎬 Seasons, Movies & Episode Selection
+### 5. 🎬 Seasons, Movies & Episode Picker
 When searching a franchise with multiple seasons, movies, or OVAs, `ani-sync` displays a clean selection menu:
-
-```
+```text
 Seasons & Movies for 'Attack on Titan':
 -------------------------------------
   [1] Attack on Titan (Season 1)
@@ -278,11 +246,9 @@ Seasons & Movies for 'Attack on Titan':
   [3] Attack on Titan Season 3
   [4] Attack on Titan: The Final Season
   [5] Attack on Titan Movie: Chronicle
-
-Select [1-5] (default: 1):
 ```
 
-You can jump straight to a specific episode using the `-e` / `--episode` flag:
+Jump straight to a specific episode using the `-e` / `--episode` flag:
 ```bash
 ani-sync "naruto shippuden" -e 167
 ```
@@ -290,8 +256,7 @@ ani-sync "naruto shippuden" -e 167
 ---
 
 ### 6. 🎯 Multi-Resolution Quality Selection (1080p, 720p, etc.)
-By default, `ani-sync` streams in **720p HD** for zero-buffering instant start. You can specify any desired resolution with `-q`:
-
+By default, `ani-sync` streams in **720p HD** for zero-buffering instant start. Specify any desired resolution with `-q`:
 ```bash
 # Stream in 1080p Full HD
 ani-sync "chainsaw man" -q 1080p
@@ -307,7 +272,6 @@ ani-sync "bleach" -q 480p
 
 ### 7. 🎙️ Japanese Subtitles vs English Dub (`--dub`)
 By default, episodes are streamed in **Japanese audio with Subtitles**. To stream English Dubs:
-
 ```bash
 ani-sync "solo leveling" --dub
 ```
@@ -316,20 +280,18 @@ ani-sync "solo leveling" --dub
 
 ### 8. ⏩ Auto-Skip Anime Opening & Ending (`--skip`)
 Never sit through 90 seconds of anime intros or spoilers again:
-
-- **Automatic Skip Mode**: Pass `--skip` or `--auto-skip` to automatically fast-forward past the opening intro (+85 seconds):
+- **Automatic Skip Mode**: Pass `--skip` to automatically fast-forward past the opening intro (+85 seconds):
   ```bash
   ani-sync "frieren" --skip
   ```
-- **In-Player Shortcuts (Interactive)**: During playback in MPV, you can skip anytime:
-  - Press **`Tab`** or **`i`**: Instantly skip Opening / Intro (+85 seconds forward).
-  - Press **`o`**: Instantly skip Outro / Ending (+85 seconds forward).
+- **In-Player Shortcuts (Interactive)**: During playback in MPV:
+  - Press **`Tab`** or **`i`**: Instantly skip Opening / Intro (+85s forward).
+  - Press **`o`**: Instantly skip Outro / Ending (+85s forward).
 
 ---
 
 ### 9. 📥 High-Speed Offline Download Mode (`-d`)
 Download episodes directly to your disk with 64x multi-connection acceleration without launching the media player:
-
 ```bash
 # Download Episode 1 of Jujutsu Kaisen
 ani-sync "jujutsu kaisen" -e 1 -d
@@ -338,103 +300,61 @@ ani-sync "jujutsu kaisen" -e 1 -d
 ---
 
 ### 10. 🎮 Interactive Post-Playback Controls
-When an episode finishes (or when you exit the media player), `ani-sync` updates your MyAnimeList progress and displays an interactive control loop:
+When an episode finishes (or when you exit the media player), `ani-sync` updates your connected tracking platforms and displays an interactive control loop:
 
+```text
+┌──────────────────────────────────────────────────────────┐
+│  [Enter] Next Ep (2)  │  [r] Replay  │  [p] Previous     │
+│  [s] Select Episode   │  [q] Quality │  [S] Season/Movie │
+│  [m] Menu (FZF)       │  [x] Quit                        │
+└──────────────────────────────────────────────────────────┘
 ```
-------------------- Playback Controls -------------------
-  [n] Next Ep (2)  |  [r] Replay Ep 1  |  [p] Previous Ep  |  [s] Select Episode  |  [q] Change Quality  |  [S] Change Season/Movie  |  [x] Quit
-Choice:
-```
-- Press **`Enter`** or **`n`**: Play the next episode (starts in **0.00s** due to background pre-fetching).
+- Press **`Enter`** or **`n`**: Play next episode (starts in **0.00s** due to background pre-fetching).
 - Press **`r`**: Replay the current episode.
 - Press **`p`**: Go back to the previous episode.
 - Press **`s`**: Pick another episode from the list.
 - Press **`q`**: Switch video resolution (e.g. 720p / 1080p).
 - Press **`S`**: Switch to a different season or movie in the franchise.
+- Press **`m`**: Launch full interactive FZF menu.
 - Press **`x`**: Exit the application.
 
 ---
 
-### 11. 🎧 Custom Media Player Support
-`ani-sync` defaults to `mpv` with hardware acceleration, but you can specify VLC or IINA:
+### 11. 🔍 Live FZF Fuzzy Search (Auto-Configured)
+All selection menus in `ani-sync` (search results, seasons, episode lists, history navigation, and post-playback controls) use **live interactive fuzzy search** powered by [`fzf`](https://github.com/junegunn/fzf).
 
-```bash
-# Using VLC
-ani-sync "death note" --player vlc
-
-# Using IINA (macOS)
-ani-sync "spy x family" --player iina
-```
-
----
-
-### 12. 💬 Discord Rich Presence Integration
-`ani-sync` automatically connects to your local Discord desktop app via IPC and displays your watch activity in real-time:
-> **Watching Frieren: Beyond Journey's End**  
-> *Episode 5 • 12:45 elapsed*
-
-> [!NOTE]
-> Ensure **"Display current activity as a status message"** is enabled in your Discord Settings (`User Settings` -> `Activity Privacy`).  
-> You can also specify a custom Discord Application ID by setting `export DISCORD_CLIENT_ID="YOUR_ID"` in `~/.config/ani-sync/config.env`.
-
----
-
-### 13. 🔍 Interactive FZF Fuzzy Search
-When [`fzf`](https://github.com/junegunn/fzf) is installed, all selection menus in `ani-sync` are upgraded to a **live interactive fuzzy search** with real-time filtering, arrow-key navigation, and instant selection — no more scrolling through long numbered lists.
-
-```
+```text
 🔍 Search > frier
 ▶ 1. Frieren: Beyond Journey's End
   2. Frieren: Beyond Journey's End Season 2
   3. Sousou no Frieren (Special)
 ```
 
-**Install fzf:**
-```bash
-# Arch Linux
-sudo pacman -S fzf
-
-# Debian / Ubuntu
-sudo apt install fzf
-
-# macOS
-brew install fzf
-
-# Windows (Scoop)
-scoop install fzf
-```
-
-> [!TIP]
-> If fzf is not installed, `ani-sync` gracefully falls back to its classic numbered menu. You can also force the numbered menu with `--no-fzf`.
+> [!NOTE]
+> `fzf` is **automatically installed & configured** during setup (`install.sh`, `install.ps1`, `.deb`, AUR). If you run `ani-sync` without pre-installed `fzf`, `ani-sync` seamlessly downloads the standalone binary automatically.
+> You can force classic numbered menus at any time with `--no-fzf`.
 
 ---
 
-### 14. 🔄 Multi-Platform Tracking (MAL + AniList + Kitsu)
+### 12. 🔄 Multi-Platform Auto-Tracking (MAL + AniList + Kitsu)
 `ani-sync` supports **simultaneous automatic progress syncing** to all three major anime tracking platforms:
 
 | Platform | Auth Method | Setup Command |
 | :--- | :--- | :--- |
 | **MyAnimeList (MAL)** | OAuth2 (browser) | `ani-sync auth mal` |
-| **AniList** | OAuth2 (browser) | `ani-sync auth anilist` |
+| **AniList** | OAuth2 PIN (browser) | `ani-sync auth anilist` |
 | **Kitsu** | Email + Password | `ani-sync auth kitsu` |
 
-Run `ani-sync auth` to get an interactive platform picker, or connect each directly:
-
+Run `ani-sync auth` for an interactive platform selector, or authenticate each directly:
 ```bash
-# Connect MyAnimeList
-ani-sync auth mal
-
-# Connect AniList
-ani-sync auth anilist
-
-# Connect Kitsu
-ani-sync auth kitsu
+ani-sync auth mal       # Connect MyAnimeList
+ani-sync auth anilist   # Connect AniList
+ani-sync auth kitsu     # Connect Kitsu
 ```
 
-After authenticating, `ani-sync` will **automatically sync every episode you watch** to all connected platforms in the background — no extra flags needed.
+---
 
-> [!NOTE]
-### 15. 📥 Multi-Platform Library Auto-Import & Full Sync (`ani-sync sync`)
+### 13. 📥 Multi-Platform Library Auto-Import & Sync (`ani-sync sync`)
 Already have an existing watch library on **MyAnimeList**, **AniList**, or **Kitsu**? `ani-sync` can pull and merge your entire watching/completed collection with a single command:
 
 ```bash
@@ -443,7 +363,7 @@ ani-sync sync
 ani-sync import
 ```
 
-```
+```text
 📥 Syncing Anime Libraries from Connected Platforms...
   ✓ MyAnimeList: 12 anime found
   ✓ AniList:     18 anime found
@@ -452,21 +372,30 @@ ani-sync import
 ✨ Library Sync Complete: 28 anime tracked in ani-sync history!
 ```
 
-- **Seamless Cloud Merge**: All your watched anime across MAL, AniList, and Kitsu are merged into your local history without duplicates.
-- **Instant Playback**: Select any imported anime directly from `ani-sync history` with FZF fuzzy search and start watching instantly.
-- **Auto-Sync on Connect**: Library sync triggers automatically whenever you authenticate a new platform via `ani-sync auth`!
+---
+
+### 14. 💬 Discord Rich Presence Integration
+`ani-sync` automatically connects to your local Discord desktop client via IPC and displays your watch activity in real-time with clickable buttons linking to your repo:
+
+> **Watching Frieren: Beyond Journey's End**  
+> *Episode 5 • 12:45 elapsed*  
+> `[ ⚡ Get ani-sync CLI ]` `[ ⭐ Star on GitHub ]`
 
 ---
 
-## 📋 CLI Cheat Sheet & Flag Reference
+## 📋 CLI Cheat Sheet & Command Matrix
+
+> [!TIP]
+> Check out the complete, standalone [**`CHEATSHEET.md`**](CHEATSHEET.md) for a comprehensive quick reference, shell aliases, and in-depth recipes!
 
 | Command / Flag | Description | Example |
 | :--- | :--- | :--- |
 | `ani-sync <title>` | Search and stream anime by title | `ani-sync "frieren"` |
-| `ani-sync -c`, `continue` | Resume last watched anime (starts next episode) | `ani-sync continue` |
-| `ani-sync -t`, `trending` | Browse top trending / airing anime | `ani-sync trending` |
+| `ani-sync continue`, `-c` | Resume last watched anime (starts next episode) | `ani-sync -c` |
+| `ani-sync trending`, `-t` | Browse top trending / airing anime | `ani-sync -t` |
 | `ani-sync history` | Browse and resume from watch history with FZF | `ani-sync history` |
 | `ani-sync sync`, `import` | Sync and import library from MAL, AniList & Kitsu | `ani-sync sync` |
+| `ani-sync doctor`, `check`| Run diagnostic health check on all dependencies | `ani-sync doctor` |
 | `--skip`, `--auto-skip` | Automatically skip anime opening/intro (+85s) | `ani-sync "one piece" --skip` |
 | `-e, --episode <num>` | Jump directly to specific episode number | `ani-sync "naruto" -e 50` |
 | `-q, --quality <res>` | Preferred video resolution (`1080p`, `720p`, `480p`) | `ani-sync "one piece" -q 1080p` |
@@ -477,179 +406,108 @@ ani-sync import
 | `--player <player>` | Media player binary (`mpv`, `vlc`, `iina`) | `ani-sync "bleach" --player vlc` |
 | `ani-sync update`, `-U` | Check and update to latest version | `ani-sync update` |
 | `ani-sync auth` | Interactive multi-platform auth picker | `ani-sync auth` |
-| `ani-sync auth <mal\|al\|kt>` | Connect specific tracking platform | `ani-sync auth anilist` |
 | `-h, --help` | Display CLI help menu | `ani-sync --help` |
-
----
-
-## 🔄 Universal Auto-Updates
-
-`ani-sync` stays up-to-date automatically across all Linux distributions, macOS, and Windows:
-
-1. **Background Auto-Sync**: Whenever you run `ani-sync`, it silently checks GitHub for updates in a non-blocking background thread.
-2. **Manual Update Command**:
-   ```bash
-   ani-sync update
-   # or
-   ani-sync -U
-   ```
-3. **APT Package Manager Integration**:
-   On Debian/Ubuntu systems, `sudo apt update && sudo apt upgrade` automatically updates `ani-sync`.
 
 ---
 
 ## 🔑 Multi-Platform Tracking & Discord Setup
 
-`ani-sync` connects seamlessly with **AniList**, **Kitsu**, **MyAnimeList**, and **Discord Rich Presence**. You can connect any combination or all of them.
+<details>
+<summary><b>🟣 1. AniList Setup Walkthrough (Click to expand)</b></summary>
 
-Run `ani-sync auth` to open the interactive setup picker, or authenticate each platform directly:
-
----
-
-### 1. 🟣 AniList Setup Walkthrough (GraphQL API)
-
-AniList uses OAuth 2.0 with a PIN-based CLI verification flow.
-
-#### Step 1: Create an AniList API Client
-1. Log in to your account on [AniList.co](https://anilist.co/).
+1. Log in to [AniList.co](https://anilist.co/).
 2. Open **Developer Settings**: [https://anilist.co/settings/developer](https://anilist.co/settings/developer).
-3. Click the **"Create New Client"** button.
-4. Fill in the client fields:
-   | Field | Value to Enter | Notes |
-   | :--- | :--- | :--- |
-   | **Client Name** | `ani-sync` | Name of your personal application |
-   | **Redirect URL** | `https://anilist.co/api/v2/oauth/pin` | **Must be exact** for CLI PIN authorization |
-5. Click **"Save"**.
-6. AniList will display your **Client ID** (e.g. `49862`) and **Client Secret**.
+3. Click **"Create New Client"**.
+4. Set **Client Name** to `ani-sync` and **Redirect URL** to `https://anilist.co/api/v2/oauth/pin` (**Must be exact**).
+5. Click **"Save"** and copy your **Client ID** and **Client Secret**.
+6. In terminal, run `ani-sync auth anilist`, authorize in browser, and paste the PIN code.
+</details>
 
-#### Step 2: Authenticate in Terminal
-1. Run the setup command:
-   ```bash
-   ani-sync auth anilist
-   ```
-2. Enter your **Client ID** and **Client Secret** when prompted.
-3. `ani-sync` opens your browser to the authorization page.
-4. Click **"Authorize"** to grant permission.
-5. AniList will display an alphanumeric **PIN code** on your screen.
-6. Copy the code, paste it into your terminal, and press `Enter`.
-7. `ani-sync` securely exchanges the PIN for an access token and automatically pulls your AniList watch history!
-
----
-
-### 2. 🟠 Kitsu Setup Walkthrough (JSON:API)
-
-Kitsu authentication is 100% seamless and requires **no developer portal registration**.
+<details>
+<summary><b>🟠 2. Kitsu Setup Walkthrough (Click to expand)</b></summary>
 
 1. Ensure you have an account registered on [kitsu.app](https://kitsu.app/).
-2. In your terminal, run:
-   ```bash
-   ani-sync auth kitsu
-   ```
-3. Enter your **Kitsu email or username**.
-4. Enter your **Kitsu password** (keystrokes are hidden for security).
-5. `ani-sync` connects directly to Kitsu's OAuth2 endpoint to obtain encrypted access and refresh tokens.
-6. > [!TIP]
-   > Your password is **never stored locally**. Only the OAuth2 tokens are saved.
+2. In terminal, run: `ani-sync auth kitsu`.
+3. Enter your **Kitsu email or username** and password.
+4. `ani-sync` connects directly to Kitsu's OAuth2 endpoint to obtain encrypted access and refresh tokens. Password is never stored locally.
+</details>
 
----
+<details>
+<summary><b>🔵 3. MyAnimeList (MAL) Setup Walkthrough (Click to expand)</b></summary>
 
-### 3. 🔵 MyAnimeList (MAL) Setup Walkthrough
-
-To enable automatic episode tracking with your MyAnimeList account:
-
-#### Step 1: Create a MAL API Client
 1. Log in to [MyAnimeList.net](https://myanimelist.net/).
 2. Open the **API Developer Portal**: [https://myanimelist.net/apiconfig](https://myanimelist.net/apiconfig).
-3. Click **"Create ID"** (or "Create an App").
-4. Fill in the application fields:
-   | Field Name | Value to Enter | Notes |
-   | :--- | :--- | :--- |
-   | **App Name** | `ani-sync` | Name of your client |
-   | **App Type** | `other` | Select `other` from dropdown |
-   | **App Redirect URL** | `http://localhost` | **Must be exact** (`http://`) |
-   | **Homepage URL** | `https://github.com/idrisharis12/ani-sync/` | *Include trailing slash `/`* |
-   | **Commercial use?** | `No` | Select No |
-   | **Non-commercial use?** | `Yes` | Select Yes |
-5. Submit the form and copy your **Client ID** (and optional Client Secret).
+3. Click **"Create ID"**.
+4. Set **App Redirect URL** to `http://localhost` and **App Type** to `other`.
+5. Submit the form and copy your **Client ID**.
+6. In terminal, run `ani-sync auth mal`, authorize in browser, and paste the redirected URL.
+</details>
 
-#### Step 2: Authenticate in Terminal
-1. Run:
-   ```bash
-   ani-sync auth mal
-   ```
-2. Enter your **Client ID**.
-3. Authorize in your browser and copy the redirected URL from your browser's address bar (`http://localhost/?code=...`).
-4. Paste the URL into your terminal to finalize authentication.
-
----
-
-### 4. 💬 Discord Rich Presence Setup & Customization
+<details>
+<summary><b>💬 4. Discord Rich Presence Setup (Click to expand)</b></summary>
 
 `ani-sync` works with Discord Rich Presence **out of the box with zero configuration**!
-
-- **Default Setup**: Uses the verified default Application ID (`1543718626400403466`).
-- **Clickable Buttons**: Friends viewing your profile will see live clickable buttons (**"⚡ Get ani-sync CLI"** and **"⭐ Star on GitHub"**) linking directly to your GitHub repository.
-
-#### Enabling Activity Status in Discord:
 1. Open Discord desktop app.
 2. Go to **User Settings** (⚙️ gear icon) ➔ **Activity Privacy**.
 3. Enable **"Display current activity as a status message"**.
-
-#### (Optional) Custom Discord Application ID & Logo:
-If you want to use your own Discord Application:
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications) and create an application named `ani-sync`.
-2. Under **Rich Presence** ➔ **Art Assets**, upload the logo (`assets/ani-sync_logo.jpeg`) with the asset key: `ani_sync_logo`.
-3. Set your custom ID in `~/.config/ani-sync/config.env`:
-   ```bash
-   export DISCORD_CLIENT_ID="YOUR_CUSTOM_APP_ID"
-   ```
+</details>
 
 ---
 
-### 📁 Local Configuration & Privacy
+## 🩺 System Diagnostics & Doctor Command
 
-All tokens are stored locally on your machine in `~/.config/ani-sync/config.env` (or `%APPDATA%\ani-sync\config.env` on Windows). No data is ever sent to third-party telemetry servers.
-
+Whenever you want to verify your system setup, run:
 ```bash
-# Example ~/.config/ani-sync/config.env
-export MAL_CLIENT_ID="your_mal_client_id"
-export MAL_CLIENT_SECRET=""
-export MAL_REFRESH_TOKEN="your_mal_refresh_token"
-
-export ANILIST_CLIENT_ID="your_anilist_client_id"
-export ANILIST_CLIENT_SECRET="your_anilist_client_secret"
-export ANILIST_TOKEN="your_anilist_access_token"
-
-export KITSU_TOKEN="your_kitsu_access_token"
-export KITSU_REFRESH_TOKEN="your_kitsu_refresh_token"
-
-export DISCORD_CLIENT_ID="1543718626400403466"
+ani-sync doctor
 ```
+
+```text
+============================================================
+             ani-sync System & Dependency Doctor            
+============================================================
+
+Runtime & Libraries:
+  ✓ Python:            v3.14.7 (/usr/bin/python3)
+  ✓ requests:          v2.34.2
+  ✓ tqdm:              v4.70.0
+
+Interactive Fuzzy Search:
+  ✓ fzf:               Ready (/usr/bin/fzf)
+
+Media Player & Stream Acceleration:
+  ✓ mpv:               Ready (/usr/bin/mpv)
+  ✓ yt-dlp:            Ready (/usr/bin/yt-dlp)
+  ✓ curl:              Ready (/usr/bin/curl)
+
+Connected Tracking Platforms:
+  ✓ MyAnimeList:       Connected
+  ✓ AniList:           Connected
+  ✓ Kitsu:             Connected
+
+Doctor check completed.
+```
+
+---
+
+## 🔄 Universal Self-Updating System
+
+`ani-sync` stays up-to-date automatically across all platforms:
+1. **Background Auto-Sync**: Whenever you run `ani-sync`, it silently checks GitHub for updates in a non-blocking background thread.
+2. **Manual Update**: Run `ani-sync update` (or `ani-sync -U`) anytime.
+3. **APT Integration**: On Debian/Ubuntu systems, `sudo apt update && sudo apt upgrade` updates `ani-sync` automatically.
 
 ---
 
 ## 💖 Credits & Acknowledgements
 
-`ani-sync` was built on the shoulders of giants. Special thanks and deepest gratitude to the open-source projects, APIs, and developer communities that inspired its design and powered its capabilities:
+Special thanks and deepest gratitude to the open-source projects and developer communities that inspired its design and powered its capabilities:
 
-### 🎬 CLI Anime Pioneers & Inspirations
-- **[ani-cli](https://github.com/pystardust/ani-cli)** by *pystardust* — The trailblazing terminal anime player that pioneered command-line video streaming and proved that anime belongs in the terminal.
+- **[ani-cli](https://github.com/pystardust/ani-cli)** by *pystardust* — The trailblazing terminal anime player that pioneered command-line video streaming.
 - **[mal-cli](https://github.com/mdomke/mal-cli)** by *mdomke* — The pioneering CLI tool for MyAnimeList tracking that inspired automated episode synchronization.
-
-### ⚡ Media Players & Terminal Engines
-- **[mpv](https://github.com/mpv-player/mpv)** — The gold-standard, ultra-fast, extensible open-source media player powering hardware-accelerated video decoding, OSD notifications, and Lua script auto-skip integration.
-- **[fzf](https://github.com/junegunn/fzf)** by *junegunn* — The blazingly fast, interactive fuzzy finder that gives `ani-sync` its sleek, responsive terminal search, episode picker, and history navigation.
-- **[VLC](https://www.videolan.org/vlc/)** & **[IINA](https://iina.io/)** — Outstanding cross-platform players supported natively by `ani-sync`.
-
-### 🌐 Tracking Platforms & Anime Metadata APIs
-- **[MyAnimeList API](https://myanimelist.net/apiconfig)** — The official OAuth 2.0 API enabling real-time episode progress tracking and anime library synchronization.
-- **[AniList GraphQL API](https://anilist.co)** — Modern, powerful GraphQL API providing comprehensive anime metadata, cover art, and cloud list sync.
-- **[Kitsu JSON:API](https://kitsu.io)** — Clean JSON:API standard enabling seamless anime tracking and library management.
-- **[AniDB](https://anidb.app)** — Exhaustive anime catalog and episode database engine.
-
-### 🛠️ Protocols & Acceleration Architectures
-- **[Discord IPC Protocol](https://discord.com/developers/docs/topics/rpc)** — Local IPC Unix domain socket / Windows named pipe protocol enabling zero-dependency Rich Presence broadcasts and clickable GitHub profile buttons.
-- **[aria2 & Swarm Downloaders](https://github.com/aria2/aria2)** — The parallel segmented downloading concept that inspired `ani-sync`'s 64x multi-connection zero-buffering engine.
+- **[mpv](https://github.com/mpv-player/mpv)** — The gold-standard, ultra-fast media player powering hardware-accelerated zero-buffering playback.
+- **[fzf](https://github.com/junegunn/fzf)** by *junegunn* — The blazingly fast, interactive fuzzy finder powering search and navigation.
+- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — The multi-socket video stream extraction engine.
+- **[MyAnimeList API](https://myanimelist.net/apiconfig)**, **[AniList GraphQL API](https://anilist.co)**, and **[Kitsu JSON:API](https://kitsu.io)** — The tracking and metadata APIs.
 
 ---
 

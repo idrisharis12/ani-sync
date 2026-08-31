@@ -15,6 +15,12 @@ import tarfile
 import zipfile
 from pathlib import Path
 
+# Force UTF-8 encoding for standard streams on Windows runners
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 VERSION = "2.0.0"
 BASE_DIR = Path(__file__).resolve().parent
 DIST_DIR = BASE_DIR / "dist"
@@ -92,11 +98,15 @@ def create_archives(binary_path, tag, system):
             zf.write(binary_path, arcname="ani-sync.exe")
             if (BASE_DIR / "README.md").exists():
                 zf.write(BASE_DIR / "README.md", arcname="README.md")
+            if (BASE_DIR / "CHEATSHEET.md").exists():
+                zf.write(BASE_DIR / "CHEATSHEET.md", arcname="CHEATSHEET.md")
             if (BASE_DIR / "LICENSE").exists():
                 zf.write(BASE_DIR / "LICENSE", arcname="LICENSE")
             if (BASE_DIR / "install.ps1").exists():
                 zf.write(BASE_DIR / "install.ps1", arcname="install.ps1")
-        print(f"✓ Created ZIP archive: {zip_path.name} ({zip_path.stat().st_size / 1024:.1f} KB)")
+        print(
+            f"✓ Created ZIP archive: {zip_path.name} ({zip_path.stat().st_size / 1024:.1f} KB)"
+        )
         return zip_path
     else:
         tar_path = DIST_DIR / f"{archive_base}.tar.gz"
@@ -104,11 +114,15 @@ def create_archives(binary_path, tag, system):
             tar.add(binary_path, arcname="ani-sync")
             if (BASE_DIR / "README.md").exists():
                 tar.add(BASE_DIR / "README.md", arcname="README.md")
+            if (BASE_DIR / "CHEATSHEET.md").exists():
+                tar.add(BASE_DIR / "CHEATSHEET.md", arcname="CHEATSHEET.md")
             if (BASE_DIR / "LICENSE").exists():
                 tar.add(BASE_DIR / "LICENSE", arcname="LICENSE")
             if (BASE_DIR / "install.sh").exists():
                 tar.add(BASE_DIR / "install.sh", arcname="install.sh")
-        print(f"✓ Created Tarball archive: {tar_path.name} ({tar_path.stat().st_size / 1024:.1f} KB)")
+        print(
+            f"✓ Created Tarball archive: {tar_path.name} ({tar_path.stat().st_size / 1024:.1f} KB)"
+        )
         return tar_path
 
 
@@ -157,7 +171,11 @@ def main():
     for item in sorted(DIST_DIR.iterdir()):
         if item.is_file():
             size = item.stat().st_size
-            size_str = f"{size / 1024:.1f} KB" if size < 1024 * 1024 else f"{size / (1024 * 1024):.1f} MB"
+            size_str = (
+                f"{size / 1024:.1f} KB"
+                if size < 1024 * 1024
+                else f"{size / (1024 * 1024):.1f} MB"
+            )
             print(f"  📁 {item.name:<38} ({size_str})")
 
 

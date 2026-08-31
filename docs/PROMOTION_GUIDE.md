@@ -1,76 +1,35 @@
 # 📢 Promotion & Community Growth Guide for `ani-sync`
 
-This guide contains copy-paste post templates and strategies to share `ani-sync` with communities to build active users and GitHub stars.
+This guide contains strategies, checklists, and copy-paste post templates to share `ani-sync` with communities across Reddit, Hacker News, Discord, and GitHub to build an active userbase.
+
+> [!TIP]
+> For complete, copy-paste ready Reddit post templates (`r/linux`, `r/unixporn`, `r/animepiracy`), Hacker News `Show HN` copy, and Awesome Lists PR templates, see:
+> 👉 [**`docs/COMMUNITY_SHOWCASES.md`**](COMMUNITY_SHOWCASES.md)
 
 ---
 
-## 🎯 Target Communities
+## 🎯 Target Communities & Showcase Matrix
 
-1. [**r/animepiracy**](https://reddit.com/r/animepiracy) (Top target — 300k+ members)
-2. [**r/commandline**](https://reddit.com/r/commandline) & [**r/linux**](https://reddit.com/r/linux)
-3. [**r/unixporn**](https://reddit.com/r/unixporn) (Post with a nice rice screenshot)
-4. [**r/myanimelist**](https://reddit.com/r/myanimelist)
-5. **Hacker News ("Show HN")**
-6. **AlternativeTo.net**
-
----
-
-## 📝 Reddit Post Template (Copy & Paste)
-
-### 📌 Title:
-> **[Release] ani-sync v2.0: Stream anime from your terminal with 64x multi-connection turbo speed and automatic MyAnimeList tracking (Linux, Windows, macOS)**
-
-### 📄 Post Body:
-
-```markdown
-Hey everyone! 👋
-
-I built **ani-sync**, an open-source command-line tool that lets you search and stream anime directly from your terminal and automatically syncs your watch progress to **MyAnimeList** in real-time.
-
-### 🌟 Why I built it:
-Existing CLI players (like `ani-cli`) are great, but they lack automatic list tracking (you have to manually update MAL after bingeing), and single-thread streaming often stutters when CDNs throttle bandwidth.
-
-**ani-sync** fixes this with a **4-tier acceleration engine**:
-
-1. ⚡ **64x Turbo Multi-Connections**: Downloads 64 fragments in parallel, downloading full episodes in ~3–5 seconds and eliminating all buffering.
-2. 💾 **RAM-Disk In-Memory Caching (`/dev/shm`)**: Caches streams directly into RAM at 10,000+ MB/s for 0ms seek latency and 0 SSD wear.
-3. ⏩ **Predictive Dual Pre-Fetching**: While watching Episode N, Episodes N+1 and N+2 are preloaded in the background so next episodes start in **0.00 seconds**.
-4. 🔄 **Automatic MyAnimeList OAuth2 Sync**: Automatically records watched episodes on your MAL profile as soon as playback finishes.
-5. 🪟 **Cross-Platform**: Runs natively on **Linux**, **macOS**, and **Windows (PowerShell/CMD)**.
-6. 🎮 **Interactive Controls**: Next/Prev episode, seasons/movies selector, 720p/1080p switcher, English Dub support, and offline download mode (`-d`).
+| Community / Platform | Target Audience | Key Angle to Emphasize |
+| :--- | :--- | :--- |
+| **[r/linux](https://reddit.com/r/linux)** & **[r/commandline](https://reddit.com/r/commandline)** | Linux & CLI Power Users | RAM-disk `/dev/shm` architecture, 64-socket parallel engine, zero buffering |
+| **[r/unixporn](https://reddit.com/r/unixporn)** | Aesthetic Desktop / Rice Enthusiasts | Clean FZF search, sleek MPV borderless playback, TokyoNight / Catppuccin themes |
+| **[r/animepiracy](https://reddit.com/r/animepiracy)** & **[r/anime](https://reddit.com/r/anime)** | Anime Watchers | No ads, zero buffering, auto-sync to MAL, AniList & Kitsu, auto-skip intros (+85s) |
+| **[Hacker News ("Show HN")](https://news.ycombinator.com/)** | Developers & Engineers | Technical architecture, multi-connection fragment swarm, raw IPC sockets |
+| **Curated "Awesome" Lists** | Long-term Organic Traffic | `awesome-cli-apps`, `awesome-python`, `awesome-tuis`, `awesome-anime` |
 
 ---
 
-### 📦 Installation:
+## 🏷️ Essential GitHub Topic Tags
+Ensure your GitHub repository has these topic tags configured under repository settings (**About ⚙️**):
+`anime`, `cli`, `terminal`, `anime-streaming`, `myanimelist`, `anilist`, `kitsu`, `mpv`, `fzf`, `zero-buffering`, `python`, `cross-platform`, `ani-cli`, `streaming`
 
-**Linux / macOS:**
+---
+
+## 🎥 Generating Demo Media
+To record a pixel-perfect terminal recording using VHS:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash
+# Install vhs: https://github.com/charmbracelet/vhs
+vhs demo.tape
 ```
-
-**Windows (PowerShell):**
-```powershell
-irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 | iex
-```
-
----
-
-### 🚀 Usage:
-```bash
-ani-sync "frieren"
-ani-sync continue          # Resumes your last watched anime
-ani-sync trending          # Browses top airing anime
-ani-sync "naruto" -q 1080p # Stream in 1080p
-ani-sync auth              # 1-command MyAnimeList connection wizard
-```
-
-🔗 **GitHub Repository & Source Code**: https://github.com/idrisharis12/ani-sync
-
-Feedback, bug reports, and feature requests are very welcome! If you like the project, a ⭐ on GitHub means a lot!
-```
-
----
-
-## 🏷️ GitHub Topic Tags
-Make sure your GitHub repo has these tags configured under "About":
-`anime`, `cli`, `myanimelist`, `mal`, `mpv`, `terminal`, `anime-streaming`, `streaming`, `python`, `cross-platform`, `zero-buffering`, `ani-cli`
+This automatically outputs `assets/demo.gif` and `assets/demo.mp4` ready for embedding in Reddit, GitHub, or social media!

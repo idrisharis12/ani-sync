@@ -5,17 +5,22 @@ exec python3 "$0" "$@"
 """
 
 import html
+import io
 import json
 import os
+import platform
 import re
 import secrets
 import shutil
 import subprocess
 import sys
+import tarfile
 import threading
 import time
 import urllib.parse
+import urllib.request
 import webbrowser
+import zipfile
 from pathlib import Path
 
 import requests
@@ -1062,7 +1067,7 @@ def load_history():
 
 
 def save_history(slug, title, episode_num, quality="720p", mode="sub"):
-    """Record watched episode to local history."""
+    """Record watched episode to local history and check for appreciation milestone."""
     data = load_history()
     entry = {
         "slug": slug,
@@ -1073,6 +1078,9 @@ def save_history(slug, title, episode_num, quality="720p", mode="sub"):
         "timestamp": int(time.time()),
     }
     data["last_watched"] = entry
+
+    # Increment total watched counter
+    data["total_episodes_watched"] = data.get("total_episodes_watched", 0) + 1
 
     # Update list without duplicates
     history_list = [h for h in data.get("history", []) if h.get("slug") != slug]
@@ -1085,6 +1093,33 @@ def save_history(slug, title, episode_num, quality="720p", mode="sub"):
             json.dump(data, f, indent=2)
     except Exception:
         pass
+
+    # One-time friendly star prompt on 5th episode milestone
+    if data.get("total_episodes_watched", 0) >= 5 and not data.get("star_prompt_shown"):
+        data["star_prompt_shown"] = True
+        try:
+            with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception:
+            pass
+        print(
+            f"\n{C_MAGENTA}╭────────────────────────────────────────────────────────────╮{C_RESET}"
+        )
+        print(
+            f"{C_MAGENTA}│{C_RESET}  {C_YELLOW}{C_BOLD}✨ Enjoying ani-sync?{C_RESET}                                      {C_MAGENTA}│{C_RESET}"
+        )
+        print(
+            f"{C_MAGENTA}│{C_RESET}  If you love streaming anime in your terminal, consider      {C_MAGENTA}│{C_RESET}"
+        )
+        print(
+            f"{C_MAGENTA}│{C_RESET}  starring the project on GitHub:                            {C_MAGENTA}│{C_RESET}"
+        )
+        print(
+            f"{C_MAGENTA}│{C_RESET}  {C_CYAN}{C_BOLD}⭐ https://github.com/idrisharis12/ani-sync{C_RESET}                 {C_MAGENTA}│{C_RESET}"
+        )
+        print(
+            f"{C_MAGENTA}╰────────────────────────────────────────────────────────────╯{C_RESET}\n"
+        )
 
 
 def get_last_watched():
@@ -1684,11 +1719,139 @@ def prefetch_episode(next_ep_data, title, preferred_quality=None, mode="sub"):
 
 
 # ----------------------------------------------------------------------
-# Interactive Menus (FZF Fuzzy Search + Fallback)
+# Interactive Menus (FZF Fuzzy Search + Fallback + Auto-Installer)
 # ----------------------------------------------------------------------
+def _get_bin_dir():
+    """Return user-writable bin directory for binary tools like fzf."""
+    if sys.platform == "win32":
+        local_app = os.environ.get("LOCALAPPDATA")
+        if local_app:
+            p = Path(local_app) / "ani-sync" / "bin"
+        else:
+            p = Path.home() / ".local" / "bin"
+    else:
+        p = Path.home() / ".local" / "bin"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def _ensure_path():
+    """Ensure user's local bin directories are present in os.environ['PATH']."""
+    bin_dir = str(_get_bin_dir())
+    usr_local = "/usr/local/bin"
+    home_local = str(Path.home() / ".local" / "bin")
+    current_path = os.environ.get("PATH", "")
+    paths = current_path.split(os.pathsep)
+    added = False
+    for p in [bin_dir, home_local, usr_local]:
+        if p not in paths and os.path.exists(p):
+            paths.insert(0, p)
+            added = True
+    if added:
+        os.environ["PATH"] = os.pathsep.join(paths)
+
+
+def _download_fzf_binary():
+    """Download pre-built standalone fzf binary for current platform."""
+    sys_name = platform.system().lower()
+    machine = platform.machine().lower()
+
+    # Map architecture
+    if machine in ("x86_64", "amd64", "x64"):
+        arch = "amd64"
+    elif machine in ("aarch64", "arm64", "armv8"):
+        arch = "arm64"
+    elif machine.startswith("armv7") or machine.startswith("armhf"):
+        arch = "armv7"
+    elif machine.startswith("arm"):
+        arch = "armv6"
+    elif machine in ("i386", "i686", "x86"):
+        arch = "386"
+    else:
+        arch = "amd64"
+
+    # Map OS
+    if sys_name == "linux":
+        os_tag = "linux"
+        ext = "tar.gz"
+        bin_name = "fzf"
+    elif sys_name == "darwin":
+        os_tag = "darwin"
+        ext = "tar.gz"
+        bin_name = "fzf"
+    elif sys_name == "windows":
+        os_tag = "windows"
+        ext = "zip"
+        bin_name = "fzf.exe"
+    else:
+        return None
+
+    version = "0.60.3"
+    url = f"https://github.com/junegunn/fzf/releases/download/v{version}/fzf-{version}-{os_tag}_{arch}.{ext}"
+
+    dest_dir = _get_bin_dir()
+    dest_file = dest_dir / bin_name
+
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = resp.read()
+
+        if ext == "tar.gz":
+            with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
+                for member in tar.getmembers():
+                    if member.name == "fzf" or member.name.endswith("/fzf"):
+                        extracted = tar.extractfile(member)
+                        if extracted:
+                            with open(dest_file, "wb") as out:
+                                out.write(extracted.read())
+                            break
+        elif ext == "zip":
+            with zipfile.ZipFile(io.BytesIO(data)) as z:
+                for item in z.namelist():
+                    if item in ("fzf.exe", "fzf"):
+                        with open(dest_file, "wb") as out:
+                            out.write(z.read(item))
+                        break
+
+        if dest_file.exists():
+            dest_file.chmod(0o755)
+            _ensure_path()
+            return str(dest_file)
+    except Exception:
+        pass
+    return None
+
+
+_FZF_CHECKED = False
+
+
 def _has_fzf():
-    """Check if fzf is available on the system."""
-    return shutil.which("fzf") is not None
+    """Check if fzf is available on the system, auto-installing standalone binary if missing."""
+    global _FZF_CHECKED
+    _ensure_path()
+
+    exe = shutil.which("fzf") or shutil.which("fzf.exe")
+    if exe:
+        return True
+
+    bin_dir = _get_bin_dir()
+    candidate = bin_dir / ("fzf.exe" if sys.platform == "win32" else "fzf")
+    if candidate.is_file() and os.access(candidate, os.X_OK):
+        _ensure_path()
+        return True
+
+    # Attempt automatic background download once
+    if not _FZF_CHECKED and _FZF_ENABLED:
+        _FZF_CHECKED = True
+        try:
+            installed = _download_fzf_binary()
+            if installed and (shutil.which("fzf") or shutil.which("fzf.exe")):
+                return True
+        except Exception:
+            pass
+
+    return False
 
 
 _FZF_ENABLED = True  # Set to False by --no-fzf CLI flag
@@ -2126,27 +2289,138 @@ def update_self(quiet=False):
 # ----------------------------------------------------------------------
 # CLI Interface & Entry Point
 # ----------------------------------------------------------------------
+def run_doctor():
+    """Diagnostic tool to verify all dependencies and configuration."""
+    _ensure_path()
+    print(
+        f"\n{C_CYAN}{C_BOLD}============================================================{C_RESET}"
+    )
+    print(
+        f"{C_MAGENTA}{C_BOLD}             ani-sync System & Dependency Doctor            {C_RESET}"
+    )
+    print(
+        f"{C_CYAN}{C_BOLD}============================================================{C_RESET}\n"
+    )
+
+    # 1. Python Environment
+    py_ver = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+    print(f"{C_BOLD}Runtime & Libraries:{C_RESET}")
+    print(
+        f"  {C_GREEN}✓{C_RESET} Python:            {C_CYAN}v{py_ver}{C_RESET} ({sys.executable})"
+    )
+
+    # 2. Python Packages
+    try:
+        import requests
+
+        req_ver = getattr(requests, "__version__", "installed")
+        print(f"  {C_GREEN}✓{C_RESET} requests:          {C_CYAN}v{req_ver}{C_RESET}")
+    except ImportError:
+        print(
+            f"  {C_RED}✗{C_RESET} requests:          {C_RED}Missing (pip install requests){C_RESET}"
+        )
+
+    try:
+        import tqdm
+
+        tqdm_ver = getattr(tqdm, "__version__", "installed")
+        print(f"  {C_GREEN}✓{C_RESET} tqdm:              {C_CYAN}v{tqdm_ver}{C_RESET}")
+    except ImportError:
+        print(
+            f"  {C_RED}✗{C_RESET} tqdm:              {C_RED}Missing (pip install tqdm){C_RESET}"
+        )
+
+    # 3. Interactive FZF
+    print(f"\n{C_BOLD}Interactive Fuzzy Search:{C_RESET}")
+    has_fzf = _has_fzf()
+    fzf_path = shutil.which("fzf") or shutil.which("fzf.exe")
+    if has_fzf:
+        print(
+            f"  {C_GREEN}✓{C_RESET} fzf:               {C_CYAN}Ready{C_RESET} ({fzf_path or 'auto-installed'})"
+        )
+    else:
+        print(
+            f"  {C_YELLOW}⚠{C_RESET} fzf:               {C_YELLOW}Not found (falling back to numbered menus){C_RESET}"
+        )
+        print("      Attempting automatic standalone download...")
+        dl = _download_fzf_binary()
+        if dl:
+            print(f"      {C_GREEN}✓ Successfully installed FZF to {dl}!{C_RESET}")
+        else:
+            print(
+                f"      {C_RED}Could not auto-download FZF. Check internet connection.{C_RESET}"
+            )
+
+    # 4. Media Player & Acceleration
+    print(f"\n{C_BOLD}Media Player & Stream Acceleration:{C_RESET}")
+    mpv_path = shutil.which("mpv") or shutil.which("mpv.exe")
+    if mpv_path:
+        print(
+            f"  {C_GREEN}✓{C_RESET} mpv:               {C_CYAN}Ready{C_RESET} ({mpv_path})"
+        )
+    else:
+        print(
+            f"  {C_YELLOW}⚠{C_RESET} mpv:               {C_YELLOW}Not found (Recommended: sudo apt install mpv / pacman -S mpv / winget install mpv.net){C_RESET}"
+        )
+
+    ytdlp_path = shutil.which("yt-dlp") or shutil.which("yt-dlp.exe")
+    if ytdlp_path:
+        print(
+            f"  {C_GREEN}✓{C_RESET} yt-dlp:            {C_CYAN}Ready{C_RESET} ({ytdlp_path})"
+        )
+    else:
+        print(
+            f"  {C_YELLOW}⚠{C_RESET} yt-dlp:            {C_YELLOW}Not found (Multi-threaded turbo speed fallback active){C_RESET}"
+        )
+
+    curl_path = shutil.which("curl") or shutil.which("curl.exe")
+    if curl_path:
+        print(
+            f"  {C_GREEN}✓{C_RESET} curl:              {C_CYAN}Ready{C_RESET} ({curl_path})"
+        )
+    else:
+        print(f"  {C_YELLOW}⚠{C_RESET} curl:              {C_YELLOW}Not found{C_RESET}")
+
+    # 5. Auth Credentials
+    print(f"\n{C_BOLD}Connected Tracking Platforms:{C_RESET}")
+    load_config()
+    mal_token = os.environ.get("MAL_REFRESH_TOKEN") or os.environ.get("MAL_CLIENT_ID")
+    if mal_token:
+        print(f"  {C_GREEN}✓{C_RESET} MyAnimeList:       {C_GREEN}Connected{C_RESET}")
+    else:
+        print(
+            f"  {C_DIM}○{C_RESET} MyAnimeList:       {C_DIM}Not linked (run: ani-sync auth mal){C_RESET}"
+        )
+
+    if is_anilist_configured():
+        print(f"  {C_GREEN}✓{C_RESET} AniList:           {C_GREEN}Connected{C_RESET}")
+    else:
+        print(
+            f"  {C_DIM}○{C_RESET} AniList:           {C_DIM}Not linked (run: ani-sync auth anilist){C_RESET}"
+        )
+
+    if is_kitsu_configured():
+        print(f"  {C_GREEN}✓{C_RESET} Kitsu:             {C_GREEN}Connected{C_RESET}")
+    else:
+        print(
+            f"  {C_DIM}○{C_RESET} Kitsu:             {C_DIM}Not linked (run: ani-sync auth kitsu){C_RESET}"
+        )
+
+    print(f"\n{C_GREEN}Doctor check completed.{C_RESET}\n")
+
+
 def print_help():
     print(
-        f"""{C_CYAN}{C_BOLD}ani-sync v{VERSION}{C_RESET} — Stream anime in terminal and auto-sync progress to MyAnimeList
+        f"""{C_CYAN}{C_BOLD}ani-sync v{VERSION}{C_RESET} - Stream anime in terminal and auto-sync watch progress
 
 {C_BOLD}Usage:{C_RESET}
-    ani-sync <anime name> [options]
-    ani-sync -c, continue                 Resume last watched anime
-    ani-sync -t, trending                 Browse top currently airing/trending anime
-    ani-sync history                      View and resume from watch history
-    ani-sync sync, import                 Sync & import library from MAL/AniList/Kitsu
-    ani-sync watch <url> [--player <player>]
-    ani-sync update
-    ani-sync auth
-    ani-sync --help
-
-{C_BOLD}Examples:{C_RESET}
-    {C_GREEN}ani-sync naruto{C_RESET}
-    {C_GREEN}ani-sync "frieren" -q 1080p{C_RESET}
+    {C_GREEN}ani-sync <anime name>{C_RESET}
     {C_GREEN}ani-sync continue{C_RESET}
     {C_GREEN}ani-sync trending{C_RESET}
     {C_GREEN}ani-sync sync{C_RESET}
+    {C_GREEN}ani-sync doctor{C_RESET}
     {C_GREEN}ani-sync "attack on titan" --dub{C_RESET}
     {C_GREEN}ani-sync "jujutsu kaisen" -d -e 1{C_RESET}
 
@@ -2155,6 +2429,7 @@ def print_help():
     -t, --trending, trending  Browse top airing and trending anime
     history, --history        View recent watch history and pick to resume
     sync, --sync, import      Sync & import watch library from all connected platforms
+    doctor, check, --doctor   Verify dependencies, system status & credentials
     -e, --episode <num>       Jump directly to specified episode number
     -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
     --skip, --auto-skip       Automatically skip anime opening/intro (+85s)
@@ -2178,9 +2453,9 @@ def print_help():
     {C_CYAN}[q]{C_RESET}                   Quit player and return to post-playback controls
 
 {C_BOLD}FZF Fuzzy Search:{C_RESET}
-    When {C_CYAN}fzf{C_RESET} is installed, all selection menus use interactive fuzzy
-    filtering. Install: {C_GREEN}sudo pacman -S fzf{C_RESET} (Arch) / {C_GREEN}sudo apt install fzf{C_RESET} (Debian)
-    / {C_GREEN}brew install fzf{C_RESET} (macOS). Disable with {C_YELLOW}--no-fzf{C_RESET}.
+    FZF interactive fuzzy filtering is automatically configured and enabled
+    by default for all search results, episode selections, and history menus.
+    Use {C_YELLOW}--no-fzf{C_RESET} to force classic numbered menus.
 """
     )
 
@@ -2189,7 +2464,22 @@ def main():
     args = sys.argv[1:]
 
     # Asynchronous background auto-updater for all Linux distributions & macOS
-    if not (args and args[0] in ("-h", "--help", "help", "auth", "setup", "--auth")):
+    if not (
+        args
+        and args[0]
+        in (
+            "-h",
+            "--help",
+            "help",
+            "auth",
+            "setup",
+            "--auth",
+            "doctor",
+            "check",
+            "--doctor",
+            "--check",
+        )
+    ):
         threading.Thread(
             target=update_self, kwargs={"quiet": True}, daemon=True
         ).start()
@@ -2201,6 +2491,10 @@ def main():
         else:
             print_help()
             return
+
+    if args and args[0] in ("doctor", "check", "--doctor", "--check"):
+        run_doctor()
+        return
 
     if args and args[0] in ("-U", "--update", "update"):
         quiet = "--quiet" in args or "-q" in args
