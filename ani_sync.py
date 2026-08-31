@@ -70,7 +70,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.2.0"
+VERSION = "2.3.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -1483,6 +1483,151 @@ def get_trending_anime():
     return results
 
 
+def get_airing_schedule():
+    """Fetch today's and upcoming airing anime releases from AniList GraphQL."""
+    query = """
+    query ($airingAt_greater: Int, $airingAt_lesser: Int) {
+      Page(page: 1, perPage: 40) {
+        airingSchedules(airingAt_greater: $airingAt_greater, airingAt_lesser: $airingAt_lesser, sort: TIME) {
+          id
+          airingAt
+          episode
+          media {
+            id
+            idMal
+            title {
+              romaji
+              english
+            }
+            genres
+          }
+        }
+      }
+    }
+    """
+    now = int(time.time())
+    variables = {
+        "airingAt_greater": now - 3600 * 18,
+        "airingAt_lesser": now + 3600 * 36,
+    }
+    try:
+        r = requests.post(
+            ANILIST_API_URL,
+            json={"query": query, "variables": variables},
+            timeout=8,
+        )
+        if r.status_code == 200:
+            data = r.json()
+            return data.get("data", {}).get("Page", {}).get("airingSchedules", [])
+    except Exception:
+        pass
+    return []
+
+
+def run_schedule():
+    """Interactive airing schedule and countdown browser."""
+    print(
+        f"\n{C_CYAN}{C_BOLD}📅 Fetching latest anime release calendar from AniList...{C_RESET}"
+    )
+    schedules = get_airing_schedule()
+    if not schedules:
+        print(
+            f"{C_RED}❌ Could not fetch airing schedule. Check internet connection.{C_RESET}\n"
+        )
+        return
+
+    now = int(time.time())
+    options = []
+    items = []
+
+    for s in schedules:
+        media = s.get("media", {})
+        title = (
+            media.get("title", {}).get("english")
+            or media.get("title", {}).get("romaji")
+            or "Unknown Anime"
+        )
+        ep = s.get("episode", 1)
+        airing_at = s.get("airingAt", now)
+        diff = airing_at - now
+
+        if diff <= 0:
+            ago_h = abs(diff) // 3600
+            ago_m = (abs(diff) % 3600) // 60
+            tag = f"{C_GREEN}[Available Now • Aired {ago_h}h {ago_m}m ago]{C_RESET}"
+            is_available = True
+        else:
+            in_h = diff // 3600
+            in_m = (diff % 3600) // 60
+            tag = f"{C_YELLOW}[Airs in {in_h}h {in_m}m]{C_RESET}"
+            is_available = False
+
+        opt_text = f"{tag} {title} (Episode {ep})"
+        options.append(opt_text)
+        items.append(
+            {
+                "title": title,
+                "episode": ep,
+                "airing_at": airing_at,
+                "is_available": is_available,
+                "genres": media.get("genres", []),
+                "mal_id": media.get("idMal"),
+            }
+        )
+
+    selected_idx = pick_option(
+        "📅 Anime Airing Schedule & Release Calendar:", options, default_idx=0
+    )
+    selected = items[selected_idx]
+
+    if selected["is_available"]:
+        print(
+            f"\n{C_GREEN}▶ Selected: {selected['title']} (Episode {selected['episode']}){C_RESET}"
+        )
+        print(f"{C_YELLOW}Searching stream for '{selected['title']}'...{C_RESET}")
+        res = search_anime(selected["title"])
+        if not res:
+            # Try searching first two words
+            words = selected["title"].split()
+            if len(words) > 2:
+                res = search_anime(" ".join(words[:2]))
+        if res:
+            play_loop(res[0], initial_ep_idx=selected["episode"] - 1, player="mpv")
+        else:
+            print(
+                f"{C_RED}Could not find stream on provider for '{selected['title']}'. Try manual search: ani-sync \"{selected['title']}\"{C_RESET}\n"
+            )
+    else:
+        air_diff = selected["airing_at"] - now
+        in_h = air_diff // 3600
+        in_m = (air_diff % 3600) // 60
+        print(
+            f"\n{C_CYAN}╭────────────────────────────────────────────────────────────╮{C_RESET}"
+        )
+        print(
+            f"{C_CYAN}│{C_RESET}  {C_BOLD}{C_MAGENTA}⏳ Upcoming Episode Countdown{C_RESET}                             {C_CYAN}│{C_RESET}"
+        )
+        print(
+            f"{C_CYAN}├────────────────────────────────────────────────────────────┤{C_RESET}"
+        )
+        print(
+            f"{C_CYAN}│{C_RESET}  Anime:    {C_WHITE}{C_BOLD}{selected['title'][:44]}{C_RESET}"
+        )
+        print(
+            f"{C_CYAN}│{C_RESET}  Episode:  {C_YELLOW}Episode {selected['episode']}{C_RESET}"
+        )
+        print(
+            f"{C_CYAN}│{C_RESET}  Air Time: {C_GREEN}Airs in {in_h} hours and {in_m} minutes{C_RESET}"
+        )
+        if selected["genres"]:
+            print(
+                f"{C_CYAN}│{C_RESET}  Genres:   {C_DIM}{', '.join(selected['genres'])}{C_RESET}"
+            )
+        print(
+            f"{C_CYAN}╰────────────────────────────────────────────────────────────╯{C_RESET}\n"
+        )
+
+
 def get_anime_details(slug):
     """Fetch anime seasons and mal_id if present."""
     url = f"{ANIDB_BASE}/anime/{slug}"
@@ -2828,6 +2973,7 @@ def print_help():
     {C_GREEN}ani-sync <anime name>{C_RESET}
     {C_GREEN}ani-sync continue{C_RESET}
     {C_GREEN}ani-sync trending{C_RESET}
+    {C_GREEN}ani-sync schedule{C_RESET}
     {C_GREEN}ani-sync sync{C_RESET}
     {C_GREEN}ani-sync theme tokyonight{C_RESET}
     {C_GREEN}ani-sync doctor{C_RESET}
@@ -2838,6 +2984,7 @@ def print_help():
 {C_BOLD}Options:{C_RESET}
     -c, --continue, continue  Resume last watched anime (plays next episode)
     -t, --trending, trending  Browse top airing and trending anime
+    -s, --schedule, schedule  Interactive anime release schedule & calendar
     history, --history        View recent watch history and pick to resume
     sync, --sync, import      Sync & import watch library from all connected platforms
     theme, --theme [name]     Select or set color theme (catppuccin, tokyonight, dracula, nord, gruvbox, monokai)
@@ -2905,6 +3052,10 @@ def main():
             "--credits",
             "theme",
             "themes",
+            "schedule",
+            "calendar",
+            "-s",
+            "--schedule",
         )
     ):
         threading.Thread(
@@ -2918,6 +3069,16 @@ def main():
         else:
             print_help()
             return
+
+    if args and args[0] in (
+        "schedule",
+        "calendar",
+        "-s",
+        "--schedule",
+        "--calendar",
+    ):
+        run_schedule()
+        return
 
     if args and args[0] in ("theme", "themes", "--theme"):
         target_t = args[1] if len(args) > 1 else None

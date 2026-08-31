@@ -32,6 +32,7 @@
 | **Interactive Mode (FZF)** | `ani-sync` |
 | **Resume Last Anime (Next Ep)** | `ani-sync continue` *(or `ani-sync -c`)* |
 | **Browse Top Trending** | `ani-sync trending` *(or `ani-sync -t`)* |
+| **Airing Schedule & Calendar** | `ani-sync schedule` *(or `ani-sync -s`)* |
 | **Browse Watch History** | `ani-sync history` |
 | **Sync Cloud Libraries** | `ani-sync sync` *(or `ani-sync import`)* |
 | **Play Episode 1 in 1080p** | `ani-sync "solo leveling" -e 1 -q 1080p` |
