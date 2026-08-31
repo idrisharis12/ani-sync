@@ -94,7 +94,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.8.0"
+VERSION = "2.9.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -1582,12 +1582,18 @@ class DiscordRPC:
                     return
 
                 sock = None
+                is_win_pipe = False
+
                 if sys.platform == "win32":
                     for i in range(10):
                         pipe_name = rf"\\.\pipe\discord-ipc-{i}"
                         if os.path.exists(pipe_name):
-                            # On Windows, open named pipe
-                            break
+                            try:
+                                sock = open(pipe_name, "r+b", buffering=0)
+                                is_win_pipe = True
+                                break
+                            except Exception:
+                                pass
                 else:
                     uid = os.getuid()
                     candidates = [
@@ -1609,10 +1615,28 @@ class DiscordRPC:
 
                 cls._sock = sock
 
+                def _send(op, data_dict):
+                    payload = json.dumps(data_dict).encode("utf-8")
+                    hdr = struct.pack("<II", op, len(payload))
+                    if is_win_pipe:
+                        sock.write(hdr + payload)
+                        sock.flush()
+                    else:
+                        sock.sendall(hdr + payload)
+
+                def _recv():
+                    if is_win_pipe:
+                        hdr = sock.read(8)
+                        if len(hdr) < 8:
+                            return None
+                        _, length = struct.unpack("<II", hdr)
+                        return sock.read(length)
+                    else:
+                        return sock.recv(1024)
+
                 # Send Handshake opcode 0
-                handshake = json.dumps({"v": 1, "client_id": client_id}).encode("utf-8")
-                sock.sendall(struct.pack("<II", 0, len(handshake)) + handshake)
-                sock.recv(1024)
+                _send(0, {"v": 1, "client_id": client_id})
+                _recv()
 
                 # Send Set Activity opcode 1
                 activity = {
@@ -1641,8 +1665,7 @@ class DiscordRPC:
                     },
                     "nonce": str(time.time()),
                 }
-                payload = json.dumps(activity).encode("utf-8")
-                sock.sendall(struct.pack("<II", 1, len(payload)) + payload)
+                _send(1, activity)
 
                 # Keep socket open and alive while active
                 while cls._active:

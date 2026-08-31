@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import ani_sync
+from ani_sync import config
 
 
 class TestSanitization(unittest.TestCase):
@@ -44,52 +45,52 @@ class TestConfigHandling(unittest.TestCase):
             tmp_path = Path(tmpdir)
             cfg_file = tmp_path / "config.env"
 
-            orig_dir = ani_sync.CONFIG_DIR
-            orig_path = ani_sync.CONFIG_PATH
+            orig_dir = config.CONFIG_DIR
+            orig_path = config.CONFIG_PATH
             try:
-                ani_sync.CONFIG_DIR = tmp_path
-                ani_sync.CONFIG_PATH = cfg_file
+                config.CONFIG_DIR = tmp_path
+                config.CONFIG_PATH = cfg_file
 
-                ani_sync._append_config("TEST_KEY", "secret_value_123")
+                config._append_config("TEST_KEY", "secret_value_123")
 
                 self.assertTrue(cfg_file.exists())
                 content = cfg_file.read_text(encoding="utf-8")
                 self.assertIn('export TEST_KEY="secret_value_123"', content)
 
-                if not ani_sync.IS_WINDOWS:
+                if not config.IS_WINDOWS:
                     mode = oct(cfg_file.stat().st_mode & 0o777)
                     self.assertEqual(mode, "0o600")
             finally:
-                ani_sync.CONFIG_DIR = orig_dir
-                ani_sync.CONFIG_PATH = orig_path
+                config.CONFIG_DIR = orig_dir
+                config.CONFIG_PATH = orig_path
 
 
 class TestHistory(unittest.TestCase):
     def test_save_and_load_history(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             hist_file = Path(tmpdir) / "history.json"
-            orig_dir = ani_sync.CONFIG_DIR
-            orig_path = ani_sync.HISTORY_PATH
+            orig_dir = config.CONFIG_DIR
+            orig_path = config.HISTORY_PATH
             try:
-                ani_sync.CONFIG_DIR = Path(tmpdir)
-                ani_sync.HISTORY_PATH = hist_file
+                config.CONFIG_DIR = Path(tmpdir)
+                config.HISTORY_PATH = hist_file
 
-                ani_sync.save_history("frieren-1234", "Frieren", 5, quality="1080p", mode="sub")
+                config.save_history("frieren-1234", "Frieren", 5, quality="1080p", mode="sub")
 
-                data = ani_sync.load_history()
+                data = config.load_history()
                 self.assertIn("history", data)
                 self.assertEqual(len(data["history"]), 1)
                 self.assertEqual(data["history"][0]["slug"], "frieren-1234")
                 self.assertEqual(data["history"][0]["title"], "Frieren")
                 self.assertEqual(data["history"][0]["episode"], 5)
 
-                last = ani_sync.get_last_watched()
+                last = config.get_last_watched()
                 self.assertIsNotNone(last)
                 self.assertEqual(last["title"], "Frieren")
                 self.assertEqual(last["episode"], 5)
             finally:
-                ani_sync.CONFIG_DIR = orig_dir
-                ani_sync.HISTORY_PATH = orig_path
+                config.CONFIG_DIR = orig_dir
+                config.HISTORY_PATH = orig_path
 
 
 class TestQualitySorting(unittest.TestCase):
@@ -102,6 +103,14 @@ class TestQualitySorting(unittest.TestCase):
 
         sorted_q = sorted(qualities, key=sort_key, reverse=True)
         self.assertEqual(sorted_q, ["1080p", "720p", "480p", "360p"])
+
+
+class TestMultiProvider(unittest.TestCase):
+    def test_provider_registry(self):
+        from ani_sync.providers.manager import PROVIDERS
+        self.assertIn("anidb", PROVIDERS)
+        self.assertIn("gogo", PROVIDERS)
+        self.assertIn("hianime", PROVIDERS)
 
 
 if __name__ == "__main__":
