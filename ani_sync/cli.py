@@ -2287,8 +2287,7 @@ def turbo_play(
             mal_id=mal_id,
             party_room=party_room,
             low_ram=low_ram,
-        volume=volume,
-            volume=CONFIG.get("volume"),
+            volume=volume,
         )
 
     # 2. Download-only Mode (ani-sync -d / --download)
@@ -2353,8 +2352,7 @@ def turbo_play(
         mal_id=mal_id,
         party_room=party_room,
         low_ram=low_ram,
-        volume=volume,
-        volume=CONFIG.get("volume"),
+            volume=volume,
     )
 
     # Cache cleanup: Keep newest ~4GB of anime, delete older
@@ -2986,7 +2984,7 @@ def play_loop(
             mal_id=mal_id,
             party_room=party_room,
             low_ram=low_ram,
-        volume=volume,
+            volume=volume,
         )
 
         # Stop Discord Rich Presence on player close
@@ -4131,7 +4129,7 @@ def main():
         auto_skip=auto_skip,
         party_room=party_room,
         low_ram=low_ram,
-        volume=volume,
+            volume=volume,
     )
 
 
