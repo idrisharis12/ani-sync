@@ -92,29 +92,30 @@ if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
 # 5. Install ani-sync scripts and wrappers
 Write-Host "[5/5] Installing ani-sync..." -ForegroundColor Yellow
 
-$ScriptPath = "$InstallDir\ani_sync.py"
 $CmdPath = "$BinDir\ani-sync.cmd"
 $Ps1Path = "$BinDir\ani-sync.ps1"
 
-# Copy or download ani_sync.py
-if (Test-Path "$PSScriptRoot\ani_sync.py") {
-    Copy-Item "$PSScriptRoot\ani_sync.py" -Destination $ScriptPath -Force
-    if (Test-Path "$PSScriptRoot\ani_sync") {
-        Copy-Item "$PSScriptRoot\ani_sync" -Destination "$InstallDir\ani_sync" -Recurse -Force
-    }
-    if (Test-Path "$PSScriptRoot\assets") {
-        Copy-Item "$PSScriptRoot\assets" -Destination "$InstallDir\assets" -Recurse -Force
-    }
+# Copy or download ani-sync package
+if (Test-Path "$PSScriptRoot\ani_sync") {
+    Write-Host "  Copying ani_sync package from current directory..." -ForegroundColor Yellow
+    Copy-Item "$PSScriptRoot\ani_sync" -Destination "$InstallDir\ani_sync" -Recurse -Force
 } else {
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync.py" -OutFile $ScriptPath -UseBasicParsing
+    Write-Host "  Installing ani-sync via pip..." -ForegroundColor Yellow
+    & pip install "git+https://github.com/idrisharis12/ani-sync.git"
 }
 
-# Create CMD wrapper
-$CmdContent = "@echo off`r`nset PATH=$BinDir;%PATH%`r`npython `"$ScriptPath`" %*"
-Set-Content -Path $CmdPath -Value $CmdContent -Force
+# Create a batch file launcher
+Write-Host "  Creating launcher in $InstallDir..." -ForegroundColor Cyan
+$LauncherScript = @"
+@echo off
+set "PATH=$InstallDir;%PATH%"
+set "PYTHONPATH=$InstallDir;%PYTHONPATH%"
+python -m ani_sync %*
+"@
+Set-Content -Path "$InstallDir\ani-sync.bat" -Value $LauncherScript -Encoding ASCII
 
 # Create PowerShell wrapper
-$Ps1Content = "`$env:PATH = `"$BinDir;`$env:PATH`"`r`npython `"$ScriptPath`" @args"
+$Ps1Content = "`$env:PATH = `"$InstallDir;`$env:PATH`"`r`n`$env:PYTHONPATH = `"$InstallDir;`$env:PYTHONPATH`"`r`npython -m ani_sync @args"
 Set-Content -Path $Ps1Path -Value $Ps1Content -Force
 
 # Add to User PATH if missing

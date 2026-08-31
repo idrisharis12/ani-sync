@@ -127,23 +127,22 @@ python3 -m pip install --user --upgrade --quiet requests tqdm yt-dlp 2>/dev/null
 }
 
 # ------------------------------------------------------------------------------
-# 4. Install ani-sync Script & Wrapper
+# 4. Install ani-sync Package & Wrapper
 # ------------------------------------------------------------------------------
 echo -e "${CYAN}[3/4] Installing ani-sync to ${INSTALL_DIR}...${NC}"
 
 # If running directly from git cloned repo
-if [ -f "ani_sync.py" ]; then
-    cp ani_sync.py "$SHARE_DIR/ani_sync.py"
-    if [ -d "ani_sync" ]; then
-        cp -r ani_sync "$SHARE_DIR/"
-    fi
+if [ -d "ani_sync" ]; then
+    cp -r ani_sync "$SHARE_DIR/"
     if [ -d "assets" ]; then
         cp -r assets "$SHARE_DIR/"
     fi
 else
-    # Downloading directly from raw GitHub if run via curl / standalone
-    echo -e "  Downloading latest ani-sync script from GitHub..."
-    curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync.py -o "$SHARE_DIR/ani_sync.py"
+    # We can't download a single script anymore since it's a package.
+    # The user should clone the repo or use pip. For fallback:
+    echo -e "  ${YELLOW}Warning: Direct script download not supported. Please use git clone or pip install.${NC}"
+    echo -e "  Attempting to install via pip..."
+    python3 -m pip install --quiet "git+https://github.com/idrisharis12/ani-sync.git" || true
 fi
 
 # Create launcher wrapper in INSTALL_DIR
@@ -153,17 +152,18 @@ export PATH="${HOME}/.local/bin:/usr/local/bin:$PATH"
 SHARE_DIR_USER="${HOME}/.local/share/ani-sync"
 SHARE_DIR_SYS="/usr/local/share/ani-sync"
 
-if [ -f "$SHARE_DIR_SYS/ani_sync.py" ]; then
-    exec python3 "$SHARE_DIR_SYS/ani_sync.py" "$@"
-elif [ -f "$SHARE_DIR_USER/ani_sync.py" ]; then
-    exec python3 "$SHARE_DIR_USER/ani_sync.py" "$@"
+if [ -d "$SHARE_DIR_SYS/ani_sync" ]; then
+    export PYTHONPATH="$SHARE_DIR_SYS:$PYTHONPATH"
+    exec python3 -m ani_sync "$@"
+elif [ -d "$SHARE_DIR_USER/ani_sync" ]; then
+    export PYTHONPATH="$SHARE_DIR_USER:$PYTHONPATH"
+    exec python3 -m ani_sync "$@"
 else
-    echo "Error: ani_sync.py not found." >&2
-    exit 1
+    # Fallback to pip installed version
+    exec python3 -m ani_sync "$@"
 fi
 LAUNCHER
 
-chmod +x "$SHARE_DIR/ani_sync.py"
 chmod +x "$INSTALL_DIR/ani-sync"
 
 # ------------------------------------------------------------------------------

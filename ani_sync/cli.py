@@ -3331,55 +3331,42 @@ def play_loop(
 # Self-Updater
 # ----------------------------------------------------------------------
 def update_self(quiet=False):
-    """Update ani-sync to the latest version directly from GitHub."""
+    """Update ani-sync to the latest version by running the universal installer."""
     if not quiet:
         print(
-            f"\n{C_CYAN}{C_BOLD}🔄 Checking for ani-sync updates from GitHub...{C_RESET}"
+            f"\n{C_CYAN}{C_BOLD}🔄 Checking for ani-sync updates...{C_RESET}"
         )
-    url = "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync.py"
+    
     try:
-        r = requests.get(url, timeout=10)
+        # Check remote version from config.py
+        r = requests.get("https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync/config.py", timeout=10)
         r.raise_for_status()
         remote_code = r.text
-
         v_match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', remote_code)
         remote_version = v_match.group(1) if v_match else "latest"
-
-        if remote_version == VERSION and quiet:
+        
+        if remote_version == VERSION:
+            if not quiet:
+                print(f"{C_GREEN}✓ You are already on the latest version (v{VERSION}){C_RESET}")
             return
-
-        targets = [
-            Path(__file__).resolve(),
-            Path.home() / ".local" / "share" / "ani-sync" / "ani_sync.py",
-            Path("/usr/local/share/ani-sync/ani_sync.py"),
-            Path("/usr/share/ani-sync/ani_sync.py"),
-        ]
-
-        updated = False
-        for target in set(targets):
-            if target.exists():
-                try:
-                    with open(target, "w", encoding="utf-8") as f:
-                        f.write(remote_code)
-                    os.chmod(target, 0o755)
-                    updated = True
-                except PermissionError:
-                    if not quiet:
-                        print(
-                            f"{C_YELLOW}Notice: Permission denied writing to {target}. Run with sudo to update system-wide install.{C_RESET}"
-                        )
-
-        if updated and not quiet:
-            print(
-                f"{C_GREEN}{C_BOLD}✅ Successfully updated ani-sync to v{remote_version}!{C_RESET}\n"
-            )
-        elif not quiet:
-            print(
-                f"{C_GREEN}{C_BOLD}✅ ani-sync is already up to date (v{remote_version}).{C_RESET}\n"
-            )
+            
+        if quiet:
+            # We are running in the background. Do not run the interactive installer!
+            return
+            
+        print(f"{C_YELLOW}New version found: v{remote_version} (Current: v{VERSION}){C_RESET}")
+        print("Running updater...")
+            
+        # Run the installer script to perform a clean update of the package
+        subprocess.run(
+            "curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash",
+            shell=True, check=True
+        )
+        print(f"\n{C_GREEN}✓ Successfully updated ani-sync to v{remote_version}!{C_RESET}")
     except Exception as e:
         if not quiet:
-            print(f"{C_RED}❌ Failed to update ani-sync: {e}{C_RESET}")
+            print(f"{C_RED}❌ Update failed: {e}{C_RESET}")
+        logger.debug("Failed to update ani-sync", exc_info=True)
 
 
 # ----------------------------------------------------------------------
