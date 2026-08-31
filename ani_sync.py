@@ -27,7 +27,14 @@ from pathlib import Path
 import requests
 
 # Enable ANSI colors & UTF-8 on Windows Command Prompt & PowerShell
-if sys.platform == "win32":
+IS_WINDOWS = sys.platform == "win32"
+IS_TERMUX = (
+    "TERMUX_VERSION" in os.environ
+    or "/data/data/com.termux" in os.environ.get("PREFIX", "")
+    or Path("/data/data/com.termux").exists()
+)
+
+if IS_WINDOWS:
     os.system("")
     if hasattr(sys.stdout, "reconfigure"):
         try:
@@ -37,8 +44,8 @@ if sys.platform == "win32":
 
 
 def get_config_dir():
-    """Return OS-appropriate config directory (AppData on Windows, ~/.config on Linux/macOS)."""
-    if sys.platform == "win32":
+    """Return OS-appropriate config directory (AppData on Windows, ~/.config on Linux/macOS/Termux)."""
+    if IS_WINDOWS:
         appdata = os.environ.get("APPDATA")
         if appdata:
             return Path(appdata) / "ani-sync"
@@ -46,14 +53,24 @@ def get_config_dir():
 
 
 def get_cache_dir():
-    """Return ultra-fast RAM disk /dev/shm on Linux, or standard cache dir on Windows/macOS."""
-    if sys.platform != "win32":
+    """Return ultra-fast RAM disk /dev/shm on Linux, or standard cache dir on Windows/macOS/Termux."""
+    if IS_TERMUX:
+        # Android Termux: use TMPDIR or standard cache
+        termux_tmp = os.environ.get("TMPDIR") or (os.environ.get("PREFIX", "") + "/tmp")
+        if termux_tmp and Path(termux_tmp).exists():
+            p = Path(termux_tmp) / "ani-sync"
+        else:
+            p = Path.home() / ".cache" / "ani-sync"
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    if not IS_WINDOWS:
         shm = Path("/dev/shm/ani-sync")
         try:
             if Path("/dev/shm").exists() and hasattr(os, "statvfs"):
                 st = os.statvfs("/dev/shm")
                 free_bytes = st.f_bavail * st.f_frsize
-                if free_bytes > 1024 * 1024 * 1024:  # > 1GB free RAM
+                if free_bytes > 512 * 1024 * 1024:  # > 512MB free RAM
                     shm.mkdir(parents=True, exist_ok=True)
                     return shm
         except Exception:
@@ -2019,7 +2036,16 @@ def sanitize_filename(name):
 
 
 def find_player_binary(player="mpv"):
-    """Find player binary across Windows, macOS, and Linux."""
+    """Find player binary across Windows, macOS, Linux, and Android Termux."""
+    if IS_TERMUX:
+        exe = shutil.which(player)
+        if exe:
+            return exe
+        if shutil.which("termux-open"):
+            return "termux-open"
+        if shutil.which("am"):
+            return "am"
+
     exe = shutil.which(player)
     if exe:
         return exe
@@ -2219,7 +2245,20 @@ def launch_player(
             )
 
     cmd = []
-    if player == "mpv" or "mpv" in Path(player_bin).stem.lower():
+    if player_bin == "termux-open":
+        cmd = ["termux-open", target_path]
+    elif player_bin == "am":
+        cmd = [
+            "am",
+            "start",
+            "-a",
+            "android.intent.action.VIEW",
+            "-d",
+            target_path,
+            "-t",
+            "video/*",
+        ]
+    elif player == "mpv" or "mpv" in Path(player_bin).stem.lower():
         cmd = [
             player_bin,
             f"--force-media-title={media_title}",
@@ -2282,8 +2321,9 @@ def turbo_play(
     auto_skip=False,
     mal_id=None,
     party_room=None,
+    low_ram=False,
 ):
-    """Zero-buffering maximum-speed playback using 64 parallel multi-connections."""
+    """Zero-buffering maximum-speed playback using parallel multi-connections."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_file = CACHE_DIR / f"{safe_title}.mp4"
@@ -2319,24 +2359,32 @@ def turbo_play(
             party_room=party_room,
         )
 
-    print(
-        f"\n{C_CYAN}{C_BOLD}🚀 MAXIMUM TURBO SPEED (64 Parallel Multi-Connections)...{C_RESET}"
+    concurrency = "16" if (low_ram or IS_TERMUX) else "64"
+    buffer_size = "4M" if (low_ram or IS_TERMUX) else "16M"
+    chunk_size = "2M" if (low_ram or IS_TERMUX) else "10M"
+    mode_label = (
+        "16 Parallel Sockets (Lite/Low-RAM Mode)"
+        if (low_ram or IS_TERMUX)
+        else "64 Parallel Multi-Connections"
     )
+
+    print(f"\n{C_CYAN}{C_BOLD}🚀 MAXIMUM TURBO SPEED ({mode_label})...{C_RESET}")
     print(
-        f"{C_DIM}Saturating maximum Wi-Fi bandwidth for 100% buffer-free local playback.{C_RESET}\n"
+        f"{C_DIM}Saturating maximum line bandwidth for 100% buffer-free local playback.{C_RESET}\n"
     )
 
     dl_cmd = [
         "yt-dlp",
         "-N",
-        "64",
+        concurrency,
         "--concurrent-fragments",
-        "64",
+        concurrency,
         "--socket-timeout",
         "5",
         "--buffer-size",
-        "16M",
+        buffer_size,
         "--http-chunk-size",
+        chunk_size,
         "10M",
         "--fragment-retries",
         "10",
@@ -2915,6 +2963,7 @@ def play_loop(
     download_only=False,
     auto_skip=False,
     party_room=None,
+    low_ram=False,
 ):
     """Watch loop with next, replay, previous, change episode/quality/season."""
     slug = anime["slug"]
@@ -3026,6 +3075,7 @@ def play_loop(
             auto_skip=auto_skip,
             mal_id=mal_id,
             party_room=party_room,
+            low_ram=low_ram,
         )
 
         # Stop Discord Rich Presence on player close
@@ -3320,11 +3370,22 @@ def run_doctor():
         f"{C_CYAN}{C_BOLD}============================================================{C_RESET}\n"
     )
 
-    # 1. Python Environment
+    # 1. System & Runtime Environment
     py_ver = (
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
-    print(f"{C_BOLD}Runtime & Libraries:{C_RESET}")
+    import platform as pform
+
+    os_label = (
+        "Android (Termux)"
+        if IS_TERMUX
+        else f"{sys.platform.capitalize()} ({pform.system()} {pform.release()})"
+    )
+    print(f"{C_BOLD}System & Runtime Environment:{C_RESET}")
+    print(f"  {C_GREEN}✓{C_RESET} Platform:          {C_CYAN}{os_label}{C_RESET}")
+    print(
+        f"  {C_GREEN}✓{C_RESET} Architecture:      {C_CYAN}{pform.machine()}{C_RESET}"
+    )
     print(
         f"  {C_GREEN}✓{C_RESET} Python:            {C_CYAN}v{py_ver}{C_RESET} ({sys.executable})"
     )
@@ -3555,6 +3616,7 @@ def print_help():
     --skip, --auto-skip       Automatically skip anime opening/intro (+85s / AniSkip)
     -d, --download            Download episode(s) locally without opening player (supports batch ranges)
     --provider <name>         Stream backend provider (auto, anidb, gogo, secondary)
+    --low-ram, --lite         Low-memory mode for Termux/Raspberry Pi/vintage hardware (16 sockets)
     --direct                  Stream directly without multi-threaded local turbo cache
     --dub                     Play English dub if available (default: Japanese sub)
     --no-fzf                  Disable fzf fuzzy search (use numbered menus)
@@ -3810,6 +3872,7 @@ def main():
     download_only = False
     auto_skip = False
     use_fzf = True
+    low_ram = False
 
     i = 0
     while i < len(args):
@@ -3865,6 +3928,8 @@ def main():
             if i + 1 < len(args):
                 provider = args[i + 1].lower()
                 i += 1
+        elif arg in ("--low-ram", "--lite"):
+            low_ram = True
         elif arg == "--player":
             if i + 1 < len(args):
                 player = args[i + 1]
@@ -3974,6 +4039,7 @@ def main():
         download_only=download_only,
         auto_skip=auto_skip,
         party_room=party_room,
+        low_ram=low_ram,
     )
 
 

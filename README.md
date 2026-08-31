@@ -177,10 +177,8 @@ curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.
 # Using yay or paru
 yay -S ani-sync
 
-# Or build manually with makepkg
-git clone https://github.com/idrisharis12/ani-sync.git
-cd ani-sync
-makepkg -si
+# Or install pre-built binary package
+yay -S ani-sync-bin
 ```
 
 ---
@@ -188,8 +186,33 @@ makepkg -si
 ### 📦 Debian / Ubuntu (`.deb`)
 Download and install the native Debian package:
 ```bash
-curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb
-sudo apt install -y ./ani-sync_2.0.0_all.deb
+curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.7.0_all.deb
+sudo apt install -y ./ani-sync_2.7.0_all.deb
+```
+
+---
+
+### 🎩 Fedora / RHEL / openSUSE (`.rpm`)
+```bash
+# Install dependencies & run build_rpm.py
+sudo dnf install -y python3 python3-requests python3-tqdm mpv yt-dlp fzf curl
+# Or install via universal installer:
+curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | sudo bash
+```
+
+---
+
+### 📱 Android (Termux)
+`ani-sync` runs natively on Android inside **Termux**! It automatically launches streaming video via MPV or the native Android MPV/VLC app:
+```bash
+# 1. Update Termux & install dependencies
+pkg update && pkg install -y python mpv yt-dlp fzf curl git termux-api
+
+# 2. Install ani-sync
+curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash
+
+# 3. Stream in low-memory mobile mode
+ani-sync "frieren" --lite
 ```
 
 ---
@@ -202,7 +225,7 @@ No Python installation required:
 | 🐧 **Linux (x86_64)** | [`ani-sync-linux-x86_64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
 | 🪟 **Windows (x64)** | [`ani-sync-windows-x86_64.exe`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-windows-x86_64.exe) | `irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 \| iex` |
 | 🍎 **macOS (Apple Silicon)** | [`ani-sync-macos-arm64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
-| 📦 **Debian / Ubuntu** | [`ani-sync_2.0.0_all.deb`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb) | `curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.0.0_all.deb && sudo apt install ./ani-sync_2.0.0_all.deb` |
+| 📦 **Debian / Ubuntu** | [`ani-sync_2.7.0_all.deb`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.7.0_all.deb) | `curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.7.0_all.deb && sudo apt install ./ani-sync_2.7.0_all.deb` |
 
 ---
 

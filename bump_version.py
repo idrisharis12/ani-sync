@@ -121,9 +121,14 @@ def bump_all(new_ver):
         f"v{new_ver}.tar.gz",
     )
 
-    # 7. build_deb.py & build_standalone.py & default.nix
+    # 7. build_deb.py & build_rpm.py & build_standalone.py & default.nix
     update_file(
         BASE_DIR / "build_deb.py",
+        r'VERSION\s*=\s*["\'][^"\']+["\']',
+        f'VERSION = "{new_ver}"',
+    )
+    update_file(
+        BASE_DIR / "build_rpm.py",
         r'VERSION\s*=\s*["\'][^"\']+["\']',
         f'VERSION = "{new_ver}"',
     )
