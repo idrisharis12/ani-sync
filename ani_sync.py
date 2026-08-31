@@ -1566,6 +1566,7 @@ def launch_player(target_path, title, ep_num, player="mpv", auto_skip=False):
             "--hwdec=auto-safe",
             "--profile=fast",
             "--audio-buffer=0.8",
+            "--msg-level=ffmpeg=error",
         ]
         skip_script = get_auto_skip_script(auto_skip=auto_skip)
         if skip_script:
