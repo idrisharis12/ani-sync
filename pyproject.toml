@@ -29,3 +29,10 @@ ani-sync = "ani_sync:main"
 [project.urls]
 "Homepage" = "https://github.com/idrisharis12/ani-sync"
 "Bug Tracker" = "https://github.com/idrisharis12/ani-sync/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ani_sync*"]
+
+[tool.setuptools]
+py-modules = ["ani_sync"]

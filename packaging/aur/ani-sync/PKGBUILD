@@ -18,6 +18,9 @@ sha256sums=('SKIP')
 package() {
     cd "$srcdir/$pkgname-$pkgver"
     install -Dm755 ani_sync.py "$pkgdir/usr/share/$pkgname/ani_sync.py"
+    if [ -d "ani_sync" ]; then
+        cp -r ani_sync "$pkgdir/usr/share/$pkgname/"
+    fi
     mkdir -p "$pkgdir/usr/bin"
     ln -s "/usr/share/$pkgname/ani_sync.py" "$pkgdir/usr/bin/ani-sync"
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"

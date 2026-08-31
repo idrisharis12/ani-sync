@@ -36,6 +36,7 @@ def build_rpm():
         "--transform",
         f"s,^,{PACKAGE_NAME}-{VERSION}/,",
         "ani_sync.py",
+        "ani_sync",
         "README.md",
         "CHEATSHEET.md",
         "LICENSE",

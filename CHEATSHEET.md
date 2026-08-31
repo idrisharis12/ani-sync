@@ -42,7 +42,8 @@
 | **Download Entire Season** | `ani-sync "chainsaw man" -d --all` |
 | **Rate & Score Anime** | `ani-sync score "frieren" 10` *(or `ani-sync score`)* |
 | **Watch Together Party** | `ani-sync party "anime-night"` *(or `ani-sync --party`)* |
-| **Select Stream Provider** | `ani-sync "naruto" --provider gogo` *(or `anidb`, `auto`)* |
+| **Select Stream Provider** | `ani-sync "naruto" --provider hianime` *(or `anidb`, `gogo`, `auto`)* |
+| **Route via Custom Proxy** | `ani-sync "frieren" --proxy http://127.0.0.1:8080` |
 | **Change Color Theme** | `ani-sync theme tokyonight` *(or `catppuccin`, `dracula`, `nord`, `gruvbox`)* |
 | **Verify System Health** | `ani-sync doctor` |
 | **Open-Source Credits** | `ani-sync credits` |

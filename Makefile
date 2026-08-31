@@ -7,7 +7,8 @@ install:
 	@mkdir -p $(BINDIR) $(SHAREDIR)
 	@cp ani_sync.py $(SHAREDIR)/ani_sync.py
 	@chmod +x $(SHAREDIR)/ani_sync.py
-	@printf '#!/usr/bin/env bash\nexec python3 $(SHAREDIR)/ani_sync.py "$$@"\n' > $(BINDIR)/ani-sync
+	@if [ -d "ani_sync" ]; then cp -r ani_sync $(SHAREDIR)/; fi
+	@printf '#!/usr/bin/env bash\nexport PYTHONPATH="$(SHAREDIR):$$PYTHONPATH"\nexec python3 $(SHAREDIR)/ani_sync.py "$$@"\n' > $(BINDIR)/ani-sync
 	@chmod +x $(BINDIR)/ani-sync
 	@echo "✓ Successfully installed ani-sync."
 

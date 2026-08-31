@@ -595,7 +595,8 @@ ani-sync import
 | `-a, --all` | Target all episodes for batch downloading | `ani-sync "chainsaw man" -d --all` |
 | `-q, --quality <res>` | Preferred video resolution (`1080p`, `720p`, `480p`) | `ani-sync "one piece" -q 1080p` |
 | `-d, --download` | Download episode(s) locally without playing | `ani-sync "jujutsu kaisen" -d -e 1-12` |
-| `--provider <name>` | Select stream backend provider (`auto`, `anidb`, `gogo`) | `ani-sync "bleach" --provider gogo` |
+| `--provider <name>` | Select stream provider (`auto`, `anidb`, `gogo`, `hianime`) | `ani-sync "bleach" --provider hianime` |
+| `--proxy <url>` | Route HTTP streams & requests through custom proxy | `ani-sync "frieren" --proxy http://127.0.0.1:8080` |
 | `--low-ram`, `--lite` | Low-memory mode for Termux/Raspberry Pi (16 sockets) | `ani-sync "frieren" --lite` |
 | `--dub` | Stream English Dubbed version | `ani-sync "solo leveling" --dub` |
 | `--direct` | Stream directly without local caching | `ani-sync "frieren" --direct` |
@@ -603,6 +604,7 @@ ani-sync import
 | `--player <player>` | Media player binary (`mpv`, `vlc`, `iina`) | `ani-sync "bleach" --player vlc` |
 | `ani-sync update`, `-U` | Check and update to latest version | `ani-sync update` |
 | `ani-sync auth` | Interactive multi-platform auth picker | `ani-sync auth` |
+| `-v, --verbose` | Enable verbose debugging output | `ani-sync -v "naruto"` |
 | `-h, --help`, `help` | Display CLI help menu | `ani-sync --help` |
 
 ---

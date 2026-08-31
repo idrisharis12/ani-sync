@@ -136,6 +136,9 @@ echo -e "${CYAN}[3/4] Installing ani-sync to ${INSTALL_DIR}...${NC}"
 # If running directly from git cloned repo
 if [ -f "ani_sync.py" ]; then
     cp ani_sync.py "$SHARE_DIR/ani_sync.py"
+    if [ -d "ani_sync" ]; then
+        cp -r ani_sync "$SHARE_DIR/"
+    fi
     if [ -d "assets" ]; then
         cp -r assets "$SHARE_DIR/"
     fi

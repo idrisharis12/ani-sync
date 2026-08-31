@@ -75,6 +75,20 @@ with tarfile.open(fileobj=data_tar_buf, mode="w:gz") as tar:
     ti_share.mtime = int(time.time())
     tar.addfile(ti_share, io.BytesIO(script_content))
 
+    # /usr/share/ani-sync/ani_sync subpackage
+    pkg_dir = Path("ani_sync")
+    if pkg_dir.exists():
+        for fpath in pkg_dir.rglob("*.py"):
+            rel_path = fpath.relative_to(pkg_dir)
+            tar_target = f"usr/share/ani-sync/ani_sync/{rel_path.as_posix()}"
+            with open(fpath, "rb") as pf:
+                pcontent = pf.read()
+            ti_p = tarfile.TarInfo(tar_target)
+            ti_p.size = len(pcontent)
+            ti_p.mode = 0o644
+            ti_p.mtime = int(time.time())
+            tar.addfile(ti_p, io.BytesIO(pcontent))
+
     # /usr/bin/ani-sync
     ti_bin = tarfile.TarInfo("usr/bin/ani-sync")
     ti_bin.size = len(launcher_content)

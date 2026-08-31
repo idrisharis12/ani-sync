@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(
     name="ani-sync",
@@ -6,6 +6,7 @@ setup(
     description="Stream anime from your terminal and automatically sync watch progress to MyAnimeList",
     author="Idris Haris",
     url="https://github.com/idrisharis12/ani-sync",
+    packages=find_packages(),
     py_modules=["ani_sync"],
     install_requires=[
         "requests>=2.28.0",
