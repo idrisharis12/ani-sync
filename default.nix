@@ -1,41 +1,28 @@
-{ lib
-, python3Packages
-, fetchFromGitHub
-, makeWrapper
-, mpv
-, yt-dlp
-, fzf
-, curl
-}:
+{ pkgs ? import <nixpkgs> {} }:
 
-python3Packages.buildPythonApplication rec {
+pkgs.python3Packages.buildPythonApplication rec {
   pname = "ani-sync";
   version = "2.9.1";
-  format = "other";
 
   src = ./.;
 
-  nativeBuildInputs = [ makeWrapper ];
+  format = "pyproject";
 
-  propagatedBuildInputs = with python3Packages; [
+  nativeBuildInputs = with pkgs.python3Packages; [
+    setuptools
+  ];
+
+  propagatedBuildInputs = with pkgs.python3Packages; [
     requests
     tqdm
   ];
 
-  installPhase = ''
-    mkdir -p $out/bin $out/share/ani-sync
-    cp ani_sync.py $out/share/ani-sync/
-    makeWrapper ${python3Packages.python.interpreter} $out/bin/ani-sync \
-      --add-flags "$out/share/ani-sync/ani_sync.py" \
-      --prefix PATH : ${lib.makeBinPath [ mpv yt-dlp fzf curl ]} \
-      --prefix PYTHONPATH : "$PYTHONPATH"
-  '';
+  doCheck = false;
 
-  meta = with lib; {
-    description = "Stream anime in terminal with 64x turbo speed & automatic MyAnimeList/AniList/Kitsu tracking";
+  meta = with pkgs.lib; {
+    description = "Stream anime from terminal with 64x turbo speed & automatic MyAnimeList tracking";
     homepage = "https://github.com/idrisharis12/ani-sync";
     license = licenses.mit;
-    maintainers = [ ];
-    mainProgram = "ani-sync";
+    maintainers = [];
   };
 }

@@ -27,10 +27,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests tqdm
+          pip install requests tqdm pytest
 
       - name: Run Test Suite
-        run: python -m unittest discover tests -v
+        run: python -m pytest tests -v --tb=short
 
   lint:
     name: Code Formatting & Linting
@@ -51,6 +51,12 @@ jobs:
 
       - name: Run flake8
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Check formatting (black)
+        run: black --check .
+
+      - name: Run flake8 (advisory)
+        run: flake8 . --count --max-line-length=120 --statistics || true
 
   package:
     name: Package Build Validation

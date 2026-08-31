@@ -36,3 +36,9 @@ MAL_CLIENT_*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/

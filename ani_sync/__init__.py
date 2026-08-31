@@ -20,6 +20,24 @@ from ani_sync.config import (
 from ani_sync.ui import themes
 from ani_sync.ui.themes import apply_theme, THEMES, get_current_theme
 
+__all__ = [
+    "VERSION",
+    "CONFIG_DIR",
+    "CONFIG_PATH",
+    "HISTORY_PATH",
+    "CACHE_DIR",
+    "IS_WINDOWS",
+    "IS_TERMUX",
+    "sanitize_filename",
+    "load_config",
+    "save_history",
+    "load_history",
+    "get_last_watched",
+    "apply_theme",
+    "THEMES",
+    "main",
+]
+
 __version__ = VERSION
 
 
@@ -29,12 +47,12 @@ def main():
     Lazily imports the core CLI implementation and runs it.
     This keeps imports lightweight for library users.
     """
-    from . import ani_sync as _core
+    from .cli import main as _main
 
-    _core.main()
+    _main()
 
 
-# Backward‑compatibility alias for old attribute access patterns.
+# Backward-compatibility alias for old attribute access patterns.
 def __getattr__(name):
     if name == "CURRENT_THEME":
         return themes.get_current_theme()

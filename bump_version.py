@@ -13,13 +13,18 @@ BASE_DIR = Path(__file__).resolve().parent
 
 
 def get_current_version():
-    ani_sync_file = BASE_DIR / "ani_sync.py"
-    with open(ani_sync_file, "r", encoding="utf-8") as f:
-        content = f.read()
-    match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', content)
-    if match:
-        return match.group(1)
-    raise ValueError("Could not find VERSION in ani_sync.py")
+    config_file = BASE_DIR / "ani_sync" / "config.py"
+    cli_file = BASE_DIR / "ani_sync" / "cli.py"
+
+    for file_path in [config_file, cli_file]:
+        if file_path.exists():
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', content)
+            if match:
+                return match.group(1)
+
+    raise ValueError("Could not find VERSION in ani_sync/config.py or ani_sync/cli.py")
 
 
 def calculate_next_version(current, bump_type):
@@ -65,11 +70,11 @@ def bump_all(new_ver):
         f'VERSION = "{new_ver}"',
     )
 
-    # 2. setup.py
+    # 1b. ani_sync/config.py
     update_file(
-        BASE_DIR / "setup.py",
-        r'version\s*=\s*["\'][^"\']+["\']',
-        f'version="{new_ver}"',
+        BASE_DIR / "ani_sync" / "config.py",
+        r'VERSION\s*=\s*["\'][^"\']+["\']',
+        f'VERSION = "{new_ver}"',
     )
 
     # 3. pyproject.toml
@@ -109,14 +114,9 @@ def bump_all(new_ver):
         f"Version:        {new_ver}",
     )
 
-    # 6. Formula/ani-sync.rb & packaging/ani-sync.rb
+    # 6. Formula/ani-sync.rb
     update_file(
         BASE_DIR / "Formula/ani-sync.rb",
-        r"v\d+\.\d+\.\d+\.tar\.gz",
-        f"v{new_ver}.tar.gz",
-    )
-    update_file(
-        BASE_DIR / "packaging/ani-sync.rb",
         r"v\d+\.\d+\.\d+\.tar\.gz",
         f"v{new_ver}.tar.gz",
     )

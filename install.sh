@@ -121,11 +121,9 @@ fi
 # 3. Python Dependencies (requests, tqdm, yt-dlp)
 # ------------------------------------------------------------------------------
 echo -e "${CYAN}[2/4] Checking and installing Python packages (requests, tqdm, yt-dlp)...${NC}"
-python3 -m pip install --upgrade --quiet requests tqdm yt-dlp ani-cli 2>/dev/null || \
-python3 -m pip install --break-system-packages --upgrade --quiet requests tqdm yt-dlp ani-cli 2>/dev/null || \
-python3 -m pip install --user --break-system-packages --quiet requests tqdm yt-dlp ani-cli 2>/dev/null || \
-python3 -m pip install --user --quiet requests tqdm yt-dlp ani-cli 2>/dev/null || {
-    echo -e "${YELLOW}Warning: Could not run pip automatically. Python system packages will be used.${NC}"
+python3 -m pip install --upgrade --quiet requests tqdm yt-dlp 2>/dev/null || \
+python3 -m pip install --user --upgrade --quiet requests tqdm yt-dlp 2>/dev/null || {
+    echo -e "${YELLOW}Warning: Could not run pip automatically. Install manually: pip install requests tqdm yt-dlp${NC}"
 }
 
 # ------------------------------------------------------------------------------
@@ -188,14 +186,6 @@ if [ "$EUID" -ne 0 ]; then
     esac
 fi
 
-# Set up automatic APT update hook if running as root on Debian/Ubuntu
-if [ "$EUID" -eq 0 ] && [ -d "/etc/apt/apt.conf.d" ]; then
-    cat << 'APTHOOK' > /etc/apt/apt.conf.d/99ani-sync-updater
-APT::Update::Post-Invoke-Success { "if command -v ani-sync >/dev/null 2>&1; then ani-sync update --quiet || true; fi"; };
-APTHOOK
-    chmod 644 /etc/apt/apt.conf.d/99ani-sync-updater
-    echo -e "  ${GREEN}✓ Registered APT auto-update hook (/etc/apt/apt.conf.d/99ani-sync-updater)${NC}"
-fi
 
 # ------------------------------------------------------------------------------
 # Summary
