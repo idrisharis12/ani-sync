@@ -70,7 +70,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -1502,22 +1502,84 @@ def find_player_binary(player="mpv"):
     return player
 
 
-def get_auto_skip_script(auto_skip=False):
-    """Generate lightweight MPV Lua script for skipping anime intros/outros."""
+def fetch_aniskip_times(mal_id, ep_num):
+    """Fetch frame-accurate opening and ending timestamps from the AniSkip community API."""
+    if not mal_id:
+        return None
+    try:
+        url = f"https://api.aniskip.com/v2/skip-times/{mal_id}/{ep_num}"
+        r = requests.get(
+            url,
+            params={"types[]": ["op", "ed", "recap", "mixed-op"], "episodeLength": 0},
+            timeout=3,
+        )
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("found"):
+                results = data.get("results", [])
+                op_times = None
+                ed_times = None
+                for res in results:
+                    skip_type = res.get("skipType")
+                    interval = res.get("interval", {})
+                    start = interval.get("startTime")
+                    end = interval.get("endTime")
+                    if start is not None and end is not None and end > start:
+                        if skip_type in ("op", "mixed-op", "recap") and not op_times:
+                            op_times = (float(start), float(end))
+                        elif skip_type in ("ed", "mixed-ed") and not ed_times:
+                            ed_times = (float(start), float(end))
+                if op_times or ed_times:
+                    return {"op": op_times, "ed": ed_times}
+    except Exception:
+        pass
+    return None
+
+
+def get_auto_skip_script(auto_skip=False, aniskip_data=None):
+    """Generate dynamic lightweight MPV Lua script for frame-accurate AniSkip or standard anime intro/outro skips."""
     cache_dir = get_cache_dir()
     script_path = cache_dir / "ani_skip.lua"
 
+    op_start = (
+        aniskip_data.get("op")[0] if (aniskip_data and aniskip_data.get("op")) else 0.0
+    )
+    op_end = (
+        aniskip_data.get("op")[1] if (aniskip_data and aniskip_data.get("op")) else 85.0
+    )
+    has_exact_op = bool(aniskip_data and aniskip_data.get("op"))
+
+    ed_start = (
+        aniskip_data.get("ed")[0] if (aniskip_data and aniskip_data.get("ed")) else None
+    )
+    ed_end = (
+        aniskip_data.get("ed")[1] if (aniskip_data and aniskip_data.get("ed")) else None
+    )
+    has_exact_ed = bool(aniskip_data and aniskip_data.get("ed"))
+
     lua_code = f"""
--- ani-sync Auto-Skip & Fast-Skip Lua Integration
+-- ani-sync Auto-Skip & AniSkip Lua Integration
 local auto_skip = {str(auto_skip).lower()}
+local has_exact_op = {str(has_exact_op).lower()}
+local op_start = {op_start}
+local op_end = {op_end}
+local has_exact_ed = {str(has_exact_ed).lower()}
+local ed_start = {ed_start if ed_start is not None else 0}
+local ed_end = {ed_end if ed_end is not None else 0}
 local skipped_intro = false
 
 function on_pos_change(name, pos)
     if not pos then return end
-    if auto_skip and not skipped_intro and pos >= 0 and pos < 85 then
-        mp.osd_message("⏩ Auto-Skipping Opening (+85s)", 3)
-        mp.set_property_number("time-pos", 85)
-        skipped_intro = true
+    if auto_skip and not skipped_intro then
+        if has_exact_op and pos >= op_start and pos < op_end then
+            mp.osd_message(string.format("⏩ AniSkip: Auto-Skipped Opening (%.1fs -> %.1fs)", op_start, op_end), 3)
+            mp.set_property_number("time-pos", op_end)
+            skipped_intro = true
+        elseif not has_exact_op and pos >= 0 and pos < 85 then
+            mp.osd_message("⏩ Auto-Skipping Opening (+85s)", 3)
+            mp.set_property_number("time-pos", 85)
+            skipped_intro = true
+        end
     end
 end
 
@@ -1526,23 +1588,31 @@ if auto_skip then
 end
 
 -- Keybindings for instant manual intro/outro skips
-mp.add_key_binding("i", "skip-intro", function()
+function skip_intro()
     local pos = mp.get_property_number("time-pos", 0)
-    mp.osd_message("⏩ Skipped Intro (+85s)", 2)
-    mp.set_property_number("time-pos", pos + 85)
-end)
+    if has_exact_op and pos < op_end then
+        mp.osd_message(string.format("⏩ AniSkip: Jumped past Opening (%.1fs)", op_end), 2)
+        mp.set_property_number("time-pos", op_end)
+    else
+        mp.osd_message("⏩ Skipped Intro (+85s)", 2)
+        mp.set_property_number("time-pos", pos + 85)
+    end
+end
 
-mp.add_key_binding("Tab", "skip-intro-tab", function()
+function skip_outro()
     local pos = mp.get_property_number("time-pos", 0)
-    mp.osd_message("⏩ Skipped Intro (+85s)", 2)
-    mp.set_property_number("time-pos", pos + 85)
-end)
+    if has_exact_ed and ed_end > 0 then
+        mp.osd_message(string.format("⏩ AniSkip: Jumped past Outro (%.1fs)", ed_end), 2)
+        mp.set_property_number("time-pos", ed_end)
+    else
+        mp.osd_message("⏩ Skipped Outro (+85s)", 2)
+        mp.set_property_number("time-pos", pos + 85)
+    end
+end
 
-mp.add_key_binding("o", "skip-outro", function()
-    local pos = mp.get_property_number("time-pos", 0)
-    mp.osd_message("⏩ Skipped Outro (+85s)", 2)
-    mp.set_property_number("time-pos", pos + 85)
-end)
+mp.add_key_binding("i", "skip-intro", skip_intro)
+mp.add_key_binding("Tab", "skip-intro-tab", skip_intro)
+mp.add_key_binding("o", "skip-outro", skip_outro)
 """
     try:
         with open(script_path, "w", encoding="utf-8") as f:
@@ -1552,10 +1622,19 @@ end)
         return None
 
 
-def launch_player(target_path, title, ep_num, player="mpv", auto_skip=False):
+def launch_player(
+    target_path,
+    title,
+    ep_num,
+    player="mpv",
+    auto_skip=False,
+    mal_id=None,
+):
     """Launch the chosen media player with title, stream/file, and optimal smooth playback."""
     media_title = f"{title} - Episode {ep_num}"
     player_bin = find_player_binary(player)
+    aniskip_data = fetch_aniskip_times(mal_id, ep_num) if mal_id else None
+
     cmd = []
     if player == "mpv" or "mpv" in Path(player_bin).stem.lower():
         cmd = [
@@ -1568,7 +1647,9 @@ def launch_player(target_path, title, ep_num, player="mpv", auto_skip=False):
             "--audio-buffer=0.8",
             "--msg-level=ffmpeg=error",
         ]
-        skip_script = get_auto_skip_script(auto_skip=auto_skip)
+        skip_script = get_auto_skip_script(
+            auto_skip=auto_skip, aniskip_data=aniskip_data
+        )
         if skip_script:
             cmd.append(f"--script={skip_script}")
         cmd.append(target_path)
@@ -1589,8 +1670,19 @@ def launch_player(target_path, title, ep_num, player="mpv", auto_skip=False):
         cmd = [player_bin, target_path]
 
     print(f"\n{C_BOLD}▶️  Now Playing:{C_RESET} {C_CYAN}{media_title}{C_RESET}")
+    if aniskip_data and (aniskip_data.get("op") or aniskip_data.get("ed")):
+        skip_info = []
+        if aniskip_data.get("op"):
+            s, e = aniskip_data["op"]
+            skip_info.append(f"OP: {s:.0f}s-{e:.0f}s")
+        if aniskip_data.get("ed"):
+            s, e = aniskip_data["ed"]
+            skip_info.append(f"ED: {s:.0f}s-{e:.0f}s")
+        print(
+            f"{C_GREEN}⚡ AniSkip Active:{C_RESET} {C_BOLD}{' • '.join(skip_info)}{C_RESET}"
+        )
     print(
-        f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro (+85s) | [o] Skip Outro | [q] Quit{C_RESET}\n"
+        f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro | [o] Skip Outro | [q] Quit{C_RESET}\n"
     )
 
     proc = subprocess.run(cmd)
@@ -1605,6 +1697,7 @@ def turbo_play(
     direct=False,
     download_only=False,
     auto_skip=False,
+    mal_id=None,
 ):
     """Zero-buffering maximum-speed playback using 64 parallel multi-connections."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
@@ -1619,12 +1712,26 @@ def turbo_play(
         if download_only:
             print(f"{C_GREEN}✓ File ready at: {cache_file}{C_RESET}")
             return True
-        return launch_player(str(cache_file), title, ep_num, player=player)
+        return launch_player(
+            str(cache_file),
+            title,
+            ep_num,
+            player=player,
+            auto_skip=auto_skip,
+            mal_id=mal_id,
+        )
 
     has_ytdlp = shutil.which("yt-dlp") is not None
 
     if direct or not has_ytdlp:
-        return launch_player(stream_url, title, ep_num, player=player)
+        return launch_player(
+            stream_url,
+            title,
+            ep_num,
+            player=player,
+            auto_skip=auto_skip,
+            mal_id=mal_id,
+        )
 
     print(
         f"\n{C_CYAN}{C_BOLD}🚀 MAXIMUM TURBO SPEED (64 Parallel Multi-Connections)...{C_RESET}"
@@ -1676,7 +1783,14 @@ def turbo_play(
         if (cache_file.exists() and cache_file.stat().st_size > 5 * 1024 * 1024)
         else stream_url
     )
-    res = launch_player(target_to_play, title, ep_num, player=player)
+    res = launch_player(
+        target_to_play,
+        title,
+        ep_num,
+        player=player,
+        auto_skip=auto_skip,
+        mal_id=mal_id,
+    )
 
     # Cache cleanup: Keep newest ~4GB of anime, delete older
     try:
@@ -2116,6 +2230,7 @@ def play_loop(
             direct=direct,
             download_only=download_only,
             auto_skip=auto_skip,
+            mal_id=mal_id,
         )
 
         # Stop Discord Rich Presence on player close

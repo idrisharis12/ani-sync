@@ -5,7 +5,7 @@ import tarfile
 import time
 from pathlib import Path
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 PACKAGE_NAME = "ani-sync"
 DIST_DIR = Path("dist")
 DIST_DIR.mkdir(exist_ok=True)

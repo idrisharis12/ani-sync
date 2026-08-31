@@ -35,6 +35,7 @@
 | :--- | :--- | :--- |
 | **[MyAnimeList Official API](https://myanimelist.net/apiconfig)** | **[MyAnimeList Co., Ltd.](https://myanimelist.net/)** | Official OAuth 2.0 API used for real-time watched episode synchronization and user watch history imports. |
 | **[AniList GraphQL API](https://anilist.co/)** | **[AniList (@AniList)](https://anilist.co/)** | Modern, flexible GraphQL API used for anime metadata search, cover assets, and cloud list progress mutations. |
+| **[AniSkip API](https://aniskip.com/)** | **[AniSkip Community](https://aniskip.com/)** | Open-source crowd-sourced database for frame-accurate opening and ending theme timestamp skips. |
 | **[Kitsu JSON:API](https://kitsu.io/)** | **[Kitsu (@kitsu-io)](https://kitsu.io/)** | Clean JSON:API standard used for seamless email/password authentication and library synchronization. |
 | **[AniDB](https://anidb.app/)** | **[AniDB Community](https://anidb.app/)** | Anime title database indexing and HLS stream resolver backend. |
 
