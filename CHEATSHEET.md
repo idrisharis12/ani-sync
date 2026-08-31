@@ -39,6 +39,7 @@
 | **Auto-Skip Opening Theme** | `ani-sync "chainsaw man" --skip` |
 | **Download Episode to Disk** | `ani-sync "jujutsu kaisen" -e 1 -d` |
 | **Verify System Health** | `ani-sync doctor` |
+| **Open-Source Credits** | `ani-sync credits` |
 | **Update ani-sync** | `ani-sync update` *(or `ani-sync -U`)* |
 
 ---
@@ -92,7 +93,13 @@ Performs an automated diagnostic scan of all runtime dependencies, package versi
 ani-sync doctor
 ```
 
-### 8. `ani-sync update` / `ani-sync -U`
+### 8. `ani-sync credits`
+Displays project credits and open-source acknowledgements for all libraries and tools that power `ani-sync`.
+```bash
+ani-sync credits
+```
+
+### 9. `ani-sync update` / `ani-sync -U`
 Checks GitHub releases for the latest version and self-updates in place.
 ```bash
 ani-sync update

@@ -100,6 +100,8 @@ def create_archives(binary_path, tag, system):
                 zf.write(BASE_DIR / "README.md", arcname="README.md")
             if (BASE_DIR / "CHEATSHEET.md").exists():
                 zf.write(BASE_DIR / "CHEATSHEET.md", arcname="CHEATSHEET.md")
+            if (BASE_DIR / "CREDITS.md").exists():
+                zf.write(BASE_DIR / "CREDITS.md", arcname="CREDITS.md")
             if (BASE_DIR / "LICENSE").exists():
                 zf.write(BASE_DIR / "LICENSE", arcname="LICENSE")
             if (BASE_DIR / "install.ps1").exists():
@@ -116,6 +118,8 @@ def create_archives(binary_path, tag, system):
                 tar.add(BASE_DIR / "README.md", arcname="README.md")
             if (BASE_DIR / "CHEATSHEET.md").exists():
                 tar.add(BASE_DIR / "CHEATSHEET.md", arcname="CHEATSHEET.md")
+            if (BASE_DIR / "CREDITS.md").exists():
+                tar.add(BASE_DIR / "CREDITS.md", arcname="CREDITS.md")
             if (BASE_DIR / "LICENSE").exists():
                 tar.add(BASE_DIR / "LICENSE", arcname="LICENSE")
             if (BASE_DIR / "install.sh").exists():

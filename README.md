@@ -500,14 +500,18 @@ Doctor check completed.
 
 ## 💖 Credits & Acknowledgements
 
-Special thanks and deepest gratitude to the open-source projects and developer communities that inspired its design and powered its capabilities:
+`ani-sync` is built on the shoulders of giants in the free and open-source software (FOSS) community. Deepest gratitude and appreciation go out to the creators, maintainers, organizations, and open-source contributors who made this project possible:
 
-- **[ani-cli](https://github.com/pystardust/ani-cli)** by *pystardust* — The trailblazing terminal anime player that pioneered command-line video streaming.
-- **[mal-cli](https://github.com/mdomke/mal-cli)** by *mdomke* — The pioneering CLI tool for MyAnimeList tracking that inspired automated episode synchronization.
-- **[mpv](https://github.com/mpv-player/mpv)** — The gold-standard, ultra-fast media player powering hardware-accelerated zero-buffering playback.
-- **[fzf](https://github.com/junegunn/fzf)** by *junegunn* — The blazingly fast, interactive fuzzy finder powering search and navigation.
-- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — The multi-socket video stream extraction engine.
-- **[MyAnimeList API](https://myanimelist.net/apiconfig)**, **[AniList GraphQL API](https://anilist.co)**, and **[Kitsu JSON:API](https://kitsu.io)** — The tracking and metadata APIs.
+| Category | Projects & Creators | Role in ani-sync |
+| :--- | :--- | :--- |
+| **🎬 Trailblazers** | **[ani-cli](https://github.com/pystardust/ani-cli)** (*@pystardust*), **[mal-cli](https://github.com/mdomke/mal-cli)** (*@mdomke*), **[animdl](https://github.com/justfoolingaround/animdl)** | Pioneering CLI anime streaming & terminal MAL tracking |
+| **⚡ Media & Acceleration** | **[mpv](https://github.com/mpv-player/mpv)** (*mpv-player team*), **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** (*yt-dlp team*), **[FFmpeg](https://ffmpeg.org/)**, **[curl](https://curl.se/)** (*@bagder*) | 64x parallel swarm downloading, GPU decoding, zero-buffering |
+| **🔍 Interactive TUI** | **[fzf](https://github.com/junegunn/fzf)** (*@junegunn*) | Interactive live fuzzy search, episode picker & menu navigation |
+| **🌐 Cloud Tracking** | **[MyAnimeList API](https://myanimelist.net/apiconfig)**, **[AniList GraphQL API](https://anilist.co/)**, **[Kitsu JSON:API](https://kitsu.io/)**, **[AniDB](https://anidb.app/)** | Real-time multi-platform watch list progress syncing |
+| **💬 Protocols & Tooling** | **[Discord RPC Protocol](https://discord.com/developers/docs/topics/rpc)**, **[Requests](https://requests.readthedocs.io/)** (*@kennethreitz*), **[tqdm](https://github.com/tqdm/tqdm)** (*@casperdcl*), **[VHS](https://github.com/charmbracelet/vhs)** | Discord Rich Presence IPC, HTTP networking & progress bars |
+
+> [!TIP]
+> For the complete, detailed roster of acknowledgements, authors, and license credits, check out [**`CREDITS.md`**](CREDITS.md) or run `ani-sync credits` in your terminal!
 
 ---
 

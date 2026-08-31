@@ -2515,6 +2515,68 @@ def run_doctor():
     print(f"\n{C_GREEN}Doctor check completed.{C_RESET}\n")
 
 
+def print_credits():
+    """Display credits and acknowledgements for open-source contributors and inspirations."""
+    print(
+        f"\n{C_CYAN}{C_BOLD}╔══════════════════════════════════════════════════════════════════════════╗{C_RESET}"
+    )
+    print(
+        f"{C_CYAN}║{C_RESET}             {C_MAGENTA}{C_BOLD}💖 ani-sync Credits & Open-Source Acknowledgements{C_RESET}           {C_CYAN}║{C_RESET}"
+    )
+    print(
+        f"{C_CYAN}╚══════════════════════════════════════════════════════════════════════════╝{C_RESET}\n"
+    )
+
+    print(f"{C_BOLD}🎬 Trailblazers & Direct Inspirations:{C_RESET}")
+    print(
+        f"  • {C_CYAN}{C_BOLD}ani-cli{C_RESET} (by pystardust)       - The original CLI anime player that started it all."
+    )
+    print(
+        f"  • {C_CYAN}{C_BOLD}mal-cli{C_RESET} (by mdomke)           - Pioneered command-line MyAnimeList tracking."
+    )
+    print(
+        f"  • {C_CYAN}{C_BOLD}animdl{C_RESET} (by justfoolingaround) - Python anime scraping architectures."
+    )
+    print(
+        f"  • {C_CYAN}{C_BOLD}aria2{C_RESET}  (by Tatsuhiro Tsujikawa) - Segmented swarm downloading model."
+    )
+
+    print(f"\n{C_BOLD}⚡ Core Media Engines & Terminal Powerhouses:{C_RESET}")
+    print(
+        f"  • {C_GREEN}{C_BOLD}mpv{C_RESET}     (mpv-player team)      - Hardware-accelerated zero-buffering playback."
+    )
+    print(
+        f"  • {C_GREEN}{C_BOLD}fzf{C_RESET}     (by Junegunn Choi)     - Interactive fuzzy finder search & navigation."
+    )
+    print(
+        f"  • {C_GREEN}{C_BOLD}yt-dlp{C_RESET}  (yt-dlp team)          - 64x parallel multi-connection fragment swarm."
+    )
+    print(
+        f"  • {C_GREEN}{C_BOLD}FFmpeg{C_RESET}  (FFmpeg team)          - Universal multimedia demuxing & stream fixup."
+    )
+    print(
+        f"  • {C_GREEN}{C_BOLD}curl{C_RESET}    (by Daniel Stenberg)   - Resilient command-line network transfers."
+    )
+
+    print(f"\n{C_BOLD}🌐 Tracking Platforms & Metadata APIs:{C_RESET}")
+    print(
+        f"  • {C_YELLOW}{C_BOLD}MyAnimeList{C_RESET} (Official API)     - Real-time OAuth2 episode progress syncing."
+    )
+    print(
+        f"  • {C_YELLOW}{C_BOLD}AniList{C_RESET}     (GraphQL API)      - Modern anime metadata & cloud list tracking."
+    )
+    print(
+        f"  • {C_YELLOW}{C_BOLD}Kitsu{C_RESET}       (JSON:API)         - High-speed anime database & watch progress."
+    )
+    print(
+        f"  • {C_YELLOW}{C_BOLD}AniDB{C_RESET}       (AniDB Community)  - Comprehensive anime catalog & stream index."
+    )
+
+    print(
+        f"\n{C_BOLD}📜 Full Details & Documentation:{C_RESET} {C_CYAN}https://github.com/idrisharis12/ani-sync/blob/main/CREDITS.md{C_RESET}\n"
+    )
+
+
 def print_help():
     print(
         f"""{C_CYAN}{C_BOLD}ani-sync v{VERSION}{C_RESET} - Stream anime in terminal and auto-sync watch progress
@@ -2525,6 +2587,7 @@ def print_help():
     {C_GREEN}ani-sync trending{C_RESET}
     {C_GREEN}ani-sync sync{C_RESET}
     {C_GREEN}ani-sync doctor{C_RESET}
+    {C_GREEN}ani-sync credits{C_RESET}
     {C_GREEN}ani-sync "attack on titan" --dub{C_RESET}
     {C_GREEN}ani-sync "jujutsu kaisen" -d -e 1{C_RESET}
 
@@ -2534,6 +2597,7 @@ def print_help():
     history, --history        View recent watch history and pick to resume
     sync, --sync, import      Sync & import watch library from all connected platforms
     doctor, check, --doctor   Verify dependencies, system status & credentials
+    credits, --credits        Display open-source contributors & project credits
     -e, --episode <num>       Jump directly to specified episode number
     -q, --quality <res>       Preferred quality (e.g. 1080p, 720p, 480p, 360p)
     --skip, --auto-skip       Automatically skip anime opening/intro (+85s)
@@ -2582,6 +2646,8 @@ def main():
             "check",
             "--doctor",
             "--check",
+            "credits",
+            "--credits",
         )
     ):
         threading.Thread(
@@ -2595,6 +2661,10 @@ def main():
         else:
             print_help()
             return
+
+    if args and args[0] in ("credits", "--credits", "credit", "thanks", "authors"):
+        print_credits()
+        return
 
     if args and args[0] in ("doctor", "check", "--doctor", "--check"):
         run_doctor()
