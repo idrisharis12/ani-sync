@@ -36,13 +36,13 @@
 
 ---
 
-## 📦 What's New in v2.9.1
+## 📦 What's New in v2.10.0
 
-- **🔧 CLI Entry Point Fix** — `ani-sync` and `python -m ani_sync` now work correctly via console script entry point
-- **🔒 Security: URL Encoding** — Provider search queries are now URL-encoded (`urllib.parse.quote_plus`) to prevent malformed URLs and potential injection
-- **🪟 Windows Installer Fix** — `install.ps1` now copies the full `ani_sync` package directory for correct module imports
-- **⚙️ CI Fix** — Added `shell: bash` to the Windows compile step in `release.yml` to prevent PowerShell syntax errors
-- **📦 Version Consistency** — All packaging scripts, formulas, and PKGBUILDs updated to v2.9.1
+- **🚀 Massive Architecture Overhaul** — The 4,000+ line monolithic script has been successfully refactored into the `ani_sync` Python package, fixing namespace collisions and enabling better programmatic usage.
+- **🛡️ Security Hardened Installers** — The universal install script (`install.sh`) no longer uses `--break-system-packages`, drops unrelated dependencies, and removes the stealth APT auto-update hook.
+- **🧵 Thread-Safe Prefetching** — Implementing a threading lock to prevent cache file corruption when rapidly skipping episodes.
+- **🐛 Transparent Error Logging** — Replaced silent failures with a standard `logging` framework, logging exceptions to debug so failures are no longer invisible.
+- **🧹 Cleaned Packaging** — Resolved duplicate Homebrew formulas and PKGBUILDs. Switched CI/CD testing to `pytest` with `black` format enforcement.
 
 ---
 
