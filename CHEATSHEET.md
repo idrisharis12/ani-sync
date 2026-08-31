@@ -119,12 +119,18 @@ ani-sync update --quiet   # Silent mode (used in cron / scripts)
 | Flag | Long Flag | Description | Default | Example |
 | :--- | :--- | :--- | :--- | :--- |
 | `-c` | `--continue` | Resume last anime from next episode | `false` | `ani-sync -c` |
+| `-s` | `--schedule` | Browse airing release calendar & countdowns | `false` | `ani-sync -s` |
 | `-t` | `--trending` | Browse top trending & seasonal anime | `false` | `ani-sync -t` |
-| `-e <n>` | `--episode <n>` | Jump directly to episode number `<n>` | Prompt | `ani-sync "naruto" -e 135` |
+| | `--party [room]` | Stream in Syncplay Watch Together group room | `false` | `ani-sync "frieren" --party "night"` |
+| | `--score [1-10]`| Rate and sync score to MAL, AniList & Kitsu | `false` | `ani-sync score "frieren" 10` |
+| | `--theme <name>`| Set TrueColor theme (tokyonight, catppuccin, etc.) | `catppuccin` | `ani-sync --theme tokyonight` |
+| `-e <range>` | `--episode <range>` | Jump to episode or download range (`1-12`, `1,3,5`)| Prompt | `ani-sync "naruto" -e 1-12` |
+| `-a` | `--all` | Target all episodes for batch downloading | `false` | `ani-sync "chainsaw man" -d --all` |
 | `-q <res>` | `--quality <res>` | Stream resolution (`1080p`, `720p`, `480p`, `360p`) | `720p` | `ani-sync "bleach" -q 1080p` |
+| `--provider` | `--provider <name>` | Select stream backend (`auto`, `anidb`, `gogo`) | `auto` | `ani-sync "bleach" --provider gogo` |
 | `--dub` | `--dub` | Stream English Dubbed version | `Sub` | `ani-sync "cyberpunk" --dub` |
-| `--skip` | `--auto-skip` | Auto fast-forward +85s past anime OP | `false` | `ani-sync "frieren" --skip` |
-| `-d` | `--download` | Save episode locally to disk without player | `false` | `ani-sync "one punch man" -d -e 1` |
+| `--skip` | `--auto-skip` | Auto-skip intro & outro via AniSkip timestamps | `false` | `ani-sync "frieren" --skip` |
+| `-d` | `--download` | Save episode(s) locally to disk (supports batch)| `false` | `ani-sync "jujutsu kaisen" -d -e 1-12`|
 | `--direct` | `--direct` | Direct stream without RAM-disk cache | `false` | `ani-sync "gintama" --direct` |
 | `--no-fzf` | `--no-fzf` | Disable interactive fuzzy search (use numbers) | `false` | `ani-sync --no-fzf` |
 | `--player` | `--player <bin>` | Media player binary (`mpv`, `vlc`, `iina`) | `mpv` | `ani-sync "mha" --player vlc` |
