@@ -138,11 +138,17 @@ if [ -d "ani_sync" ]; then
         cp -r assets "$SHARE_DIR/"
     fi
 else
-    # We can't download a single script anymore since it's a package.
-    # The user should clone the repo or use pip. For fallback:
-    echo -e "  ${YELLOW}Warning: Direct script download not supported. Please use git clone or pip install.${NC}"
-    echo -e "  Attempting to install via pip..."
-    python3 -m pip install --quiet "git+https://github.com/idrisharis12/ani-sync.git" || true
+    echo -e "  Downloading latest ani-sync package from GitHub..."
+    TMP_DIR=$(mktemp -d)
+    curl -fsSL https://github.com/idrisharis12/ani-sync/archive/refs/heads/main.tar.gz | tar -xz -C "$TMP_DIR"
+    
+    if [ -d "$TMP_DIR/ani-sync-main/ani_sync" ]; then
+        cp -r "$TMP_DIR/ani-sync-main/ani_sync" "$SHARE_DIR/"
+        cp -r "$TMP_DIR/ani-sync-main/assets" "$SHARE_DIR/" 2>/dev/null || true
+    fi
+    rm -rf "$TMP_DIR"
+    
+    python3 -m pip install --quiet "git+https://github.com/idrisharis12/ani-sync.git" 2>/dev/null || true
 fi
 
 # Create launcher wrapper in INSTALL_DIR
