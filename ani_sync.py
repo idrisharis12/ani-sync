@@ -47,9 +47,16 @@ def get_config_dir():
     """Return OS-appropriate config directory (AppData on Windows, ~/.config on Linux/macOS/Termux)."""
     if IS_WINDOWS:
         appdata = os.environ.get("APPDATA")
-        if appdata:
-            return Path(appdata) / "ani-sync"
-    return Path.home() / ".config" / "ani-sync"
+        p = Path(appdata) / "ani-sync" if appdata else Path.home() / ".config" / "ani-sync"
+    else:
+        p = Path.home() / ".config" / "ani-sync"
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+        if not IS_WINDOWS:
+            os.chmod(p, 0o700)
+    except Exception:
+        pass
+    return p
 
 
 def get_cache_dir():
@@ -87,7 +94,7 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.7.1"
+VERSION = "2.8.0"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -243,7 +250,7 @@ def load_config():
 
 
 def _append_config(key, value):
-    """Append or update a key in config.env without overwriting other keys."""
+    """Append or update a key in config.env with secure 0600 file permissions."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     lines = []
     found = False
@@ -262,6 +269,11 @@ def _append_config(key, value):
         lines.append(f'export {key}="{value}"\n')
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         f.writelines(lines)
+    if not IS_WINDOWS:
+        try:
+            os.chmod(CONFIG_PATH, 0o600)
+        except Exception:
+            pass
     os.environ[key] = str(value)
 
 

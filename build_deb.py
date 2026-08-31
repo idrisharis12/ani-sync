@@ -5,7 +5,7 @@ import tarfile
 import time
 from pathlib import Path
 
-VERSION = "2.7.1"
+VERSION = "2.8.0"
 PACKAGE_NAME = "ani-sync"
 DIST_DIR = Path("dist")
 DIST_DIR.mkdir(exist_ok=True)
@@ -27,15 +27,15 @@ Description: Terminal anime streamer and MyAnimeList auto-sync client
  synchronize episode progress and watch status to MyAnimeList.
 """.encode("utf-8")
 
-postinst_content = """#!/usr/bin/env bash
+postinst_content = f"""#!/usr/bin/env bash
 set -e
 if [ -d "/etc/apt/apt.conf.d" ]; then
     cat << 'APTHOOK' > /etc/apt/apt.conf.d/99ani-sync-updater
-APT::Update::Post-Invoke-Success { "if command -v ani-sync >/dev/null 2>&1; then ani-sync update --quiet || true; fi"; };
+APT::Update::Post-Invoke-Success {{ "if command -v ani-sync >/dev/null 2>&1; then ani-sync update --quiet || true; fi"; }};
 APTHOOK
     chmod 644 /etc/apt/apt.conf.d/99ani-sync-updater
 fi
-echo "✓ ani-sync v2.0.0 successfully installed!"
+echo "✓ ani-sync v{VERSION} successfully installed!"
 echo "Run 'ani-sync' to get started."
 exit 0
 """.encode("utf-8")
