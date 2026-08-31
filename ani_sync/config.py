@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-VERSION = "2.9.1"
+VERSION = "2.10.0"
 
 IS_WINDOWS = sys.platform == "win32"
 IS_TERMUX = (
