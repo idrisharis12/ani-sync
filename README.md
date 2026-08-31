@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <i>Stream any anime from your terminal with <b>64x multi-socket turbo speed</b>, <b>100% zero-buffering</b> playback, and automatic real-time watch progress sync to <b>MyAnimeList</b>, <b>AniList</b> & <b>Kitsu</b>.</i>
+  <i>Stream any anime from your terminal with <b>64x multi-socket turbo speed</b>, <b>100% zero-buffering</b> playback, <b>frame-accurate AniSkip</b>, <b>Syncplay Watch Parties</b>, and automatic real-time watch progress sync to <b>MyAnimeList</b>, <b>AniList</b> & <b>Kitsu</b>.</i>
 </p>
 
 <p align="center">
@@ -19,6 +19,8 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.8+" /></a>
   <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/Speed-64x%20Turbo-00C853?style=flat-square" alt="64x Turbo Speed" />
+  <img src="https://img.shields.io/badge/AniSkip-Frame--Accurate-FF6F00?style=flat-square" alt="AniSkip Frame-Accurate" />
+  <img src="https://img.shields.io/badge/Party-Syncplay-00E5FF?style=flat-square" alt="Syncplay Watch Together" />
   <img src="https://img.shields.io/badge/Tracking-MAL%20%7C%20AniList%20%7C%20Kitsu-7C4DFF?style=flat-square" alt="Multi-Platform Tracking" />
 </p>
 
@@ -28,7 +30,8 @@
   <a href="#-core-features">✨ Core Features</a> •
   <a href="#-detailed-usage--feature-guide">📖 User Guide</a> •
   <a href="#-multi-platform-tracking--discord-setup">🔑 Auth Setup</a> •
-  <a href="#-system-diagnostics--doctor-command">🩺 Doctor</a>
+  <a href="#-system-diagnostics--doctor-command">🩺 Doctor</a> •
+  <a href="CREDITS.md">💖 Open-Source Credits</a>
 </p>
 
 ---
@@ -41,6 +44,7 @@
   │    3. Sousou no Frieren (Special Mini Anime)                           │
   └────────────────────────────────────────────────────────────────────────┘
   ⚡ [Turbo Swarm: 64 Sockets Active] ──► [RAM-Disk: /dev/shm] ──► [MPV: 0.00s Delay]
+  ⏩ [AniSkip: OP 01:25 - 02:55 Jump] ──► [Theme: TokyoNight TrueColor]
   🔄 [Cloud Sync: MAL ✓ | AniList ✓ | Kitsu ✓] ──► [Discord Presence: Active 🎮]
 ```
 
@@ -58,18 +62,23 @@
 - [🚀 Detailed Usage & Feature Guide](#-detailed-usage--feature-guide)
   - [1. 🔍 Interactive Anime Search & Stream](#1--interactive-anime-search--stream)
   - [2. ⏪ Smart Resume & Continue Watching (`-c`)](#2--smart-resume--continue-watching--c)
-  - [3. 🔥 Top Airing & Trending Anime (`-t`)](#3--top-airing--trending-anime--t)
-  - [4. 📺 View & Resume from Watch History](#4--view--resume-from-watch-history)
-  - [5. 🎬 Seasons, Movies & Episode Picker](#5--seasons-movies--episode-picker)
-  - [6. 🎯 Multi-Resolution Quality Selection (1080p, 720p, etc.)](#6--multi-resolution-quality-selection-1080p-720p-etc)
-  - [7. 🎙️ Japanese Subtitles vs English Dub (`--dub`)](#7-️-japanese-subtitles-vs-english-dub---dub)
-  - [8. ⏩ Auto-Skip Anime Opening & Ending (`--skip`)](#8--auto-skip-anime-opening--ending---skip)
-  - [9. 📥 High-Speed Offline Download Mode (`-d`)](#9--high-speed-offline-download-mode--d)
-  - [10. 🎮 Interactive Post-Playback Controls](#10--interactive-post-playback-controls)
-  - [11. 🔍 Live FZF Fuzzy Search (Auto-Configured)](#11--live-fzf-fuzzy-search-auto-configured)
-  - [12. 🔄 Multi-Platform Auto-Tracking (MAL + AniList + Kitsu)](#12--multi-platform-auto-tracking-mal--anilist--kitsu)
-  - [13. 📥 Multi-Platform Library Auto-Import & Sync (`ani-sync sync`)](#13--multi-platform-library-auto-import--sync-ani-sync-sync)
-  - [14. 💬 Discord Rich Presence Integration](#14--discord-rich-presence-integration)
+  - [3. 📅 Interactive Airing Schedule & Calendar (`ani-sync schedule`)](#3--interactive-airing-schedule--calendar-ani-sync-schedule)
+  - [4. 🔥 Top Airing & Trending Anime (`-t`)](#4--top-airing--trending-anime--t)
+  - [5. 🎨 Aesthetic 24-Bit Terminal & FZF Themes Engine](#5--aesthetic-24-bit-terminal--fzf-themes-engine)
+  - [6. ⏩ Frame-Accurate AniSkip Integration (`--skip`)](#6--frame-accurate-aniskip-integration---skip)
+  - [7. 📥 Turbo Batch & Range Downloader (`-d -e 1-12` / `--all`)](#7--turbo-batch--range-downloader--d--e-1-12---all)
+  - [8. ⭐ In-Terminal Rating & Score Cloud Sync (`ani-sync score`)](#8-️-in-terminal-rating--score-cloud-sync-ani-sync-score)
+  - [9. ⚡ Multi-Provider Auto-Failover Stream Resolver (`--provider`)](#9--multi-provider-auto-failover-stream-resolver---provider)
+  - [10. 🎉 Syncplay Watch Together Party Mode (`ani-sync party`)](#10--syncplay-watch-together-party-mode-ani-sync-party)
+  - [11. 📺 View & Resume from Watch History](#11--view--resume-from-watch-history)
+  - [12. 🎬 Seasons, Movies & Episode Picker](#12--seasons-movies--episode-picker)
+  - [13. 🎯 Multi-Resolution Quality Selection (1080p, 720p, etc.)](#13--multi-resolution-quality-selection-1080p-720p-etc)
+  - [14. 🎙️ Japanese Subtitles vs English Dub (`--dub`)](#14-️-japanese-subtitles-vs-english-dub---dub)
+  - [15. 🎮 Interactive Post-Playback Controls](#15--interactive-post-playback-controls)
+  - [16. 🔍 Live FZF Fuzzy Search (Auto-Configured)](#16--live-fzf-fuzzy-search-auto-configured)
+  - [17. 🔄 Multi-Platform Auto-Tracking (MAL + AniList + Kitsu)](#17--multi-platform-auto-tracking-mal--anilist--kitsu)
+  - [18. 📥 Multi-Platform Library Auto-Import & Sync (`ani-sync sync`)](#18--multi-platform-library-auto-import--sync-ani-sync-sync)
+  - [19. 💬 Discord Rich Presence Integration](#19--discord-rich-presence-integration)
 - [📋 CLI Cheat Sheet & Command Matrix](#-cli-cheat-sheet--command-matrix)
 - [🔑 Multi-Platform Tracking & Discord Setup](#-multi-platform-tracking--discord-setup)
 - [🩺 System Diagnostics & Doctor Command](#-system-diagnostics--doctor-command)
@@ -84,17 +93,22 @@
 | Feature | Description |
 | :--- | :--- |
 | ⚡ **64x Turbo Swarm Engine** | Requests **64 video fragments simultaneously in parallel**, pulling full episodes in **~3–5 seconds** and saturating your full Wi-Fi/fiber line speed. |
-| 🚀 **100% Zero-Buffering Playback** | Streams from local accelerated caching — completely eliminates all video stutter, mid-stream pauses, and 30-second buffering freezes. |
+| 🚀 **100% Zero-Buffering Playback** | Streams from local accelerated caching — completely eliminates all video stutter, mid-stream pauses, and buffering freezes. |
 | 💾 **RAM-Disk In-Memory Caching (`/dev/shm`)** | Automatically utilizes Linux tmpfs shared memory at **10,000+ MB/s** for 0ms seek latency, instant rewinds, and 0 SSD wear. |
+| ⏩ **Frame-Accurate AniSkip Integration** | Queries `api.aniskip.com` for exact millisecond intro/outro timestamps. Auto-skips openings and supports hotkeys `[Tab]`/`[i]`/`[o]`. |
+| 🎨 **24-Bit Aesthetic Themes Engine** | Built-in TrueColor palettes with matching FZF styling: `tokyonight`, `catppuccin`, `dracula`, `nord`, `gruvbox`, `monokai`. |
+| 📅 **Interactive Airing Schedule & Calendar** | AniList GraphQL integration with live countdown timers (`Airs in 2h 15m` / `Available Now`) and one-click stream launching. |
+| 📥 **Turbo Batch & Range Downloader** | Download episode ranges (`-d -e 1-12`) or full seasons (`-d --all`) in parallel to `~/Downloads/ani-sync/` with `tqdm` progress bars. |
+| ⭐ **In-Terminal Rating & Cloud Sync** | Rate anime from 1 to 10 directly in your terminal and sync score changes across **MyAnimeList**, **AniList**, and **Kitsu**. |
+| ⚡ **Multi-Provider Auto-Failover Resolver** | Resilient multi-source streaming with automatic 0.1s fallback between AniDB HLS and Gogo / Consumet CDN mirrors. |
+| 🎉 **Syncplay Watch Together Party Mode** | Synchronized group watching with friends worldwide via public or private Syncplay rooms & MPV integration. |
 | ⏩ **Dual-Episode Pre-Fetching** | Silently preloads Episodes N+1 and N+2 in the background so next episodes start in **0.00s instantly**. |
-| 🔄 **Multi-Platform Tracking** | Simultaneously syncs watch progress to **MyAnimeList**, **AniList**, and **Kitsu** — all in background threads. |
+| 🔄 **Multi-Platform Tracking** | Simultaneously syncs watch progress to **MyAnimeList**, **AniList**, and **Kitsu** in background threads. |
 | 🔍 **Interactive FZF Fuzzy Search** | All menus use **live keystroke fuzzy filtering** with instant arrow-key navigation. **100% automatically installed & configured**! |
-| ⏩ **Auto-Skip Opening/Ending** | Pass `--skip` to auto-skip anime intros (+85s), or press `Tab`/`i`/`o` during playback for instant manual skip (+85s). |
 | ⏪ **Smart Continue Watching** | Run `ani-sync continue` (or `ani-sync -c`) to resume your last watched anime from the next episode. |
 | 🔥 **Trending & Airing Browser** | Run `ani-sync trending` (or `ani-sync -t`) to browse and watch top seasonal releases. |
 | 🎬 **Seasons, OVAs & Movies** | Seamless franchise navigation: effortlessly switch between seasons, movies, and spin-offs. |
 | 🎯 **Multi-Resolution Picker** | Choose between 720p HD (instant zero-buffer default), 1080p Full HD, 480p, and 360p. |
-| 📥 **Offline Download Mode** | Pass `-d` / `--download` to save complete episodes locally without opening the player. |
 | 🪟 **Cross-Platform Native Support** | Works out of the box on **Windows (PowerShell/CMD)**, **Linux**, and **macOS**. |
 | 💬 **Discord Rich Presence** | Automatically displays your current anime, episode number, elapsed time, and clickable GitHub links on Discord. |
 | 🩺 **Built-in System Doctor** | Run `ani-sync doctor` to verify dependencies, package versions, binary paths, and credentials with one command. |
@@ -218,7 +232,29 @@ ani-sync -c
 
 ---
 
-### 3. 🔥 Top Airing & Trending Anime (`-t`)
+### 3. 📅 Interactive Airing Schedule & Calendar (`ani-sync schedule`)
+Browse upcoming and today's anime releases directly from AniList with live countdown timers:
+```bash
+ani-sync schedule
+# or
+ani-sync calendar
+# or
+ani-sync -s
+```
+
+```text
+📅 Anime Airing Schedule & Release Calendar:
+------------------------------------------------------------
+▶ [Available Now • Aired 2h 15m ago] Renegade Immortal (Episode 156)
+  [Airs in 7h 39m] The Insipid Prince's Furtive Grab for the Throne (Episode 9)
+  [Airs in 7h 42m] Love Unseen Beneath the Clear Night Sky (Episode 9)
+```
+- Selecting an **already aired** anime searches and begins streaming immediately.
+- Selecting an **upcoming** anime displays a countdown card with exact air time and genre tags.
+
+---
+
+### 4. 🔥 Top Airing & Trending Anime (`-t`)
 Browse and watch currently airing seasonal anime without typing a search query:
 ```bash
 ani-sync trending
@@ -228,7 +264,97 @@ ani-sync -t
 
 ---
 
-### 4. 📺 View & Resume from Watch History
+### 5. 🎨 Aesthetic 24-Bit Terminal & FZF Themes Engine
+Customize your terminal playback and FZF fuzzy search experience with built-in TrueColor aesthetic palettes:
+```bash
+# Interactive theme picker
+ani-sync theme
+
+# Directly apply a theme
+ani-sync theme tokyonight
+ani-sync theme catppuccin
+ani-sync theme dracula
+ani-sync theme nord
+ani-sync theme gruvbox
+ani-sync theme monokai
+```
+> [!TIP]
+> You can also apply themes on-the-fly for any command with `--theme <name>`:
+> ```bash
+> ani-sync "frieren" --theme catppuccin
+> ```
+
+---
+
+### 6. ⏩ Frame-Accurate AniSkip Integration (`--skip`)
+Never sit through 90 seconds of anime intros or spoilers again:
+- **Automatic Skip Mode**: Pass `--skip` to query [`api.aniskip.com`](https://aniskip.com/) for exact crowd-sourced millisecond timestamps to automatically skip Opening (OP) and Ending (ED) sequences:
+  ```bash
+  ani-sync "frieren" --skip
+  ```
+- **In-Player Shortcuts (Interactive)**: During playback in MPV:
+  - Press **`Tab`** or **`i`**: Instantly jump past Opening / Intro.
+  - Press **`o`**: Instantly jump past Outro / Ending.
+
+---
+
+### 7. 📥 Turbo Batch & Range Downloader (`-d -e 1-12` / `--all`)
+Download entire seasons or episode ranges directly to `~/Downloads/ani-sync/` with 64 parallel sockets per episode and visual `tqdm` progress bars:
+```bash
+# Download episodes 1 through 12 in parallel
+ani-sync "jujutsu kaisen" -d -e 1-12
+
+# Download specific comma-separated episodes
+ani-sync "attack on titan" -d -e 1,3,5
+
+# Download the entire season
+ani-sync "chainsaw man" -d --all
+```
+
+---
+
+### 8. ⭐ In-Terminal Rating & Score Cloud Sync (`ani-sync score`)
+Rate and score any anime from 1 to 10 directly in your terminal, and `ani-sync` will instantly update your list across **MyAnimeList**, **AniList** (GraphQL), and **Kitsu** (JSON:API):
+```bash
+# Rate Frieren a 10/10 Masterpiece across all platforms
+ani-sync score "frieren" 10
+
+# Launch interactive rating wizard
+ani-sync score
+```
+> [!NOTE]
+> Rating is also available directly inside the post-playback interactive `[m]` menu!
+
+---
+
+### 9. ⚡ Multi-Provider Auto-Failover Stream Resolver (`--provider`)
+Stream with zero interruptions. If the primary stream provider experiences rate limits or server downtime, `ani-sync` automatically rotates across secondary CDN mirrors in 0.1s:
+```bash
+# Automatic smart failover (Default)
+ani-sync "demon slayer" --provider auto
+
+# Force specific provider backend
+ani-sync "one piece" --provider anidb
+ani-sync "naruto" --provider gogo
+```
+
+---
+
+### 10. 🎉 Syncplay Watch Together Party Mode (`ani-sync party`)
+Watch anime synchronously with friends anywhere in the world:
+```bash
+# Launch interactive Watch Party wizard
+ani-sync party "anime-night"
+
+# Stream an anime directly into a Syncplay room
+ani-sync "frieren" --party "anime-night"
+```
+- Automatically coordinates play, pause, and seek actions between all viewers.
+- Compatible with public (`syncplay.pl:8999`) and private custom Syncplay servers.
+
+---
+
+### 11. 📺 View & Resume from Watch History
 Review your recently watched anime and choose any entry to instantly resume:
 ```bash
 ani-sync history
@@ -236,7 +362,7 @@ ani-sync history
 
 ---
 
-### 5. 🎬 Seasons, Movies & Episode Picker
+### 12. 🎬 Seasons, Movies & Episode Picker
 When searching a franchise with multiple seasons, movies, or OVAs, `ani-sync` displays a clean selection menu:
 ```text
 Seasons & Movies for 'Attack on Titan':
@@ -255,7 +381,7 @@ ani-sync "naruto shippuden" -e 167
 
 ---
 
-### 6. 🎯 Multi-Resolution Quality Selection (1080p, 720p, etc.)
+### 13. 🎯 Multi-Resolution Quality Selection (1080p, 720p, etc.)
 By default, `ani-sync` streams in **720p HD** for zero-buffering instant start. Specify any desired resolution with `-q`:
 ```bash
 # Stream in 1080p Full HD
@@ -270,7 +396,7 @@ ani-sync "bleach" -q 480p
 
 ---
 
-### 7. 🎙️ Japanese Subtitles vs English Dub (`--dub`)
+### 14. 🎙️ Japanese Subtitles vs English Dub (`--dub`)
 By default, episodes are streamed in **Japanese audio with Subtitles**. To stream English Dubs:
 ```bash
 ani-sync "solo leveling" --dub
@@ -278,28 +404,7 @@ ani-sync "solo leveling" --dub
 
 ---
 
-### 8. ⏩ Auto-Skip Anime Opening & Ending (`--skip`)
-Never sit through 90 seconds of anime intros or spoilers again:
-- **Automatic Skip Mode**: Pass `--skip` to automatically fast-forward past the opening intro (+85 seconds):
-  ```bash
-  ani-sync "frieren" --skip
-  ```
-- **In-Player Shortcuts (Interactive)**: During playback in MPV:
-  - Press **`Tab`** or **`i`**: Instantly skip Opening / Intro (+85s forward).
-  - Press **`o`**: Instantly skip Outro / Ending (+85s forward).
-
----
-
-### 9. 📥 High-Speed Offline Download Mode (`-d`)
-Download episodes directly to your disk with 64x multi-connection acceleration without launching the media player:
-```bash
-# Download Episode 1 of Jujutsu Kaisen
-ani-sync "jujutsu kaisen" -e 1 -d
-```
-
----
-
-### 10. 🎮 Interactive Post-Playback Controls
+### 15. 🎮 Interactive Post-Playback Controls
 When an episode finishes (or when you exit the media player), `ani-sync` updates your connected tracking platforms and displays an interactive control loop:
 
 ```text
@@ -315,13 +420,13 @@ When an episode finishes (or when you exit the media player), `ani-sync` updates
 - Press **`s`**: Pick another episode from the list.
 - Press **`q`**: Switch video resolution (e.g. 720p / 1080p).
 - Press **`S`**: Switch to a different season or movie in the franchise.
-- Press **`m`**: Launch full interactive FZF menu.
+- Press **`m`**: Launch full interactive FZF menu (Episode selector, quality, rating, diagnostics).
 - Press **`x`**: Exit the application.
 
 ---
 
-### 11. 🔍 Live FZF Fuzzy Search (Auto-Configured)
-All selection menus in `ani-sync` (search results, seasons, episode lists, history navigation, and post-playback controls) use **live interactive fuzzy search** powered by [`fzf`](https://github.com/junegunn/fzf).
+### 16. 🔍 Live FZF Fuzzy Search (Auto-Configured)
+All selection menus in `ani-sync` (search results, seasons, episode lists, history navigation, and post-playback controls) use **live interactive fuzzy search** styled with your active color theme.
 
 ```text
 🔍 Search > frier
@@ -336,7 +441,7 @@ All selection menus in `ani-sync` (search results, seasons, episode lists, histo
 
 ---
 
-### 12. 🔄 Multi-Platform Auto-Tracking (MAL + AniList + Kitsu)
+### 17. 🔄 Multi-Platform Auto-Tracking (MAL + AniList + Kitsu)
 `ani-sync` supports **simultaneous automatic progress syncing** to all three major anime tracking platforms:
 
 | Platform | Auth Method | Setup Command |
@@ -354,7 +459,7 @@ ani-sync auth kitsu     # Connect Kitsu
 
 ---
 
-### 13. 📥 Multi-Platform Library Auto-Import & Sync (`ani-sync sync`)
+### 18. 📥 Multi-Platform Library Auto-Import & Sync (`ani-sync sync`)
 Already have an existing watch library on **MyAnimeList**, **AniList**, or **Kitsu**? `ani-sync` can pull and merge your entire watching/completed collection with a single command:
 
 ```bash
@@ -374,7 +479,7 @@ ani-sync import
 
 ---
 
-### 14. 💬 Discord Rich Presence Integration
+### 19. 💬 Discord Rich Presence Integration
 `ani-sync` automatically connects to your local Discord desktop client via IPC and displays your watch activity in real-time with clickable buttons linking to your repo:
 
 > **Watching Frieren: Beyond Journey's End**  
@@ -392,14 +497,21 @@ ani-sync import
 | :--- | :--- | :--- |
 | `ani-sync <title>` | Search and stream anime by title | `ani-sync "frieren"` |
 | `ani-sync continue`, `-c` | Resume last watched anime (starts next episode) | `ani-sync -c` |
+| `ani-sync schedule`, `-s` | Interactive release schedule & countdown calendar | `ani-sync schedule` |
 | `ani-sync trending`, `-t` | Browse top trending / airing anime | `ani-sync -t` |
+| `ani-sync party [room]` | Syncplay Watch Together group streaming | `ani-sync party "anime-night"` |
+| `ani-sync score [title] [1-10]` | Rate & score anime across MAL, AniList & Kitsu | `ani-sync score "frieren" 10` |
+| `ani-sync theme [name]` | Switch TrueColor theme (catppuccin, tokyonight, nord, etc.) | `ani-sync theme tokyonight` |
 | `ani-sync history` | Browse and resume from watch history with FZF | `ani-sync history` |
 | `ani-sync sync`, `import` | Sync and import library from MAL, AniList & Kitsu | `ani-sync sync` |
 | `ani-sync doctor`, `check`| Run diagnostic health check on all dependencies | `ani-sync doctor` |
-| `--skip`, `--auto-skip` | Automatically skip anime opening/intro (+85s) | `ani-sync "one piece" --skip` |
-| `-e, --episode <num>` | Jump directly to specific episode number | `ani-sync "naruto" -e 50` |
+| `ani-sync credits` | Display open-source creators and project credits | `ani-sync credits` |
+| `--skip`, `--auto-skip` | Automatically skip anime opening/intro (AniSkip) | `ani-sync "one piece" --skip` |
+| `-e, --episode <range>` | Jump directly to specific episode or batch range | `ani-sync "naruto" -e 1-12` |
+| `-a, --all` | Target all episodes for batch downloading | `ani-sync "chainsaw man" -d --all` |
 | `-q, --quality <res>` | Preferred video resolution (`1080p`, `720p`, `480p`) | `ani-sync "one piece" -q 1080p` |
-| `-d, --download` | Download episode locally without playing | `ani-sync "jujutsu kaisen" -e 1 -d` |
+| `-d, --download` | Download episode(s) locally without playing | `ani-sync "jujutsu kaisen" -d -e 1-12` |
+| `--provider <name>` | Select stream backend provider (`auto`, `anidb`, `gogo`) | `ani-sync "bleach" --provider gogo` |
 | `--dub` | Stream English Dubbed version | `ani-sync "solo leveling" --dub` |
 | `--direct` | Stream directly without local caching | `ani-sync "frieren" --direct` |
 | `--no-fzf` | Disable FZF fuzzy search and use numbered menus | `ani-sync --no-fzf` |
