@@ -124,15 +124,15 @@ Traditional web scrapers stream video sequentially using a single HTTP connectio
 
 ```mermaid
 flowchart TD
-    A[🌐 Remote HLS / CDN Stream] -->|64 Concurrent Sockets| B(⚡ Turbo Swarm Engine yt-dlp)
-    B -->|10,000+ MB/s Memory Bus| C[💾 RAM Disk /dev/shm Cache]
-    C -->|GPU Hardware Decoding| D[🎬 MPV Zero-Buffering Playback]
-    C -.->|Silent Background Thread| E[⏩ Pre-fetch Episodes N+1 & N+2]
-    D -->|On Episode Completion| F{🔄 Cloud Sync Engine}
-    F -->|OAuth2 REST API| G[🔵 MyAnimeList]
-    F -->|GraphQL Mutation| H[🟣 AniList]
-    F -->|JSON:API Endpoint| I[🟠 Kitsu]
-    D -.->|IPC Named Pipe| J[💬 Discord Rich Presence]
+    A["🌐 Remote HLS / CDN Stream"] -->|"64 Concurrent Sockets"| B["⚡ Turbo Swarm Engine yt-dlp"]
+    B -->|"10,000+ MB/s Memory Bus"| C["💾 RAM Disk /dev/shm Cache"]
+    C -->|"GPU Hardware Decoding"| D["🎬 MPV Zero-Buffering Playback"]
+    C -.->|"Silent Background Thread"| E["⏩ Pre-fetch Episodes N+1 & N+2"]
+    D -->|"On Episode Completion"| F{"🔄 Cloud Sync Engine"}
+    F -->|"OAuth2 REST API"| G["🔵 MyAnimeList"]
+    F -->|"GraphQL Mutation"| H["🟣 AniList"]
+    F -->|"JSON:API Endpoint"| I["🟠 Kitsu"]
+    D -.->|"IPC Named Pipe"| J["💬 Discord Rich Presence"]
 ```
 
 1. **64-Connection Swarm Engine (`yt-dlp -N 64 --concurrent-fragments 64`)**: Requests 64 fragments simultaneously across parallel TCP sockets with 16MB socket buffers.
