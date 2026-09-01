@@ -7,6 +7,7 @@ exec python3 "$0" "$@"
 import concurrent.futures
 import html
 import io
+from ani_sync.config import VERSION
 import json
 import os
 import platform
@@ -30,6 +31,7 @@ logger = logging.getLogger("ani_sync")
 _prefetch_lock = threading.Lock()
 
 import requests
+from ani_sync.config import VERSION
 
 # Enable ANSI colors & UTF-8 on Windows Command Prompt & PowerShell
 IS_WINDOWS = sys.platform == "win32"
@@ -103,7 +105,6 @@ def get_cache_dir():
     return fallback
 
 
-VERSION = "2.9.1"
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
