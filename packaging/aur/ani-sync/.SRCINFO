@@ -1,6 +1,6 @@
 pkgbase = ani-sync
 	pkgdesc = Stream anime from terminal with 64x turbo speed & automatic multi-platform tracking (MAL/AniList/Kitsu)
-	pkgver = 2.11.18
+	pkgver = 2.11.19
 	pkgrel = 1
 	url = https://github.com/idrisharis12/ani-sync
 	arch = any

@@ -11,7 +11,6 @@ from ani_sync.providers.hianime import HiAnimeProvider
 from ani_sync.providers.nyaa import NyaaProvider
 from ani_sync.config import get_config_dir
 import importlib.util
-from pathlib import Path
 
 PROVIDERS = {
     "anidb": AniDBProvider(),
@@ -21,10 +20,11 @@ PROVIDERS = {
     "torrent": NyaaProvider(),
 }
 
+
 def load_plugins():
     plugins_dir = get_config_dir() / "plugins"
     plugins_dir.mkdir(parents=True, exist_ok=True)
-    
+
     for file in plugins_dir.glob("*.py"):
         try:
             name = file.stem
@@ -34,11 +34,16 @@ def load_plugins():
             # Find any class ending with Provider to register
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
-                if isinstance(attr, type) and attr.__name__.endswith("Provider") and attr.__name__ != "BaseProvider":
+                if (
+                    isinstance(attr, type)
+                    and attr.__name__.endswith("Provider")
+                    and attr.__name__ != "BaseProvider"
+                ):
                     PROVIDERS[name] = attr()
                     log_debug(f"Loaded custom provider plugin: {name}")
         except Exception as e:
             log_debug(f"Failed to load plugin {file.name}: {e}")
+
 
 load_plugins()
 

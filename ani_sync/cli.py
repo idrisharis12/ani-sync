@@ -26,11 +26,11 @@ import webbrowser
 import zipfile
 from pathlib import Path
 import logging
+import requests
 
 logger = logging.getLogger("ani_sync")
 _prefetch_lock = threading.Lock()
 
-import requests
 
 # Enable ANSI colors & UTF-8 on Windows Command Prompt & PowerShell
 IS_WINDOWS = sys.platform == "win32"
@@ -453,7 +453,9 @@ def refresh_mal_token():
     return None
 
 
-def sync_episode_to_mal(anime_title, episode_num, mal_id=None, status="watching", quiet=False):
+def sync_episode_to_mal(
+    anime_title, episode_num, mal_id=None, status="watching", quiet=False
+):
     """Sync episode progress to MyAnimeList."""
     if not is_mal_configured():
         if not quiet:
@@ -654,16 +656,16 @@ def sync_episode_to_anilist(anime_title, episode_num, status="watching", quiet=F
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
-    
+
     # Map MAL status to AniList status
     al_status_map = {
         "watching": "CURRENT",
         "plan_to_watch": "PLANNING",
         "completed": "COMPLETED",
         "on_hold": "PAUSED",
-        "dropped": "DROPPED"
+        "dropped": "DROPPED",
     }
-    
+
     try:
         # Search for anime
         clean_search = re.sub(r'["\\]', "", anime_title)
@@ -681,12 +683,12 @@ def sync_episode_to_anilist(anime_title, episode_num, status="watching", quiet=F
             return False, "Anime not found on AniList"
         media_id = media["id"]
         total_eps = media.get("episodes")
-        
+
         # Determine status
         target_status = al_status_map.get(status, "CURRENT")
         if total_eps and episode_num >= total_eps and status == "watching":
             target_status = "COMPLETED"
-            
+
         # Update progress
         update_mutation = f"""
         mutation {{
@@ -806,17 +808,17 @@ def sync_episode_to_kitsu(anime_title, episode_num, status="watching", quiet=Fal
     """Sync episode progress to Kitsu."""
     if not is_kitsu_configured():
         return False, "Not configured"
-    
+
     # Map MAL status to Kitsu status
     kt_status_map = {
         "watching": "current",
         "plan_to_watch": "planned",
         "completed": "completed",
         "on_hold": "on_hold",
-        "dropped": "dropped"
+        "dropped": "dropped",
     }
     target_status = kt_status_map.get(status, "current")
-    
+
     kitsu_headers = {
         "Accept": "application/vnd.api+json",
         "Content-Type": "application/vnd.api+json",
@@ -838,7 +840,7 @@ def sync_episode_to_kitsu(anime_title, episode_num, status="watching", quiet=Fal
             return False, "Anime not found on Kitsu"
         anime = data[0]
         anime_id = anime["id"]
-        
+
         # Check if completed
         total_eps = anime.get("attributes", {}).get("episodeCount")
         if total_eps and episode_num >= total_eps and status == "watching":
@@ -883,7 +885,10 @@ def sync_episode_to_kitsu(anime_title, episode_num, status="watching", quiet=Fal
                     "data": {
                         "id": entry_id,
                         "type": "libraryEntries",
-                        "attributes": {"progress": episode_num, "status": target_status},
+                        "attributes": {
+                            "progress": episode_num,
+                            "status": target_status,
+                        },
                     }
                 },
                 headers=kitsu_headers,
@@ -923,7 +928,7 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None, status="watching")
     """Sync episode progress to all configured tracking platforms in parallel and return results dictionary."""
     sync_results = {}
     threads = []
-    
+
     def worker(p_name, func, *args, **kwargs):
         try:
             ok, msg = func(*args, **kwargs)
@@ -933,45 +938,45 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None, status="watching")
 
     if is_mal_configured():
         t = threading.Thread(
-            target=worker, 
-            args=("MyAnimeList", sync_episode_to_mal, anime_title, episode_num), 
+            target=worker,
+            args=("MyAnimeList", sync_episode_to_mal, anime_title, episode_num),
             kwargs={"mal_id": mal_id, "status": status, "quiet": True},
-            daemon=False
+            daemon=False,
         )
         threads.append((t, "MyAnimeList"))
         t.start()
-        
+
     if is_anilist_configured():
         t = threading.Thread(
-            target=worker, 
-            args=("AniList", sync_episode_to_anilist, anime_title, episode_num), 
+            target=worker,
+            args=("AniList", sync_episode_to_anilist, anime_title, episode_num),
             kwargs={"status": status, "quiet": True},
-            daemon=False
+            daemon=False,
         )
         threads.append((t, "AniList"))
         t.start()
-        
+
     if is_kitsu_configured():
         t = threading.Thread(
-            target=worker, 
-            args=("Kitsu", sync_episode_to_kitsu, anime_title, episode_num), 
+            target=worker,
+            args=("Kitsu", sync_episode_to_kitsu, anime_title, episode_num),
             kwargs={"status": status, "quiet": True},
-            daemon=False
+            daemon=False,
         )
         threads.append((t, "Kitsu"))
         t.start()
-        
+
     # Wait for all with a hard 3 second MAX timeout across all!
     end_time = time.time() + 3.0
     for t, p_name in threads:
         remaining = end_time - time.time()
         if remaining > 0:
             t.join(timeout=remaining)
-        
+
         # If thread is still alive after join (or we ran out of time), it timed out.
         if t.is_alive() and p_name not in sync_results:
             sync_results[p_name] = (True, "Syncing in background...")
-            
+
     return sync_results
 
 
@@ -1341,8 +1346,8 @@ def fetch_anilist_library():
                 .get("MediaListCollection", {})
                 .get("lists", [])
             )
-            for l in lists:
-                for entry in l.get("entries", []):
+            for lst in lists:
+                for entry in lst.get("entries", []):
                     media = entry.get("media", {})
                     titles = media.get("title", {})
                     title = (
@@ -2285,7 +2290,9 @@ def launch_player(
     if "torrent" in target_path or target_path.startswith("magnet:"):
         webtorrent_bin = shutil.which("webtorrent") or shutil.which("webtorrent.cmd")
         if not webtorrent_bin:
-            print(f"\n{C_RED}❌ webtorrent-cli is required to stream torrents!{C_RESET}")
+            print(
+                f"\n{C_RED}❌ webtorrent-cli is required to stream torrents!{C_RESET}"
+            )
             print(f"{C_YELLOW}Install it via: npm install -g webtorrent-cli{C_RESET}")
             return
         print(f"\n{C_CYAN}🧲 Streaming via BitTorrent (Nyaa.si fallback)...{C_RESET}")
@@ -2996,7 +3003,7 @@ def render_preview(item_str):
     """Render FZF preview window with crisp 24-bit graphic cover artwork and rich metadata card."""
     # Clear any existing Kitty images in the preview window to prevent stacking
     print("\033_Ga=d;\033\\", end="", flush=True)
-    
+
     item_str = re.sub(r"\033\[[0-9;]*m", "", item_str).strip()
     raw_title = re.sub(r"^\d+\.\s*", "", item_str).strip()
 
@@ -3112,23 +3119,23 @@ def render_preview(item_str):
                         f"--size={max_w}x{max_h}",
                         str(thumb_file),
                     ],
-                    capture_output=True
+                    capture_output=True,
                 )
                 sys.stdout.buffer.write(res.stdout)
                 sys.stdout.flush()
-                
-                line_count = res.stdout.count(b'\n')
+
+                line_count = res.stdout.count(b"\n")
                 if line_count < max_h:
                     print("\n" * (max_h - line_count), end="")
             elif icat_bin:
                 res = subprocess.run(
                     ["kitty", "+kitten", "icat", "--align", "left", str(thumb_file)],
-                    capture_output=True
+                    capture_output=True,
                 )
                 sys.stdout.buffer.write(res.stdout)
                 sys.stdout.flush()
-                
-                line_count = res.stdout.count(b'\n')
+
+                line_count = res.stdout.count(b"\n")
                 if line_count < max_h:
                     print("\n" * (max_h - line_count), end="")
             else:
@@ -3237,7 +3244,7 @@ def _fzf_pick(title, options, preview_cmd=None):
         stderr=None,
         text=True,
     )
-    
+
     # Clear any lingering native terminal images (Kitty, etc) that FZF left behind
     print("\033_Ga=d;\033\\", end="", flush=True)
 
@@ -3521,15 +3528,33 @@ def play_loop(
                 break
             elif cmd.lower() in ("d", "dub", "sub", "audio"):
                 mode = "dub" if mode == "sub" else "sub"
-                print(f"{C_GREEN}Audio mode switched to {mode.upper()}. Reloading episode...{C_RESET}")
+                print(
+                    f"{C_GREEN}Audio mode switched to {mode.upper()}. Reloading episode...{C_RESET}"
+                )
                 break
             elif cmd.lower() in ("w", "watch", "watchlist"):
-                w_opts = ["watching", "plan_to_watch", "completed", "on_hold", "dropped"]
-                w_labels = ["Currently Watching", "Plan to Watch", "Completed", "On Hold", "Dropped"]
-                w_idx = pick_option("☁️ Manage Cloud Watchlist Status:", w_labels, default_idx=0)
+                w_opts = [
+                    "watching",
+                    "plan_to_watch",
+                    "completed",
+                    "on_hold",
+                    "dropped",
+                ]
+                w_labels = [
+                    "Currently Watching",
+                    "Plan to Watch",
+                    "Completed",
+                    "On Hold",
+                    "Dropped",
+                ]
+                w_idx = pick_option(
+                    "☁️ Manage Cloud Watchlist Status:", w_labels, default_idx=0
+                )
                 status = w_opts[w_idx]
-                
-                print(f"{C_CYAN}🔄 Updating Watchlist to '{w_labels[w_idx]}' in background...{C_RESET}")
+
+                print(
+                    f"{C_CYAN}🔄 Updating Watchlist to '{w_labels[w_idx]}' in background...{C_RESET}"
+                )
                 # Re-run sync_all_platforms with new status
                 sync_all_platforms(title, ep_num, mal_id=mal_id, status=status)
                 time.sleep(1)
@@ -3775,7 +3800,6 @@ def run_doctor():
 
     # 2. Python Packages
     try:
-        import requests
 
         req_ver = getattr(requests, "__version__", "installed")
         print(f"  {C_GREEN}✓{C_RESET} requests:          {C_CYAN}v{req_ver}{C_RESET}")
@@ -3872,13 +3896,21 @@ def run_doctor():
 
     print(f"\n{C_GREEN}Doctor check completed.{C_RESET}\n")
 
+
 def run_config_wizard():
     """Interactive CLI configuration wizard for setting defaults."""
     print(f"\n{C_CYAN}{C_BOLD}⚙️ Interactive Configuration Wizard{C_RESET}")
-    print(f"{C_DIM}Set your default preferences so you don't have to type flags every time!{C_RESET}\n")
+    print(
+        f"{C_DIM}Set your default preferences so you don't have to type flags every time!{C_RESET}\n"
+    )
 
     # 1. Quality
-    q_opts = ["1080p (Full HD)", "720p (HD - Fast/No Buffer)", "480p (SD)", "360p (Data Saver)"]
+    q_opts = [
+        "1080p (Full HD)",
+        "720p (HD - Fast/No Buffer)",
+        "480p (SD)",
+        "360p (Data Saver)",
+    ]
     q_vals = ["1080p", "720p", "480p", "360p"]
     q_idx = pick_option("📺 Select Default Quality:", q_opts, default_idx=1)
     _append_config("ANI_SYNC_DEFAULT_QUALITY", q_vals[q_idx])
@@ -3896,12 +3928,21 @@ def run_config_wizard():
     _append_config("ANI_SYNC_DEFAULT_PROVIDER", p_vals[p_idx])
 
     # 4. Theme
-    t_opts = ["catppuccin", "tokyonight", "dracula", "nord", "gruvbox", "monokai", "default"]
+    t_opts = [
+        "catppuccin",
+        "tokyonight",
+        "dracula",
+        "nord",
+        "gruvbox",
+        "monokai",
+        "default",
+    ]
     t_idx = pick_option("🎨 Select FZF Theme:", t_opts, default_idx=0)
     _append_config("ANI_SYNC_THEME", t_opts[t_idx])
 
     print(f"\n{C_GREEN}✅ Configuration saved successfully to {CONFIG_PATH}!{C_RESET}")
     print(f"Run {C_CYAN}ani-sync{C_RESET} to enjoy your new defaults.")
+
 
 def run_theme_picker(target_theme=None):
     """Interactive theme selector and persistent switcher."""
@@ -4446,25 +4487,32 @@ def main():
         data = load_history()
         history = data.get("history", [])
         if not history:
-            print(f"{C_YELLOW}Your cloud 'Watching' list is empty or not configured!{C_RESET}")
+            print(
+                f"{C_YELLOW}Your cloud 'Watching' list is empty or not configured!{C_RESET}"
+            )
             return
-        
+
         options = [f"{h['title']} (Watched Ep {h.get('episode', 0)})" for h in history]
         save_preview_metadata(history)
         py_bin = sys.executable
         cli_path = Path(__file__).resolve()
         preview_cmd = f'"{py_bin}" "{cli_path}" _preview {{}}'
         selected_idx = pick_option(
-            "☁️ Cloud Watchlist (Pick to Resume):", options, default_idx=0, preview_cmd=preview_cmd
+            "☁️ Cloud Watchlist (Pick to Resume):",
+            options,
+            default_idx=0,
+            preview_cmd=preview_cmd,
         )
-        
+
         chosen = history[selected_idx]
         play_loop(
             {"slug": chosen["slug"], "title": chosen["title"]},
-            initial_ep_idx=chosen.get("episode", 0),  # Resume at the next episode (which is idx = episode since 0-indexed)
+            initial_ep_idx=chosen.get(
+                "episode", 0
+            ),  # Resume at the next episode (which is idx = episode since 0-indexed)
             preferred_quality=chosen.get("quality", "720p"),
             mode=chosen.get("mode", "sub"),
-            player="mpv"
+            player="mpv",
         )
         return
 
