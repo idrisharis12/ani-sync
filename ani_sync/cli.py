@@ -3039,10 +3039,8 @@ def render_preview(item_str):
                 subprocess.run(
                     [
                         chafa_bin,
-                        "--format=symbols",
                         "--colors=full",
                         f"--size={max_w}x{max_h}",
-                        "--symbols=vhalf,quad,block",
                         str(thumb_file),
                     ]
                 )
