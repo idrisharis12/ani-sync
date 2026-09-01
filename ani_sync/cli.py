@@ -1664,14 +1664,18 @@ def search_anime(query):
             title = html.unescape(raw_title).strip()
             results.append({"slug": slug, "title": title, "image": None})
 
-    # Enrich with cover images from AniList GraphQL
+    # Enrich with cover images and metadata from AniList GraphQL
     try:
         gql_query = """
         query ($search: String) {
           Page(perPage: 15) {
             media(search: $search, type: ANIME) {
               title { romaji english }
-              coverImage { large }
+              coverImage { extraLarge large }
+              averageScore
+              episodes
+              genres
+              status
             }
           }
         }
@@ -1700,7 +1704,14 @@ def search_anime(query):
                         or rom in t_lower
                         or (eng and (t_lower in eng or eng in t_lower))
                     ):
-                        res["image"] = m.get("coverImage", {}).get("large")
+                        c_img = m.get("coverImage", {})
+                        res["image"] = c_img.get("extraLarge") or c_img.get(
+                            "large"
+                        )
+                        res["score"] = m.get("averageScore")
+                        res["episodes"] = m.get("episodes")
+                        res["status"] = m.get("status")
+                        res["genres"] = m.get("genres", [])
                         break
     except Exception:
         pass
@@ -2816,6 +2827,10 @@ def save_preview_metadata(results):
             "title": clean_t,
             "slug": r.get("slug", ""),
             "image": r.get("image", ""),
+            "score": r.get("score"),
+            "episodes": r.get("episodes"),
+            "genres": r.get("genres", []),
+            "status": r.get("status"),
         }
         meta[f"{idx}. {clean_t}"] = info
         meta[clean_t] = info
@@ -2828,7 +2843,7 @@ def save_preview_metadata(results):
 
 
 def render_preview(item_str):
-    """Render FZF preview window with metadata and 24-bit graphic cover thumbnail."""
+    """Render FZF preview window with crisp 24-bit graphic cover artwork and metadata card."""
     item_str = re.sub(r"\033\[[0-9;]*m", "", item_str).strip()
     raw_title = re.sub(r"^\d+\.\s*", "", item_str).strip()
 
@@ -2847,10 +2862,30 @@ def render_preview(item_str):
     title = info.get("title") or raw_title or item_str
     slug = info.get("slug", "")
     image_url = info.get("image")
+    score = info.get("score")
+    episodes = info.get("episodes")
+    status = info.get("status")
+    genres = info.get("genres") or []
 
+    # Display styled header card
     print(f"\033[1;36m📺 {title}\033[0m")
-    if slug:
-        print(f"\033[33mIdentifier:\033[0m {slug}\n")
+    meta_line = []
+    if score:
+        formatted_score = (
+            f"{score / 10:.1f}/10"
+            if isinstance(score, (int, float)) and score > 10
+            else f"{score}/10"
+        )
+        meta_line.append(f"\033[1;33m⭐ {formatted_score}\033[0m")
+    if episodes:
+        meta_line.append(f"\033[36m📺 {episodes} Ep\033[0m")
+    if status:
+        meta_line.append(f"\033[32m🟢 {status}\033[0m")
+    if meta_line:
+        print(" • ".join(meta_line))
+    if genres:
+        print(f"\033[2m🏷️ {', '.join(genres[:4])}\033[0m")
+    print(f"\033[2m{'─' * 42}\033[0m\n")
 
     # On-the-fly cover artwork fallback lookup if image URL was not in preview_meta
     if not image_url and title:
@@ -2858,7 +2893,11 @@ def render_preview(item_str):
             gql_query = """
             query ($search: String) {
               Media(search: $search, type: ANIME) {
-                coverImage { large }
+                coverImage { extraLarge large }
+                averageScore
+                episodes
+                status
+                genres
               }
             }
             """
@@ -2875,12 +2914,10 @@ def render_preview(item_str):
             )
             with urllib.request.urlopen(req, timeout=3) as resp:
                 d = json.loads(resp.read().decode("utf-8"))
-                image_url = (
-                    d.get("data", {})
-                    .get("Media", {})
-                    .get("coverImage", {})
-                    .get("large")
-                )
+                media = d.get("data", {}).get("Media", {})
+                image_url = media.get("coverImage", {}).get(
+                    "extraLarge"
+                ) or media.get("coverImage", {}).get("large")
         except Exception:
             pass
 
@@ -2899,18 +2936,18 @@ def render_preview(item_str):
 
             chafa_bin = shutil.which("chafa")
             if chafa_bin:
-                subprocess.run([chafa_bin, "--size=35x18", str(thumb_file)])
+                subprocess.run([chafa_bin, "--size=42x22", str(thumb_file)])
             else:
                 try:
                     from PIL import Image
 
-                    img = Image.open(thumb_file).convert("RGB").resize((36, 18))
+                    img = Image.open(thumb_file).convert("RGB").resize((42, 22))
                     pixels = list(
                         img.get_flattened_data()
                         if hasattr(img, "get_flattened_data")
                         else img.getdata()
                     )
-                    w, h = 36, 18
+                    w, h = 42, 22
                     for y in range(0, h, 2):
                         row1 = pixels[y * w : (y + 1) * w]
                         row2 = (
@@ -2965,7 +3002,7 @@ def _fzf_pick(title, options, preview_cmd=None):
     ]
     if preview_cmd:
         fzf_cmd.append(f"--preview={preview_cmd}")
-        fzf_cmd.append("--preview-window=right:45%:wrap")
+        fzf_cmd.append("--preview-window=right:55%:wrap")
 
     proc = subprocess.run(
         fzf_cmd,
