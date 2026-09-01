@@ -453,7 +453,7 @@ def refresh_mal_token():
     return None
 
 
-def sync_episode_to_mal(anime_title, episode_num, mal_id=None, quiet=False):
+def sync_episode_to_mal(anime_title, episode_num, mal_id=None, status="watching", quiet=False):
     """Sync episode progress to MyAnimeList."""
     if not is_mal_configured():
         if not quiet:
@@ -501,7 +501,7 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None, quiet=False):
         update_url = f"{API_URL}/anime/{mal_id}/my_list_status"
         payload = {
             "num_watched_episodes": episode_num,
-            "status": "watching",
+            "status": status,
         }
         res = requests.patch(
             update_url,
@@ -644,7 +644,7 @@ def run_anilist_auth():
         print(f"{C_RED}❌ Connection error: {e}{C_RESET}")
 
 
-def sync_episode_to_anilist(anime_title, episode_num, quiet=False):
+def sync_episode_to_anilist(anime_title, episode_num, status="watching", quiet=False):
     """Sync episode progress to AniList."""
     if not is_anilist_configured():
         return False, "Not configured"
@@ -654,6 +654,16 @@ def sync_episode_to_anilist(anime_title, episode_num, quiet=False):
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
+    
+    # Map MAL status to AniList status
+    al_status_map = {
+        "watching": "CURRENT",
+        "plan_to_watch": "PLANNING",
+        "completed": "COMPLETED",
+        "on_hold": "PAUSED",
+        "dropped": "DROPPED"
+    }
+    
     try:
         # Search for anime
         clean_search = re.sub(r'["\\]', "", anime_title)
@@ -671,11 +681,16 @@ def sync_episode_to_anilist(anime_title, episode_num, quiet=False):
             return False, "Anime not found on AniList"
         media_id = media["id"]
         total_eps = media.get("episodes")
-        status = "COMPLETED" if total_eps and episode_num >= total_eps else "CURRENT"
+        
+        # Determine status
+        target_status = al_status_map.get(status, "CURRENT")
+        if total_eps and episode_num >= total_eps and status == "watching":
+            target_status = "COMPLETED"
+            
         # Update progress
         update_mutation = f"""
         mutation {{
-          SaveMediaListEntry (mediaId: {media_id}, progress: {episode_num}, status: {status}) {{
+          SaveMediaListEntry (mediaId: {media_id}, progress: {episode_num}, status: {target_status}) {{
             id mediaId status progress
           }}
         }}
@@ -787,36 +802,51 @@ def refresh_kitsu_token():
     return None
 
 
-def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
+def sync_episode_to_kitsu(anime_title, episode_num, status="watching", quiet=False):
     """Sync episode progress to Kitsu."""
     if not is_kitsu_configured():
         return False, "Not configured"
-    token = os.getenv("KITSU_TOKEN", "").strip()
+    
+    # Map MAL status to Kitsu status
+    kt_status_map = {
+        "watching": "current",
+        "plan_to_watch": "planned",
+        "completed": "completed",
+        "on_hold": "on_hold",
+        "dropped": "dropped"
+    }
+    target_status = kt_status_map.get(status, "current")
+    
     kitsu_headers = {
-        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.api+json",
         "Content-Type": "application/vnd.api+json",
     }
+    token = os.getenv("KITSU_TOKEN", "").strip()
+    if token:
+        kitsu_headers["Authorization"] = f"Bearer {token}"
+
     try:
-        # Search anime
+        # Search for anime
         res = requests.get(
             f"{KITSU_API_URL}/anime",
             params={"filter[text]": anime_title, "page[limit]": 1},
-            headers={"Accept": "application/vnd.api+json"},
-            timeout=8,
-        )
-        if res.status_code != 200:
-            return False, f"Kitsu search error ({res.status_code})"
-        results = res.json().get("data", [])
-        if not results:
-            return False, "Anime not found on Kitsu"
-        anime_id = results[0]["id"]
-
-        # Get user ID
-        res = requests.get(
-            f"{KITSU_API_URL}/users?filter[self]=true",
             headers=kitsu_headers,
             timeout=8,
+        )
+        data = res.json().get("data", []) if res.status_code == 200 else []
+        if not data:
+            return False, "Anime not found on Kitsu"
+        anime = data[0]
+        anime_id = anime["id"]
+        
+        # Check if completed
+        total_eps = anime.get("attributes", {}).get("episodeCount")
+        if total_eps and episode_num >= total_eps and status == "watching":
+            target_status = "completed"
+
+        # Get User ID
+        res = requests.get(
+            f"{KITSU_API_URL}/users?filter[self]=true", headers=kitsu_headers, timeout=8
         )
         if res.status_code != 200:
             # Token might be expired, try refresh
@@ -853,7 +883,7 @@ def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
                     "data": {
                         "id": entry_id,
                         "type": "libraryEntries",
-                        "attributes": {"progress": episode_num, "status": "current"},
+                        "attributes": {"progress": episode_num, "status": target_status},
                     }
                 },
                 headers=kitsu_headers,
@@ -889,7 +919,7 @@ def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
     return False, "Failed"
 
 
-def sync_all_platforms(anime_title, episode_num, mal_id=None):
+def sync_all_platforms(anime_title, episode_num, mal_id=None, status="watching"):
     """Sync episode progress to all configured tracking platforms in parallel and return results dictionary."""
     sync_results = {}
     threads = []
@@ -905,7 +935,7 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
         t = threading.Thread(
             target=worker, 
             args=("MyAnimeList", sync_episode_to_mal, anime_title, episode_num), 
-            kwargs={"mal_id": mal_id, "quiet": True},
+            kwargs={"mal_id": mal_id, "status": status, "quiet": True},
             daemon=False
         )
         threads.append((t, "MyAnimeList"))
@@ -915,7 +945,7 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
         t = threading.Thread(
             target=worker, 
             args=("AniList", sync_episode_to_anilist, anime_title, episode_num), 
-            kwargs={"quiet": True},
+            kwargs={"status": status, "quiet": True},
             daemon=False
         )
         threads.append((t, "AniList"))
@@ -925,7 +955,7 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
         t = threading.Thread(
             target=worker, 
             args=("Kitsu", sync_episode_to_kitsu, anime_title, episode_num), 
-            kwargs={"quiet": True},
+            kwargs={"status": status, "quiet": True},
             daemon=False
         )
         threads.append((t, "Kitsu"))
@@ -2251,6 +2281,18 @@ def launch_player(
     player_bin = find_player_binary(player)
     aniskip_data = fetch_aniskip_times(mal_id, ep_num) if mal_id else None
 
+    # Handle BitTorrent / Magnet Fallback
+    if "torrent" in target_path or target_path.startswith("magnet:"):
+        webtorrent_bin = shutil.which("webtorrent") or shutil.which("webtorrent.cmd")
+        if not webtorrent_bin:
+            print(f"\n{C_RED}❌ webtorrent-cli is required to stream torrents!{C_RESET}")
+            print(f"{C_YELLOW}Install it via: npm install -g webtorrent-cli{C_RESET}")
+            return
+        print(f"\n{C_CYAN}🧲 Streaming via BitTorrent (Nyaa.si fallback)...{C_RESET}")
+        cmd = [webtorrent_bin, target_path, "--mpv"]
+        subprocess.run(cmd)
+        return
+
     # Check for Syncplay Watch Together Party mode
     if party_room:
         syncplay_bin = shutil.which("syncplay") or shutil.which("syncplay.exe")
@@ -3445,9 +3487,9 @@ def play_loop(
                 row1 = f"  {C_CYAN}[r]{C_RESET} Replay Ep {ep_num}  │  {C_YELLOW}[p]{C_RESET} Previous Episode"
 
             if seasons:
-                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep │ {C_YELLOW}[q]{C_RESET} Quality │ {C_YELLOW}[S]{C_RESET} Season │ {C_CYAN}[d]{C_RESET} {mode.upper()} │ {C_MAGENTA}[m]{C_RESET} Menu"
+                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep │ {C_YELLOW}[q]{C_RESET} Quality │ {C_YELLOW}[S]{C_RESET} Season │ {C_CYAN}[d]{C_RESET} {mode.upper()} │ {C_MAGENTA}[w]{C_RESET} Watchlist │ {C_MAGENTA}[m]{C_RESET} Menu"
             else:
-                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep  │  {C_YELLOW}[q]{C_RESET} Quality  │  {C_CYAN}[d]{C_RESET} Audio: {mode.upper()}  │  {C_MAGENTA}[m]{C_RESET} Menu"
+                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep  │  {C_YELLOW}[q]{C_RESET} Quality  │  {C_CYAN}[d]{C_RESET} Audio: {mode.upper()}  │  {C_MAGENTA}[w]{C_RESET} Watchlist  │  {C_MAGENTA}[m]{C_RESET} Menu"
 
             row3 = f"  {C_RED}[x]{C_RESET} Quit"
 
@@ -3481,6 +3523,16 @@ def play_loop(
                 mode = "dub" if mode == "sub" else "sub"
                 print(f"{C_GREEN}Audio mode switched to {mode.upper()}. Reloading episode...{C_RESET}")
                 break
+            elif cmd.lower() in ("w", "watch", "watchlist"):
+                w_opts = ["watching", "plan_to_watch", "completed", "on_hold", "dropped"]
+                w_labels = ["Currently Watching", "Plan to Watch", "Completed", "On Hold", "Dropped"]
+                w_idx = pick_option("☁️ Manage Cloud Watchlist Status:", w_labels, default_idx=0)
+                status = w_opts[w_idx]
+                
+                print(f"{C_CYAN}🔄 Updating Watchlist to '{w_labels[w_idx]}' in background...{C_RESET}")
+                # Re-run sync_all_platforms with new status
+                sync_all_platforms(title, ep_num, mal_id=mal_id, status=status)
+                time.sleep(1)
             elif cmd.lower() in ("s", "select", "ep"):
                 ep_options = [
                     f"Episode {e.get('number', i+1)}" for i, e in enumerate(episodes)
@@ -3820,6 +3872,36 @@ def run_doctor():
 
     print(f"\n{C_GREEN}Doctor check completed.{C_RESET}\n")
 
+def run_config_wizard():
+    """Interactive CLI configuration wizard for setting defaults."""
+    print(f"\n{C_CYAN}{C_BOLD}⚙️ Interactive Configuration Wizard{C_RESET}")
+    print(f"{C_DIM}Set your default preferences so you don't have to type flags every time!{C_RESET}\n")
+
+    # 1. Quality
+    q_opts = ["1080p (Full HD)", "720p (HD - Fast/No Buffer)", "480p (SD)", "360p (Data Saver)"]
+    q_vals = ["1080p", "720p", "480p", "360p"]
+    q_idx = pick_option("📺 Select Default Quality:", q_opts, default_idx=1)
+    _append_config("ANI_SYNC_DEFAULT_QUALITY", q_vals[q_idx])
+
+    # 2. Audio Mode
+    m_opts = ["Japanese SUB", "English DUB"]
+    m_vals = ["sub", "dub"]
+    m_idx = pick_option("🗣️ Select Default Audio:", m_opts, default_idx=0)
+    _append_config("ANI_SYNC_DEFAULT_MODE", m_vals[m_idx])
+
+    # 3. Provider
+    p_opts = ["auto (Best Available)", "gogo", "hianime", "anidb"]
+    p_vals = ["auto", "gogo", "hianime", "anidb"]
+    p_idx = pick_option("📡 Select Default Provider:", p_opts, default_idx=0)
+    _append_config("ANI_SYNC_DEFAULT_PROVIDER", p_vals[p_idx])
+
+    # 4. Theme
+    t_opts = ["catppuccin", "tokyonight", "dracula", "nord", "gruvbox", "monokai", "default"]
+    t_idx = pick_option("🎨 Select FZF Theme:", t_opts, default_idx=0)
+    _append_config("ANI_SYNC_THEME", t_opts[t_idx])
+
+    print(f"\n{C_GREEN}✅ Configuration saved successfully to {CONFIG_PATH}!{C_RESET}")
+    print(f"Run {C_CYAN}ani-sync{C_RESET} to enjoy your new defaults.")
 
 def run_theme_picker(target_theme=None):
     """Interactive theme selector and persistent switcher."""
@@ -4113,6 +4195,7 @@ def print_help():
 {C_BOLD}Options:{C_RESET}
     -c, --continue, continue  Resume last watched anime (plays next episode)
     -w, --watching, watchlist Pull & resume from your cloud 'Watching' list
+    config, wizard            Interactive configuration wizard to set defaults
     party, --party [room]     Syncplay Watch Together synchronized party mode
     -t, --trending, trending  Browse top airing and trending anime
     -s, --schedule, schedule  Interactive anime release schedule & calendar
@@ -4215,7 +4298,7 @@ def main():
         )
     ):
         threading.Thread(
-            target=update_self, kwargs={"quiet": True}, daemon=True
+            target=update_self, kwargs={"status": status, "quiet": True}, daemon=True
         ).start()
 
     party_room = None
@@ -4299,6 +4382,10 @@ def main():
     # Check for library sync command
     if args and args[0] in ("sync", "import", "library", "pull", "--sync"):
         sync_all_libraries()
+        return
+
+    if args and args[0] in ("config", "wizard", "setup-config", "--config"):
+        run_config_wizard()
         return
 
     if args and args[0] in ("auth", "setup", "--auth"):
@@ -4438,9 +4525,9 @@ def main():
     episode_target = None
     target_episodes_list = None
     download_all = False
-    preferred_quality = None
-    mode = "sub"
-    provider = "auto"
+    preferred_quality = os.getenv("ANI_SYNC_DEFAULT_QUALITY")
+    mode = os.getenv("ANI_SYNC_DEFAULT_MODE", "sub")
+    provider = os.getenv("ANI_SYNC_DEFAULT_PROVIDER", "auto")
     player = "mpv"
     direct = False
     download_only = False
