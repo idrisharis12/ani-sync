@@ -3580,9 +3580,11 @@ def update_self(quiet=False):
         )
 
     try:
-        # Check remote version from config.py
+        # Check remote version from config.py with cache-busting headers
+        cache_buster = int(time.time())
         r = requests.get(
-            "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync/config.py",
+            f"https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync/config.py?t={cache_buster}",
+            headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
             timeout=10,
         )
         r.raise_for_status()

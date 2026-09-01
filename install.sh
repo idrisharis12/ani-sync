@@ -131,25 +131,20 @@ python3 -m pip install --user --upgrade --quiet requests tqdm yt-dlp 2>/dev/null
 # ------------------------------------------------------------------------------
 echo -e "${CYAN}[3/4] Installing ani-sync to ${INSTALL_DIR}...${NC}"
 
-# If running directly from git cloned repo
-if [ -d "ani_sync" ]; then
-    cp -r ani_sync "$SHARE_DIR/"
-    if [ -d "assets" ]; then
-        cp -r assets "$SHARE_DIR/"
-    fi
-else
-    echo -e "  Downloading latest ani-sync package from GitHub..."
-    TMP_DIR=$(mktemp -d)
-    curl -fsSL https://github.com/idrisharis12/ani-sync/archive/refs/heads/main.tar.gz | tar -xz -C "$TMP_DIR"
-    
+# Clean up any stale package files in SHARE_DIR before updating
+rm -rf "$SHARE_DIR/ani_sync"
+
+echo -e "  Downloading latest ani-sync package from GitHub..."
+TMP_DIR=$(mktemp -d)
+if curl -fsSL https://github.com/idrisharis12/ani-sync/archive/refs/heads/main.tar.gz | tar -xz -C "$TMP_DIR" 2>/dev/null; then
     if [ -d "$TMP_DIR/ani-sync-main/ani_sync" ]; then
         cp -r "$TMP_DIR/ani-sync-main/ani_sync" "$SHARE_DIR/"
         cp -r "$TMP_DIR/ani-sync-main/assets" "$SHARE_DIR/" 2>/dev/null || true
     fi
-    rm -rf "$TMP_DIR"
-    
-    python3 -m pip install --quiet "git+https://github.com/idrisharis12/ani-sync.git" 2>/dev/null || true
 fi
+rm -rf "$TMP_DIR"
+
+python3 -m pip install --quiet --upgrade --no-deps "git+https://github.com/idrisharis12/ani-sync.git" 2>/dev/null || true
 
 # Create launcher wrapper in INSTALL_DIR
 cat << 'LAUNCHER' > "$INSTALL_DIR/ani-sync"
