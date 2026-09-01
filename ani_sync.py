@@ -19,20 +19,25 @@ try:
     from ani_sync.cli import main
 except ImportError:
     print("\n\033[1;33m[!] ani-sync architecture has been updated.\033[0m")
-    print("It seems you updated using the legacy script updater, which did not download the new package files.")
+    print(
+        "It seems you updated using the legacy script updater, which did not download the new package files."
+    )
     print("Automatically repairing your installation...\n")
-    
+
     # Run the new install script to properly install the package
     try:
         subprocess.run(
             "curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash",
-            shell=True, check=True
+            shell=True,
+            check=True,
         )
         print("\n\033[1;32m[✓] Repair complete! Please run ani-sync again.\033[0m")
     except Exception as e:
         print(f"\n\033[1;31m[x] Repair failed: {e}\033[0m")
         print("Please run this command manually:")
-        print("curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash")
+        print(
+            "curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash"
+        )
     sys.exit(1)
 
 if __name__ == "__main__":

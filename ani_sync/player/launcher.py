@@ -38,7 +38,9 @@ def poll_mpv_ipc(ipc_path, stop_event):
             if IS_WINDOWS:
                 if os.path.exists(ipc_path):
                     with open(ipc_path, "r+b", buffering=0) as pipe:
-                        req = json.dumps({"command": ["get_property", "time-pos"]}) + "\n"
+                        req = (
+                            json.dumps({"command": ["get_property", "time-pos"]}) + "\n"
+                        )
                         pipe.write(req.encode("utf-8"))
                         res = pipe.readline()
                         data = json.loads(res.decode("utf-8", errors="ignore"))
@@ -49,7 +51,9 @@ def poll_mpv_ipc(ipc_path, stop_event):
                     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
                         s.settimeout(1.5)
                         s.connect(ipc_path)
-                        req = json.dumps({"command": ["get_property", "time-pos"]}) + "\n"
+                        req = (
+                            json.dumps({"command": ["get_property", "time-pos"]}) + "\n"
+                        )
                         s.sendall(req.encode("utf-8"))
                         res = s.recv(1024)
                         data = json.loads(res.decode("utf-8", errors="ignore"))
@@ -188,19 +192,21 @@ def launch_player(
             cmd.append(f"--volume={volume}")
         if start_time and float(start_time) > 5:
             cmd.append(f"--start={int(start_time)}")
-        cmd.extend([
-            f"--demuxer-max-bytes={demux_bytes}",
-            f"--demuxer-max-back-bytes={back_bytes}",
-            f"--demuxer-readahead-secs={readahead}",
-            f"--stream-buffer-size={stream_buf}",
-            "--cache-pause=no",
-            "--cache-pause-initial=no",
-            "--force-seekable=yes",
-            "--demuxer-seekable-cache=yes",
-            "--hls-bitrate=max",
-            "--network-timeout=20",
-            "--msg-level=ffmpeg=error",
-        ])
+        cmd.extend(
+            [
+                f"--demuxer-max-bytes={demux_bytes}",
+                f"--demuxer-max-back-bytes={back_bytes}",
+                f"--demuxer-readahead-secs={readahead}",
+                f"--stream-buffer-size={stream_buf}",
+                "--cache-pause=no",
+                "--cache-pause-initial=no",
+                "--force-seekable=yes",
+                "--demuxer-seekable-cache=yes",
+                "--hls-bitrate=max",
+                "--network-timeout=20",
+                "--msg-level=ffmpeg=error",
+            ]
+        )
         skip_script = get_auto_skip_script(
             auto_skip=auto_skip, aniskip_data=aniskip_data
         )
@@ -248,11 +254,7 @@ def launch_player(
         f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro | [o] Skip Outro | [q] Quit{C_RESET}\n"
     )
 
-    ipc_path = (
-        r"\\.\pipe\ani-sync-mpv-pipe"
-        if IS_WINDOWS
-        else "/tmp/ani-sync-mpv.sock"
-    )
+    ipc_path = r"\\.\pipe\ani-sync-mpv-pipe" if IS_WINDOWS else "/tmp/ani-sync-mpv.sock"
     if player_bin == "mpv" or "mpv" in Path(player_bin).stem.lower():
         cmd.append(f"--input-ipc-server={ipc_path}")
 

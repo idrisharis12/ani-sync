@@ -1560,10 +1560,9 @@ def get_last_watched():
     data = load_history()
     return data.get("last_watched")
 
-
-# ----------------------------------------------------------------------
-# Discord Rich Presence (Zero-Dependency IPC)
-# ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
+    # Discord Rich Presence (Zero-Dependency IPC)
+    # ----------------------------------------------------------------------
     def stop_activity(cls):
         """Close Discord Rich Presence activity cleanly."""
         cls._active = False
@@ -1710,9 +1709,7 @@ def search_anime(query):
                         or (eng and (t_lower in eng or eng in t_lower))
                     ):
                         c_img = m.get("coverImage", {})
-                        res["image"] = c_img.get("extraLarge") or c_img.get(
-                            "large"
-                        )
+                        res["image"] = c_img.get("extraLarge") or c_img.get("large")
                         res["score"] = m.get("averageScore")
                         res["episodes"] = m.get("episodes")
                         res["status"] = m.get("status")
@@ -1726,7 +1723,9 @@ def search_anime(query):
                             res["season"] = f"{s_name.capitalize()} {s_yr}"
                         tr = m.get("trailer", {})
                         if tr and tr.get("site") == "youtube":
-                            res["trailer"] = f"https://youtube.com/watch?v={tr.get('id')}"
+                            res["trailer"] = (
+                                f"https://youtube.com/watch?v={tr.get('id')}"
+                            )
                         n_ep = m.get("nextAiringEpisode")
                         if n_ep:
                             ep_n = n_ep.get("episode")
@@ -2267,19 +2266,21 @@ def launch_player(
         ]
         if volume is not None:
             cmd.append(f"--volume={volume}")
-        cmd.extend([
-            f"--demuxer-max-bytes={demux_bytes}",
-            f"--demuxer-max-back-bytes={back_bytes}",
-            f"--demuxer-readahead-secs={readahead}",
-            f"--stream-buffer-size={stream_buf}",
-            "--cache-pause=no",
-            "--cache-pause-initial=no",
-            "--force-seekable=yes",
-            "--demuxer-seekable-cache=yes",
-            "--hls-bitrate=max",
-            "--network-timeout=20",
-            "--msg-level=ffmpeg=error",
-        ])
+        cmd.extend(
+            [
+                f"--demuxer-max-bytes={demux_bytes}",
+                f"--demuxer-max-back-bytes={back_bytes}",
+                f"--demuxer-readahead-secs={readahead}",
+                f"--stream-buffer-size={stream_buf}",
+                "--cache-pause=no",
+                "--cache-pause-initial=no",
+                "--force-seekable=yes",
+                "--demuxer-seekable-cache=yes",
+                "--hls-bitrate=max",
+                "--network-timeout=20",
+                "--msg-level=ffmpeg=error",
+            ]
+        )
         skip_script = get_auto_skip_script(
             auto_skip=auto_skip, aniskip_data=aniskip_data
         )
@@ -2427,7 +2428,7 @@ def turbo_play(
         mal_id=mal_id,
         party_room=party_room,
         low_ram=low_ram,
-            volume=volume,
+        volume=volume,
     )
 
     # Cache cleanup: Keep newest ~4GB of anime, delete older
@@ -3027,9 +3028,7 @@ def render_preview(item_str):
                     for y in range(0, h, 2):
                         row1 = pixels[y * w : (y + 1) * w]
                         row2 = (
-                            pixels[(y + 1) * w : (y + 2) * w]
-                            if (y + 1) < h
-                            else row1
+                            pixels[(y + 1) * w : (y + 2) * w] if (y + 1) < h else row1
                         )
                         line = "".join(
                             f"\033[38;2;{r1};{g1};{b1}m\033[48;2;{r2};{g2};{b2}m▀"
@@ -3513,36 +3512,44 @@ def play_loop(
 def update_self(quiet=False):
     """Update ani-sync to the latest version by running the universal installer."""
     if not quiet:
-        print(
-            f"\n{C_CYAN}{C_BOLD}🔄 Checking for ani-sync updates...{C_RESET}"
-        )
-    
+        print(f"\n{C_CYAN}{C_BOLD}🔄 Checking for ani-sync updates...{C_RESET}")
+
     try:
         # Check remote version from config.py
-        r = requests.get("https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync/config.py", timeout=10)
+        r = requests.get(
+            "https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync/config.py",
+            timeout=10,
+        )
         r.raise_for_status()
         remote_code = r.text
         v_match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', remote_code)
         remote_version = v_match.group(1) if v_match else "latest"
-        
+
         if remote_version == VERSION:
             if not quiet:
-                print(f"{C_GREEN}✓ You are already on the latest version (v{VERSION}){C_RESET}")
+                print(
+                    f"{C_GREEN}✓ You are already on the latest version (v{VERSION}){C_RESET}"
+                )
             return
-            
+
         if quiet:
             # We are running in the background. Do not run the interactive installer!
             return
-            
-        print(f"{C_YELLOW}New version found: v{remote_version} (Current: v{VERSION}){C_RESET}")
+
+        print(
+            f"{C_YELLOW}New version found: v{remote_version} (Current: v{VERSION}){C_RESET}"
+        )
         print("Running updater...")
-            
+
         # Run the installer script to perform a clean update of the package
         subprocess.run(
             "curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash",
-            shell=True, check=True
+            shell=True,
+            check=True,
         )
-        print(f"\n{C_GREEN}✓ Successfully updated ani-sync to v{remote_version}!{C_RESET}")
+        print(
+            f"\n{C_GREEN}✓ Successfully updated ani-sync to v{remote_version}!{C_RESET}"
+        )
     except Exception as e:
         if not quiet:
             print(f"{C_RED}❌ Update failed: {e}{C_RESET}")
@@ -3578,7 +3585,9 @@ def run_doctor():
     )
     print(f"{C_BOLD}System & Runtime Environment:{C_RESET}")
     print(f"  {C_GREEN}✓{C_RESET} Platform:          {C_CYAN}{os_label}{C_RESET}")
-    print(f"  {C_GREEN}✓{C_RESET} Active Profile:    {C_CYAN}{CURRENT_PROFILE}{C_RESET}")
+    print(
+        f"  {C_GREEN}✓{C_RESET} Active Profile:    {C_CYAN}{CURRENT_PROFILE}{C_RESET}"
+    )
     print(
         f"  {C_GREEN}✓{C_RESET} Architecture:      {C_CYAN}{pform.machine()}{C_RESET}"
     )
@@ -4450,7 +4459,7 @@ def main():
         auto_skip=auto_skip,
         party_room=party_room,
         low_ram=low_ram,
-            volume=volume,
+        volume=volume,
         provider=provider,
     )
 

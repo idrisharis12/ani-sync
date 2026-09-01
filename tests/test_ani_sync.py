@@ -118,18 +118,21 @@ class TestPlayerSignatures(unittest.TestCase):
     def test_launcher_signature(self):
         import inspect
         from ani_sync.player.launcher import launch_player
+
         sig = inspect.signature(launch_player)
         self.assertIn("volume", sig.parameters)
 
     def test_turbo_signature(self):
         import inspect
         from ani_sync.player.turbo import turbo_play
+
         sig = inspect.signature(turbo_play)
         self.assertIn("volume", sig.parameters)
 
     def test_cli_play_loop_signature(self):
         import inspect
         from ani_sync.cli import play_loop
+
         sig = inspect.signature(play_loop)
         self.assertIn("volume", sig.parameters)
         self.assertIn("provider", sig.parameters)

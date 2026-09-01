@@ -47,7 +47,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install lint dependencies
         run: |
@@ -58,7 +58,7 @@ jobs:
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Check Formatting (black)
-        run: black --check .
+        run: black --fast --check .
 
   build-binaries:
     name: Build Standalone (${{ matrix.os }})

@@ -68,7 +68,7 @@ class DiscordRPC:
                         "/tmp/",
                         "/tmp/app/com.discordapp.Discord/",
                     ]
-                    
+
                     for base in base_paths:
                         if not base or base == "/":
                             continue
@@ -76,7 +76,9 @@ class DiscordRPC:
                             c = os.path.join(base, f"discord-ipc-{i}")
                             if os.path.exists(c):
                                 try:
-                                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                                    sock = socket.socket(
+                                        socket.AF_UNIX, socket.SOCK_STREAM
+                                    )
                                     sock.connect(c)
                                     log_debug(f"Connected to Unix Discord socket: {c}")
                                     break
