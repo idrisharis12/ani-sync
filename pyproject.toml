@@ -23,6 +23,22 @@ dependencies = [
     "tqdm>=4.60.0",
     "Pillow>=9.0.0",
 ]
+keywords = [
+    "anime",
+    "terminal",
+    "watch-anime-in-terminal",
+    "cli-anime-player",
+    "terminal-anime-streaming",
+    "myanimelist-sync",
+    "anilist-sync",
+    "kitsu-sync",
+    "mpv",
+    "fzf",
+    "syncplay",
+    "aniskip",
+    "termux",
+    "linux-anime",
+]
 
 [project.scripts]
 ani-sync = "ani_sync:main"

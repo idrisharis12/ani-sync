@@ -759,6 +759,22 @@ Doctor check completed.
 
 ---
 
+## 🔍 Frequently Asked Questions (SEO & Search Guide)
+
+### How to watch anime in terminal?
+To **watch anime in terminal**, install `ani-sync` (`curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash`) and run `ani-sync "anime title"`. It launches high-speed 64x turbo streaming directly in MPV, VLC, or IINA with 100% zero buffering.
+
+### What is the best CLI anime player for Linux, macOS, Windows & Termux?
+`ani-sync` is the top-rated open-source CLI anime player supporting **Linux** (Arch, Ubuntu, Fedora, Debian), **macOS**, **Windows**, and **Android Termux**. It features 24-bit TrueColor ANSI graphic thumbnails, frame-accurate AniSkip intro skipping, Syncplay watch parties, and automatic MyAnimeList, AniList, and Kitsu multi-platform tracking.
+
+### How to stream anime in command line with zero buffering?
+`ani-sync` uses a 64-socket parallel TCP fragment engine combined with Linux `/dev/shm` RAM-disk caching to eliminate buffering completely, starting playback in **0.0 seconds**.
+
+### How to sync MyAnimeList and AniList watch progress automatically from terminal?
+Run `ani-sync auth` to connect your MyAnimeList, AniList, or Kitsu account. Whenever you watch an episode using `ani-sync`, your watch progress, episode count, and completion status are updated across all 3 platforms in parallel.
+
+---
+
 ## 📄 License
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more details.
 
