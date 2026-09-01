@@ -22,6 +22,7 @@ def turbo_play(
     party_room=None,
     low_ram=False,
     volume=None,
+    start_time=None,
 ):
     """Zero-latency instant playback with high-throughput RAM buffer and local cache fallback."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
@@ -35,7 +36,7 @@ def turbo_play(
         )
         if download_only:
             print(f"{C_GREEN}✓ File ready at: {cache_file}{C_RESET}")
-            return True
+            return True, 0
         return launch_player(
             str(cache_file),
             title,
@@ -46,6 +47,7 @@ def turbo_play(
             party_room=party_room,
             low_ram=low_ram,
             volume=volume,
+            start_time=start_time,
         )
 
     # 2. Download-only mode

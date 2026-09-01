@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 """Media player binary discovery and execution (MPV, VLC, IINA, Android Intents, Syncplay)."""
 
+import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 from ani_sync.config import CONFIG_DIR, IS_TERMUX, IS_WINDOWS, USER_AGENT, load_config
@@ -19,6 +23,41 @@ from ani_sync.ui.themes import (
     C_RESET,
     C_YELLOW,
 )
+
+_LAST_MPV_TIME_POS = 0.0
+
+
+def poll_mpv_ipc(ipc_path, stop_event):
+    """Poll MPV IPC JSON socket for real-time playback position (time-pos)."""
+    global _LAST_MPV_TIME_POS
+    _LAST_MPV_TIME_POS = 0.0
+
+    time.sleep(1.5)
+    while not stop_event.is_set():
+        try:
+            if IS_WINDOWS:
+                if os.path.exists(ipc_path):
+                    with open(ipc_path, "r+b", buffering=0) as pipe:
+                        req = json.dumps({"command": ["get_property", "time-pos"]}) + "\n"
+                        pipe.write(req.encode("utf-8"))
+                        res = pipe.readline()
+                        data = json.loads(res.decode("utf-8", errors="ignore"))
+                        if "data" in data and isinstance(data["data"], (int, float)):
+                            _LAST_MPV_TIME_POS = float(data["data"])
+            else:
+                if os.path.exists(ipc_path):
+                    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                        s.settimeout(1.5)
+                        s.connect(ipc_path)
+                        req = json.dumps({"command": ["get_property", "time-pos"]}) + "\n"
+                        s.sendall(req.encode("utf-8"))
+                        res = s.recv(1024)
+                        data = json.loads(res.decode("utf-8", errors="ignore"))
+                        if "data" in data and isinstance(data["data"], (int, float)):
+                            _LAST_MPV_TIME_POS = float(data["data"])
+        except Exception:
+            pass
+        time.sleep(2.0)
 
 
 def find_player_binary(player="mpv"):
@@ -209,9 +248,24 @@ def launch_player(
         f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro | [o] Skip Outro | [q] Quit{C_RESET}\n"
     )
 
+    ipc_path = (
+        r"\\.\pipe\ani-sync-mpv-pipe"
+        if IS_WINDOWS
+        else "/tmp/ani-sync-mpv.sock"
+    )
+    if player_bin == "mpv" or "mpv" in Path(player_bin).stem.lower():
+        cmd.append(f"--input-ipc-server={ipc_path}")
+
+    stop_ipc = threading.Event()
+    ipc_thread = threading.Thread(
+        target=poll_mpv_ipc, args=(ipc_path, stop_ipc), daemon=True
+    )
+    ipc_thread.start()
+
     DiscordRPC.start_activity(title, ep_num)
     try:
         proc = subprocess.run(cmd)
-        return proc.returncode == 0
+        return (proc.returncode == 0, _LAST_MPV_TIME_POS)
     finally:
+        stop_ipc.set()
         DiscordRPC.stop_activity()

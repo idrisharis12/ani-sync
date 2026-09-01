@@ -1676,6 +1676,11 @@ def search_anime(query):
               episodes
               genres
               status
+              season
+              seasonYear
+              studios(isMain: true) { nodes { name } }
+              nextAiringEpisode { episode timeUntilAiring }
+              trailer { site id }
             }
           }
         }
@@ -1712,6 +1717,23 @@ def search_anime(query):
                         res["episodes"] = m.get("episodes")
                         res["status"] = m.get("status")
                         res["genres"] = m.get("genres", [])
+                        st_nodes = m.get("studios", {}).get("nodes", [])
+                        if st_nodes:
+                            res["studio"] = st_nodes[0].get("name")
+                        s_name = m.get("season")
+                        s_yr = m.get("seasonYear")
+                        if s_name and s_yr:
+                            res["season"] = f"{s_name.capitalize()} {s_yr}"
+                        tr = m.get("trailer", {})
+                        if tr and tr.get("site") == "youtube":
+                            res["trailer"] = f"https://youtube.com/watch?v={tr.get('id')}"
+                        n_ep = m.get("nextAiringEpisode")
+                        if n_ep:
+                            ep_n = n_ep.get("episode")
+                            secs = n_ep.get("timeUntilAiring", 0)
+                            days = secs // 86400
+                            hrs = (secs % 86400) // 3600
+                            res["next_ep"] = f"Ep {ep_n} in {days}d {hrs}h"
                         break
     except Exception:
         pass
@@ -2831,6 +2853,10 @@ def save_preview_metadata(results):
             "episodes": r.get("episodes"),
             "genres": r.get("genres", []),
             "status": r.get("status"),
+            "studio": r.get("studio"),
+            "season": r.get("season"),
+            "trailer": r.get("trailer"),
+            "next_ep": r.get("next_ep"),
         }
         meta[f"{idx}. {clean_t}"] = info
         meta[clean_t] = info
@@ -2843,7 +2869,7 @@ def save_preview_metadata(results):
 
 
 def render_preview(item_str):
-    """Render FZF preview window with crisp 24-bit graphic cover artwork and metadata card."""
+    """Render FZF preview window with crisp 24-bit graphic cover artwork and rich metadata card."""
     item_str = re.sub(r"\033\[[0-9;]*m", "", item_str).strip()
     raw_title = re.sub(r"^\d+\.\s*", "", item_str).strip()
 
@@ -2866,28 +2892,12 @@ def render_preview(item_str):
     episodes = info.get("episodes")
     status = info.get("status")
     genres = info.get("genres") or []
+    studio = info.get("studio")
+    season = info.get("season")
+    trailer = info.get("trailer")
+    next_ep = info.get("next_ep")
 
-    # Display styled header card
-    print(f"\033[1;36m📺 {title}\033[0m")
-    meta_line = []
-    if score:
-        formatted_score = (
-            f"{score / 10:.1f}/10"
-            if isinstance(score, (int, float)) and score > 10
-            else f"{score}/10"
-        )
-        meta_line.append(f"\033[1;33m⭐ {formatted_score}\033[0m")
-    if episodes:
-        meta_line.append(f"\033[36m📺 {episodes} Ep\033[0m")
-    if status:
-        meta_line.append(f"\033[32m🟢 {status}\033[0m")
-    if meta_line:
-        print(" • ".join(meta_line))
-    if genres:
-        print(f"\033[2m🏷️ {', '.join(genres[:4])}\033[0m")
-    print(f"\033[2m{'─' * 42}\033[0m\n")
-
-    # On-the-fly cover artwork fallback lookup if image URL was not in preview_meta
+    # On-the-fly cover artwork & metadata fallback lookup if image URL was not in preview_meta
     if not image_url and title:
         try:
             gql_query = """
@@ -2898,6 +2908,11 @@ def render_preview(item_str):
                 episodes
                 status
                 genres
+                season
+                seasonYear
+                studios(isMain: true) { nodes { name } }
+                nextAiringEpisode { episode timeUntilAiring }
+                trailer { site id }
               }
             }
             """
@@ -2915,11 +2930,64 @@ def render_preview(item_str):
             with urllib.request.urlopen(req, timeout=3) as resp:
                 d = json.loads(resp.read().decode("utf-8"))
                 media = d.get("data", {}).get("Media", {})
-                image_url = media.get("coverImage", {}).get(
-                    "extraLarge"
-                ) or media.get("coverImage", {}).get("large")
+                c_img = media.get("coverImage", {})
+                image_url = c_img.get("extraLarge") or c_img.get("large")
+                score = score or media.get("averageScore")
+                episodes = episodes or media.get("episodes")
+                status = status or media.get("status")
+                genres = genres or media.get("genres", [])
+                st_nodes = media.get("studios", {}).get("nodes", [])
+                if st_nodes:
+                    studio = st_nodes[0].get("name")
+                s_name = media.get("season")
+                s_yr = media.get("seasonYear")
+                if s_name and s_yr:
+                    season = f"{s_name.capitalize()} {s_yr}"
+                tr = media.get("trailer", {})
+                if tr and tr.get("site") == "youtube":
+                    trailer = f"https://youtube.com/watch?v={tr.get('id')}"
+                n_ep = media.get("nextAiringEpisode")
+                if n_ep:
+                    ep_n = n_ep.get("episode")
+                    secs = n_ep.get("timeUntilAiring", 0)
+                    days = secs // 86400
+                    hrs = (secs % 86400) // 3600
+                    next_ep = f"Ep {ep_n} in {days}d {hrs}h"
         except Exception:
             pass
+
+    # Display styled Viu-style header card
+    print(f"\033[1;36m📺 {title}\033[0m")
+    meta_line = []
+    if score:
+        formatted_score = (
+            f"{score / 10:.1f}/10"
+            if isinstance(score, (int, float)) and score > 10
+            else f"{score}/10"
+        )
+        meta_line.append(f"\033[1;33m⭐ {formatted_score}\033[0m")
+    if episodes:
+        meta_line.append(f"\033[36m📺 {episodes} Ep\033[0m")
+    if status:
+        meta_line.append(f"\033[32m🟢 {status}\033[0m")
+    if meta_line:
+        print(" • ".join(meta_line))
+
+    detail_line = []
+    if studio:
+        detail_line.append(f"\033[35m🎨 Studio:\033[0m {studio}")
+    if season:
+        detail_line.append(f"\033[33m📅 Season:\033[0m {season}")
+    if next_ep:
+        detail_line.append(f"\033[96m⏳ {next_ep}\033[0m")
+    if detail_line:
+        print(" • ".join(detail_line))
+
+    if genres:
+        print(f"\033[2m🏷️ {', '.join(genres[:4])}\033[0m")
+    if trailer:
+        print(f"\033[2;34m🎬 Trailer: {trailer}\033[0m")
+    print(f"\033[2m{'─' * 44}\033[0m\n")
 
     if image_url:
         try:
@@ -2936,18 +3004,26 @@ def render_preview(item_str):
 
             chafa_bin = shutil.which("chafa")
             if chafa_bin:
-                subprocess.run([chafa_bin, "--size=42x22", str(thumb_file)])
+                subprocess.run(
+                    [
+                        chafa_bin,
+                        "--size=44x22",
+                        "--format=symbols",
+                        "--symbols=vhalf,quad,block",
+                        str(thumb_file),
+                    ]
+                )
             else:
                 try:
                     from PIL import Image
 
-                    img = Image.open(thumb_file).convert("RGB").resize((42, 22))
+                    img = Image.open(thumb_file).convert("RGB").resize((44, 22))
                     pixels = list(
                         img.get_flattened_data()
                         if hasattr(img, "get_flattened_data")
                         else img.getdata()
                     )
-                    w, h = 42, 22
+                    w, h = 44, 22
                     for y in range(0, h, 2):
                         row1 = pixels[y * w : (y + 1) * w]
                         row2 = (
@@ -3182,7 +3258,7 @@ def play_loop(
         DiscordRPC.start_activity(title, ep_num)
 
         # Launch Turbo Multi-Connection Player
-        turbo_play(
+        play_res = turbo_play(
             selected_url,
             title,
             ep_num,
@@ -3196,11 +3272,17 @@ def play_loop(
             volume=volume,
         )
 
+        last_time_pos = 0
+        if isinstance(play_res, tuple):
+            _, last_time_pos = play_res
+
         # Stop Discord Rich Presence on player close
         DiscordRPC.stop_activity()
 
-        # Record to local history
-        save_history(slug, title, ep_num, quality=quality_used, mode=mode)
+        # Record to local history with MPV IPC position
+        save_history(
+            slug, title, ep_num, quality=quality_used, mode=mode, time_pos=last_time_pos
+        )
 
         # Auto-sync to all configured tracking platforms (MAL, AniList, Kitsu) in parallel
         has_tracking = (
