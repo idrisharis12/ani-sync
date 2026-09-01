@@ -3004,27 +3004,33 @@ def render_preview(item_str):
                     f.write(resp.read())
 
             chafa_bin = shutil.which("chafa")
+            icat_bin = shutil.which("kitty")
             if chafa_bin:
                 subprocess.run(
                     [
                         chafa_bin,
-                        "--size=44x22",
-                        "--format=symbols",
+                        "--size=48x24",
+                        "--format=auto",
                         "--symbols=vhalf,quad,block",
+                        "--fill=space",
                         str(thumb_file),
                     ]
+                )
+            elif icat_bin:
+                subprocess.run(
+                    ["kitty", "+kitten", "icat", "--align", "left", str(thumb_file)]
                 )
             else:
                 try:
                     from PIL import Image
 
-                    img = Image.open(thumb_file).convert("RGB").resize((44, 22))
+                    img = Image.open(thumb_file).convert("RGB").resize((48, 24))
                     pixels = list(
                         img.get_flattened_data()
                         if hasattr(img, "get_flattened_data")
                         else img.getdata()
                     )
-                    w, h = 44, 22
+                    w, h = 48, 24
                     for y in range(0, h, 2):
                         row1 = pixels[y * w : (y + 1) * w]
                         row2 = (
