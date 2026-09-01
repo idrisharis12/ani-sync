@@ -2928,6 +2928,9 @@ def save_preview_metadata(results):
 
 def render_preview(item_str):
     """Render FZF preview window with crisp 24-bit graphic cover artwork and rich metadata card."""
+    # Clear any existing Kitty images in the preview window to prevent stacking
+    print("\033_Ga=d;\033\\", end="", flush=True)
+    
     item_str = re.sub(r"\033\[[0-9;]*m", "", item_str).strip()
     raw_title = re.sub(r"^\d+\.\s*", "", item_str).strip()
 
@@ -3168,6 +3171,9 @@ def _fzf_pick(title, options, preview_cmd=None):
         stderr=None,
         text=True,
     )
+    
+    # Clear any lingering native terminal images (Kitty, etc) that FZF left behind
+    print("\033_Ga=d;\033\\", end="", flush=True)
 
     if proc.returncode != 0 or not proc.stdout.strip():
         if proc.returncode in (1, 130):
