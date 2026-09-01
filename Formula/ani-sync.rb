@@ -1,7 +1,7 @@
 class AniSync < Formula
   desc "Stream anime from terminal with 64x turbo speed & multi-platform tracking"
   homepage "https://github.com/idrisharis12/ani-sync"
-  url "https://github.com/idrisharis12/ani-sync/archive/refs/tags/v2.11.15.tar.gz"
+  url "https://github.com/idrisharis12/ani-sync/archive/refs/tags/v2.11.16.tar.gz"
   sha256 "SKIP"
   license "MIT"
 

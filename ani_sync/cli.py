@@ -3445,12 +3445,15 @@ def play_loop(
                 row1 = f"  {C_CYAN}[r]{C_RESET} Replay Ep {ep_num}  │  {C_YELLOW}[p]{C_RESET} Previous Episode"
 
             if seasons:
-                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep │ {C_YELLOW}[q]{C_RESET} Quality │ {C_YELLOW}[S]{C_RESET} Season │ {C_MAGENTA}[m]{C_RESET} Menu (FZF) │ {C_RED}[x]{C_RESET} Quit"
+                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep │ {C_YELLOW}[q]{C_RESET} Quality │ {C_YELLOW}[S]{C_RESET} Season │ {C_CYAN}[d]{C_RESET} {mode.upper()} │ {C_MAGENTA}[m]{C_RESET} Menu"
             else:
-                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep  │  {C_YELLOW}[q]{C_RESET} Quality  │  {C_MAGENTA}[m]{C_RESET} Menu (FZF)  │  {C_RED}[x]{C_RESET} Quit"
+                row2 = f"  {C_YELLOW}[s]{C_RESET} Select Ep  │  {C_YELLOW}[q]{C_RESET} Quality  │  {C_CYAN}[d]{C_RESET} Audio: {mode.upper()}  │  {C_MAGENTA}[m]{C_RESET} Menu"
+
+            row3 = f"  {C_RED}[x]{C_RESET} Quit"
 
             print(f"{C_CYAN}│{C_RESET}{row1}")
             print(f"{C_CYAN}│{C_RESET}{row2}")
+            print(f"{C_CYAN}│{C_RESET}{row3}")
             print(f"{C_CYAN}╰{'─' * card_width}╯{C_RESET}")
 
             try:
@@ -3473,6 +3476,10 @@ def play_loop(
                 break  # loops same ep
             elif cmd.lower() in ("p", "prev", "previous") and has_prev:
                 current_idx -= 1
+                break
+            elif cmd.lower() in ("d", "dub", "sub", "audio"):
+                mode = "dub" if mode == "sub" else "sub"
+                print(f"{C_GREEN}Audio mode switched to {mode.upper()}. Reloading episode...{C_RESET}")
                 break
             elif cmd.lower() in ("s", "select", "ep"):
                 ep_options = [
@@ -4105,6 +4112,7 @@ def print_help():
 
 {C_BOLD}Options:{C_RESET}
     -c, --continue, continue  Resume last watched anime (plays next episode)
+    -w, --watching, watchlist Pull & resume from your cloud 'Watching' list
     party, --party [room]     Syncplay Watch Together synchronized party mode
     -t, --trending, trending  Browse top airing and trending anime
     -s, --schedule, schedule  Interactive anime release schedule & calendar
@@ -4341,6 +4349,35 @@ def main():
             preferred_quality=last.get("quality", "720p"),
             mode=last.get("mode", "sub"),
             player="mpv",
+        )
+        return
+
+    # Check for cloud watching list (Two-Way Sync)
+    if args and args[0] in ("-w", "--watching", "watching", "watchlist"):
+        print(f"\n{C_CYAN}☁️ Fetching your 'Watching' list from the cloud...{C_RESET}")
+        sync_all_libraries(quiet=True)
+        data = load_history()
+        history = data.get("history", [])
+        if not history:
+            print(f"{C_YELLOW}Your cloud 'Watching' list is empty or not configured!{C_RESET}")
+            return
+        
+        options = [f"{h['title']} (Watched Ep {h.get('episode', 0)})" for h in history]
+        save_preview_metadata(history)
+        py_bin = sys.executable
+        cli_path = Path(__file__).resolve()
+        preview_cmd = f'"{py_bin}" "{cli_path}" _preview {{}}'
+        selected_idx = pick_option(
+            "☁️ Cloud Watchlist (Pick to Resume):", options, default_idx=0, preview_cmd=preview_cmd
+        )
+        
+        chosen = history[selected_idx]
+        play_loop(
+            {"slug": chosen["slug"], "title": chosen["title"]},
+            initial_ep_idx=chosen.get("episode", 0),  # Resume at the next episode (which is idx = episode since 0-indexed)
+            preferred_quality=chosen.get("quality", "720p"),
+            mode=chosen.get("mode", "sub"),
+            player="mpv"
         )
         return
 
