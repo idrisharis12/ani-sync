@@ -125,6 +125,9 @@ def run_fzf_menu(items, prompt="Select: ", header="", preview=None):
         ]
         if header:
             cmd.append(f"--header=📺  ani-sync  ❯  {header}\n")
+        if preview:
+            cmd.append(f"--preview={preview}")
+            cmd.append("--preview-window=right:50%:wrap")
 
         try:
             proc = subprocess.Popen(

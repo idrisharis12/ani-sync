@@ -2703,7 +2703,7 @@ def _has_fzf():
 _FZF_ENABLED = True  # Set to False by --no-fzf CLI flag
 
 
-def pick_option(title, options, default_idx=0, use_fzf=True):
+def pick_option(title, options, default_idx=0, use_fzf=True, preview_cmd=None):
     """Interactive selection menu with fzf fuzzy search (auto-fallback to numbered list).
 
     When fzf is installed, launches an interactive fuzzy finder with live
@@ -2723,7 +2723,7 @@ def pick_option(title, options, default_idx=0, use_fzf=True):
 
     if use_fzf and _FZF_ENABLED and _has_fzf() and len(options) > 1:
         try:
-            result = _fzf_pick(title, options)
+            result = _fzf_pick(title, options, preview_cmd=preview_cmd)
             if result is not None:
                 return result
         except Exception:
@@ -2764,7 +2764,7 @@ def pick_option(title, options, default_idx=0, use_fzf=True):
             sys.exit(0)
 
 
-def _fzf_pick(title, options):
+def _fzf_pick(title, options, preview_cmd=None):
     """Launch fzf with the list of options and return the selected index."""
     clean_title = (
         title.replace("\033[94m", "")
@@ -2783,7 +2783,7 @@ def _fzf_pick(title, options):
 
     fzf_cmd = [
         "fzf",
-        "--height=~50%",
+        "--height=~60%",
         "--layout=reverse",
         "--border=rounded",
         "--margin=1,2",
@@ -2798,6 +2798,9 @@ def _fzf_pick(title, options):
         "--no-scrollbar",
         "--cycle",
     ]
+    if preview_cmd:
+        fzf_cmd.append(f"--preview={preview_cmd}")
+        fzf_cmd.append("--preview-window=right:45%:wrap")
 
     proc = subprocess.run(
         fzf_cmd,
