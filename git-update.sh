@@ -1,26 +1,23 @@
 #!/usr/bin/env bash
+# Automated Git Sync Script for ani-sync
 set -euo pipefail
 
-# Generate a timestamp‑based branch name
-TS=$(date +"%Y%m%d-%H%M%S")
-BRANCH="update-${TS}"
-
-# Create and switch to the new branch
-git checkout -b "$BRANCH"
-
-# Stage all changes (adjust if you only want specific files)
+# Stage all changes
 git add -A
 
-# Use supplied commit message or a default one
+TS=$(date +"%Y-%m-%d %H:%M:%S")
+
 if [ $# -eq 0 ]; then
   MSG="Update ${TS}"
 else
   MSG="$*"
 fi
 
-git commit -m "$MSG"
+if git diff-index --quiet HEAD --; then
+  echo "ℹ️  No changes to commit."
+else
+  git commit -m "$MSG"
+fi
 
-# Push the new branch to origin
-git push -u origin "$BRANCH"
-
-echo "✅  Created and pushed branch: $BRANCH"
+git push origin main
+echo "✅  Successfully synchronized and pushed changes to GitHub (origin main)!"
