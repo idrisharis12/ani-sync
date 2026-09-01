@@ -1650,7 +1650,7 @@ def http_get(url, is_json=False):
 
 
 def search_anime(query):
-    """Search for anime on AniDB provider."""
+    """Search for anime on AniDB provider and enrich with AniList cover artwork."""
     url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
     html_text = http_get(url)
     matches = re.findall(
@@ -1662,7 +1662,49 @@ def search_anime(query):
         if slug not in seen:
             seen.add(slug)
             title = html.unescape(raw_title).strip()
-            results.append({"slug": slug, "title": title})
+            results.append({"slug": slug, "title": title, "image": None})
+
+    # Enrich with cover images from AniList GraphQL
+    try:
+        gql_query = """
+        query ($search: String) {
+          Page(perPage: 15) {
+            media(search: $search, type: ANIME) {
+              title { romaji english }
+              coverImage { large }
+            }
+          }
+        }
+        """
+        payload = json.dumps(
+            {"query": gql_query, "variables": {"search": query}}
+        ).encode("utf-8")
+        req = urllib.request.Request(
+            "https://graphql.anilist.co",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            media_items = data.get("data", {}).get("Page", {}).get("media", [])
+            for res in results:
+                t_lower = res["title"].lower()
+                for m in media_items:
+                    rom = (m.get("title", {}).get("romaji") or "").lower()
+                    eng = (m.get("title", {}).get("english") or "").lower()
+                    if (
+                        t_lower in rom
+                        or rom in t_lower
+                        or (eng and (t_lower in eng or eng in t_lower))
+                    ):
+                        res["image"] = m.get("coverImage", {}).get("large")
+                        break
+    except Exception:
+        pass
+
     return results
 
 
@@ -2784,7 +2826,7 @@ def save_preview_metadata(results):
 
 
 def render_preview(item_str):
-    """Render FZF preview window with metadata and cover thumbnail."""
+    """Render FZF preview window with metadata and 24-bit graphic cover thumbnail."""
     item_str = item_str.strip()
     cache_dir = get_cache_dir()
     preview_file = cache_dir / "preview_meta.json"
@@ -2800,19 +2842,51 @@ def render_preview(item_str):
     info = meta.get(item_str, {})
     title = info.get("title") or item_str
     slug = info.get("slug", "")
+    image_url = info.get("image", "")
 
-    print(f"\033[1;36m📺 {title}\033[0m\n")
+    print(f"\033[1;36m📺 {title}\033[0m")
     if slug:
-        print(f"\033[33mSlug:\033[0m {slug}\n")
+        print(f"\033[33mIdentifier:\033[0m {slug}\n")
 
-    chafa_bin = shutil.which("chafa")
-    image_url = info.get("image")
-    if image_url and chafa_bin:
+    if image_url:
         try:
-            thumb_file = cache_dir / f"{slug}.jpg"
+            safe_slug = re.sub(r"[^\w\-]", "_", slug or title)
+            thumb_file = cache_dir / f"{safe_slug}.jpg"
             if not thumb_file.exists():
-                urllib.request.urlretrieve(image_url, thumb_file)
-            subprocess.run([chafa_bin, "--size=35x18", str(thumb_file)])
+                req = urllib.request.Request(
+                    image_url, headers={"User-Agent": "Mozilla/5.0"}
+                )
+                with urllib.request.urlopen(req) as resp, open(thumb_file, "wb") as f:
+                    f.write(resp.read())
+
+            chafa_bin = shutil.which("chafa")
+            if chafa_bin:
+                subprocess.run([chafa_bin, "--size=35x18", str(thumb_file)])
+            else:
+                try:
+                    from PIL import Image
+
+                    img = Image.open(thumb_file).convert("RGB").resize((36, 18))
+                    pixels = list(
+                        img.get_flattened_data()
+                        if hasattr(img, "get_flattened_data")
+                        else img.getdata()
+                    )
+                    w, h = 36, 18
+                    for y in range(0, h, 2):
+                        row1 = pixels[y * w : (y + 1) * w]
+                        row2 = (
+                            pixels[(y + 1) * w : (y + 2) * w]
+                            if (y + 1) < h
+                            else row1
+                        )
+                        line = "".join(
+                            f"\033[38;2;{r1};{g1};{b1}m\033[48;2;{r2};{g2};{b2}m▀"
+                            for (r1, g1, b1), (r2, g2, b2) in zip(row1, row2)
+                        )
+                        print(line + "\033[0m")
+                except Exception:
+                    pass
         except Exception:
             pass
 

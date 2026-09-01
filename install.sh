@@ -50,29 +50,29 @@ install_system_packages() {
     if command -v apt-get &>/dev/null; then
         echo -e "  ${DIM}Detected Debian/Ubuntu (APT) package manager...${NC}"
         $SUDO_CMD apt-get update -y -qq || true
-        $SUDO_CMD apt-get install -y -qq fzf mpv yt-dlp curl git python3 python3-pip python3-requests python3-tqdm 2>/dev/null || \
-        $SUDO_CMD apt-get install -y -qq fzf mpv curl git python3 python3-pip 2>/dev/null || true
+        $SUDO_CMD apt-get install -y -qq fzf mpv yt-dlp chafa curl git python3 python3-pip python3-requests python3-tqdm python3-pil 2>/dev/null || \
+        $SUDO_CMD apt-get install -y -qq fzf mpv chafa curl git python3 python3-pip 2>/dev/null || true
     elif command -v pacman &>/dev/null; then
         echo -e "  ${DIM}Detected Arch Linux (pacman) package manager...${NC}"
-        $SUDO_CMD pacman -Sy --noconfirm --needed fzf mpv yt-dlp curl git python python-pip python-requests python-tqdm 2>/dev/null || true
+        $SUDO_CMD pacman -Sy --noconfirm --needed fzf mpv yt-dlp chafa curl git python python-pip python-requests python-tqdm python-pillow 2>/dev/null || true
     elif command -v dnf &>/dev/null; then
         echo -e "  ${DIM}Detected Fedora/RHEL (DNF) package manager...${NC}"
-        $SUDO_CMD dnf install -y -q fzf mpv yt-dlp curl git python3 python3-pip python3-requests python3-tqdm 2>/dev/null || true
+        $SUDO_CMD dnf install -y -q fzf mpv yt-dlp chafa curl git python3 python3-pip python3-requests python3-tqdm python3-pillow 2>/dev/null || true
     elif command -v zypper &>/dev/null; then
         echo -e "  ${DIM}Detected openSUSE (zypper) package manager...${NC}"
-        $SUDO_CMD zypper --non-interactive in fzf mpv yt-dlp curl git python3 python3-pip python3-requests python3-tqdm 2>/dev/null || true
+        $SUDO_CMD zypper --non-interactive in fzf mpv yt-dlp chafa curl git python3 python3-pip python3-requests python3-tqdm 2>/dev/null || true
     elif command -v apk &>/dev/null; then
         echo -e "  ${DIM}Detected Alpine Linux (apk) package manager...${NC}"
-        $SUDO_CMD apk add --no-cache fzf mpv yt-dlp curl git python3 py3-pip py3-requests py3-tqdm 2>/dev/null || true
+        $SUDO_CMD apk add --no-cache fzf mpv yt-dlp chafa curl git python3 py3-pip py3-requests py3-tqdm 2>/dev/null || true
     elif command -v brew &>/dev/null; then
         echo -e "  ${DIM}Detected macOS (Homebrew) package manager...${NC}"
-        brew install fzf mpv yt-dlp curl git python3 2>/dev/null || true
+        brew install fzf mpv yt-dlp chafa curl git python3 2>/dev/null || true
     elif command -v xbps-install &>/dev/null; then
         echo -e "  ${DIM}Detected Void Linux (XBPS) package manager...${NC}"
-        $SUDO_CMD xbps-install -Sy fzf mpv yt-dlp curl git python3 python3-pip python3-requests python3-tqdm 2>/dev/null || true
+        $SUDO_CMD xbps-install -Sy fzf mpv yt-dlp chafa curl git python3 python3-pip python3-requests python3-tqdm 2>/dev/null || true
     elif command -v pkg &>/dev/null; then
         echo -e "  ${DIM}Detected Termux/FreeBSD (pkg) package manager...${NC}"
-        pkg install -y fzf mpv yt-dlp curl git python 2>/dev/null || true
+        pkg install -y fzf mpv yt-dlp chafa curl git python 2>/dev/null || true
     fi
 }
 

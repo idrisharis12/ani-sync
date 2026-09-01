@@ -38,7 +38,7 @@ if (-not $HasPython) {
 
 # 2. Install Python dependencies
 Write-Host "[2/5] Installing Python dependencies (requests, tqdm, yt-dlp)..." -ForegroundColor Yellow
-python -m pip install --quiet --upgrade requests tqdm yt-dlp 2>$null
+python -m pip install --quiet --upgrade requests tqdm yt-dlp Pillow 2>$null
 
 # 3. Check and Auto-Install FZF (Interactive Fuzzy Search)
 Write-Host "[3/5] Setting up interactive FZF fuzzy search..." -ForegroundColor Yellow
