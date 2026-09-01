@@ -146,6 +146,13 @@ def bump_all(new_ver):
         r'"version"\s*:\s*["\'][^"\']+["\']',
         f'"version": "{new_ver}"',
     )
+    
+    # 8. README.md
+    update_file(
+        BASE_DIR / "README.md",
+        r'ani-sync_\d+\.\d+\.\d+_all\.deb',
+        f'ani-sync_{new_ver}_all.deb',
+    )
 
     print(
         f"\n✨ Version successfully bumped to v{new_ver} across all project manifests!"
