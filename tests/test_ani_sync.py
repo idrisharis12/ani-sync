@@ -138,5 +138,24 @@ class TestPlayerSignatures(unittest.TestCase):
         self.assertIn("provider", sig.parameters)
 
 
+class TestRangeParsing(unittest.TestCase):
+    def test_parse_range_string(self):
+        from ani_sync.cli import parse_episode_range
+
+        self.assertEqual(parse_episode_range("1-5"), [1, 2, 3, 4, 5])
+        self.assertEqual(parse_episode_range("1,3,5"), [1, 3, 5])
+        self.assertEqual(parse_episode_range("1-3,5,7-9"), [1, 2, 3, 5, 7, 8, 9])
+        self.assertEqual(parse_episode_range("invalid"), [])
+
+
+class TestCleanCache(unittest.TestCase):
+    def test_clean_cache_execution(self):
+        from ani_sync.config import clean_cache
+
+        files_removed, bytes_freed = clean_cache()
+        self.assertIsInstance(files_removed, int)
+        self.assertIsInstance(bytes_freed, int)
+
+
 if __name__ == "__main__":
     unittest.main()

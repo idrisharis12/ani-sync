@@ -104,6 +104,30 @@ def get_cache_dir():
     return fallback
 
 
+def clean_cache():
+    """Purge all temporary caches (thumbnails, preview metadata, stream fragments, .mp4 files)."""
+    bytes_freed = 0
+    files_removed = 0
+    cache_dirs = [
+        CACHE_DIR,
+        Path.home() / ".cache" / "ani-sync",
+        Path("/dev/shm/ani-sync"),
+    ]
+
+    for cdir in cache_dirs:
+        if cdir.exists():
+            for item in cdir.glob("*"):
+                try:
+                    if item.is_file() or item.is_symlink():
+                        size = item.stat().st_size
+                        item.unlink(missing_ok=True)
+                        bytes_freed += size
+                        files_removed += 1
+                except Exception:
+                    pass
+    return files_removed, bytes_freed
+
+
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"
@@ -2779,6 +2803,30 @@ def _has_fzf():
 _FZF_ENABLED = True  # Set to False by --no-fzf CLI flag
 
 
+def parse_episode_range(range_str):
+    """Parse flexible episode ranges (e.g., '1-12', '1,3,5', '1-5,8,10-12')."""
+    if not range_str:
+        return []
+    episodes = set()
+    parts = str(range_str).split(",")
+    for part in parts:
+        part = part.strip()
+        if "-" in part or ".." in part:
+            sep = "-" if "-" in part else ".."
+            try:
+                start, end = part.split(sep, 1)
+                for ep in range(int(start), int(end) + 1):
+                    episodes.add(ep)
+            except ValueError:
+                pass
+        else:
+            try:
+                episodes.add(int(part))
+            except ValueError:
+                pass
+    return sorted(list(episodes))
+
+
 def pick_option(title, options, default_idx=0, use_fzf=True, preview_cmd=None):
     """Interactive selection menu with fzf fuzzy search (auto-fallback to numbered list).
 
@@ -4162,6 +4210,14 @@ def main():
         run_doctor()
         return
 
+    if args and args[0] in ("clean", "purge", "--clean", "--purge"):
+        removed, bytes_freed = clean_cache()
+        mb = bytes_freed / (1024 * 1024)
+        print(
+            f"\n{C_GREEN}{C_BOLD}✓ Purged {removed} temporary cache items — freed {mb:.1f} MB!{C_RESET}\n"
+        )
+        return
+
     if args and args[0] in ("-U", "--update", "update"):
         quiet = "--quiet" in args or "-q" in args
         update_self(quiet=quiet)
@@ -4296,23 +4352,9 @@ def main():
         if arg in ("-e", "--episode", "-r", "--range"):
             if i + 1 < len(args):
                 ep_val = args[i + 1]
-                if "-" in ep_val or ".." in ep_val:
-                    sep = "-" if "-" in ep_val else ".."
-                    parts = ep_val.split(sep, 1)
-                    if parts[0].isdigit() and parts[1].isdigit():
-                        target_episodes_list = list(
-                            range(int(parts[0]), int(parts[1]) + 1)
-                        )
-                        episode_target = target_episodes_list[0]
-                elif "," in ep_val:
-                    target_episodes_list = [
-                        int(x.strip()) for x in ep_val.split(",") if x.strip().isdigit()
-                    ]
-                    if target_episodes_list:
-                        episode_target = target_episodes_list[0]
-                elif ep_val.isdigit():
-                    episode_target = int(ep_val)
-                    target_episodes_list = [episode_target]
+                target_episodes_list = parse_episode_range(ep_val)
+                if target_episodes_list:
+                    episode_target = target_episodes_list[0]
                 i += 1
         elif arg in ("--all", "-a"):
             download_all = True

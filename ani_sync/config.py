@@ -80,6 +80,30 @@ def get_cache_dir():
     return fallback
 
 
+def clean_cache():
+    """Purge all temporary caches (thumbnails, preview metadata, stream fragments, .mp4 files)."""
+    bytes_freed = 0
+    files_removed = 0
+    cache_dirs = [
+        CACHE_DIR,
+        Path.home() / ".cache" / "ani-sync",
+        Path("/dev/shm/ani-sync"),
+    ]
+
+    for cdir in cache_dirs:
+        if cdir.exists():
+            for item in cdir.glob("*"):
+                try:
+                    if item.is_file() or item.is_symlink():
+                        size = item.stat().st_size
+                        item.unlink(missing_ok=True)
+                        bytes_freed += size
+                        files_removed += 1
+                except Exception:
+                    pass
+    return files_removed, bytes_freed
+
+
 CONFIG_DIR = get_config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.env"
 HISTORY_PATH = CONFIG_DIR / "history.json"

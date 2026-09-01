@@ -2,8 +2,9 @@
 """Multi-provider resolution engine with automatic failover."""
 
 import concurrent.futures
+import urllib.request
 
-from ani_sync.config import log_debug
+from ani_sync.config import USER_AGENT, log_debug
 from ani_sync.providers.anidb import AniDBProvider
 from ani_sync.providers.gogo import GogoProvider
 from ani_sync.providers.hianime import HiAnimeProvider
@@ -13,6 +14,22 @@ PROVIDERS = {
     "gogo": GogoProvider(),
     "hianime": HiAnimeProvider(),
 }
+
+
+def verify_stream_url(url, timeout=0.8):
+    """Fast HTTP HEAD check to verify CDN stream URL status (returns True if HTTP 200/206/302)."""
+    if not url:
+        return False
+    try:
+        req = urllib.request.Request(
+            url,
+            method="HEAD",
+            headers={"User-Agent": USER_AGENT, "Referer": "https://anidb.app/"},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status in (200, 206, 301, 302, 304)
+    except Exception:
+        return True
 
 
 def resolve_streams(
