@@ -891,34 +891,57 @@ def sync_episode_to_kitsu(anime_title, episode_num, quiet=False):
 
 def sync_all_platforms(anime_title, episode_num, mal_id=None):
     """Sync episode progress to all configured tracking platforms in parallel and return results dictionary."""
-    tasks = {}
     sync_results = {}
+    threads = []
+    
+    def worker(p_name, func, *args, **kwargs):
+        try:
+            ok, msg = func(*args, **kwargs)
+            sync_results[p_name] = (ok, msg)
+        except Exception as e:
+            sync_results[p_name] = (False, str(e))
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        if is_mal_configured():
-            tasks["MyAnimeList"] = executor.submit(
-                sync_episode_to_mal,
-                anime_title,
-                episode_num,
-                mal_id=mal_id,
-                quiet=True,
-            )
-        if is_anilist_configured():
-            tasks["AniList"] = executor.submit(
-                sync_episode_to_anilist, anime_title, episode_num, quiet=True
-            )
-        if is_kitsu_configured():
-            tasks["Kitsu"] = executor.submit(
-                sync_episode_to_kitsu, anime_title, episode_num, quiet=True
-            )
-
-        for p_name, future in tasks.items():
-            try:
-                ok, msg = future.result(timeout=4)
-                sync_results[p_name] = (ok, msg)
-            except Exception as e:
-                sync_results[p_name] = (False, str(e))
-
+    if is_mal_configured():
+        t = threading.Thread(
+            target=worker, 
+            args=("MyAnimeList", sync_episode_to_mal, anime_title, episode_num), 
+            kwargs={"mal_id": mal_id, "quiet": True}, 
+            daemon=True
+        )
+        threads.append((t, "MyAnimeList"))
+        t.start()
+        
+    if is_anilist_configured():
+        t = threading.Thread(
+            target=worker, 
+            args=("AniList", sync_episode_to_anilist, anime_title, episode_num), 
+            kwargs={"quiet": True}, 
+            daemon=True
+        )
+        threads.append((t, "AniList"))
+        t.start()
+        
+    if is_kitsu_configured():
+        t = threading.Thread(
+            target=worker, 
+            args=("Kitsu", sync_episode_to_kitsu, anime_title, episode_num), 
+            kwargs={"quiet": True}, 
+            daemon=True
+        )
+        threads.append((t, "Kitsu"))
+        t.start()
+        
+    # Wait for all with a hard 3 second MAX timeout across all!
+    end_time = time.time() + 3.0
+    for t, p_name in threads:
+        remaining = end_time - time.time()
+        if remaining > 0:
+            t.join(timeout=remaining)
+        
+        # If thread is still alive after join (or we ran out of time), it timed out.
+        if t.is_alive() and p_name not in sync_results:
+            sync_results[p_name] = (False, "Timeout (Server too slow)")
+            
     return sync_results
 
 
