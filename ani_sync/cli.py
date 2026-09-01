@@ -3036,18 +3036,32 @@ def render_preview(item_str):
             chafa_bin = shutil.which("chafa")
             icat_bin = shutil.which("kitty")
             if chafa_bin:
-                subprocess.run(
+                res = subprocess.run(
                     [
                         chafa_bin,
                         "--colors=full",
                         f"--size={max_w}x{max_h}",
                         str(thumb_file),
-                    ]
+                    ],
+                    capture_output=True
                 )
+                sys.stdout.buffer.write(res.stdout)
+                sys.stdout.flush()
+                
+                line_count = res.stdout.count(b'\n')
+                if line_count < max_h:
+                    print("\n" * (max_h - line_count), end="")
             elif icat_bin:
-                subprocess.run(
-                    ["kitty", "+kitten", "icat", "--align", "left", str(thumb_file)]
+                res = subprocess.run(
+                    ["kitty", "+kitten", "icat", "--align", "left", str(thumb_file)],
+                    capture_output=True
                 )
+                sys.stdout.buffer.write(res.stdout)
+                sys.stdout.flush()
+                
+                line_count = res.stdout.count(b'\n')
+                if line_count < max_h:
+                    print("\n" * (max_h - line_count), end="")
             else:
                 try:
                     from PIL import Image
