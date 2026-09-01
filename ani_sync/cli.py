@@ -3015,7 +3015,70 @@ def render_preview(item_str):
         except Exception:
             pass
 
-    # Display styled Viu-style header card
+    preview_cols = int(os.environ.get("FZF_PREVIEW_COLUMNS", "40"))
+    max_w = max(20, min(preview_cols - 4, 36))
+    max_h = max(10, min(int(max_w * 0.48), 16))
+
+    # 1. Render Cover Image Artwork at the top
+    if image_url:
+        try:
+            safe_slug = re.sub(r"[^\w\-]", "_", slug or title)
+            thumb_file = cache_dir / f"{safe_slug}.jpg"
+            if not thumb_file.exists():
+                req = urllib.request.Request(
+                    image_url, headers={"User-Agent": "Mozilla/5.0"}
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp, open(
+                    thumb_file, "wb"
+                ) as f:
+                    f.write(resp.read())
+
+            chafa_bin = shutil.which("chafa")
+            icat_bin = shutil.which("kitty")
+            if chafa_bin:
+                subprocess.run(
+                    [
+                        chafa_bin,
+                        "--format=symbols",
+                        "--colors=full",
+                        f"--size={max_w}x{max_h}",
+                        "--symbols=vhalf,quad,block",
+                        str(thumb_file),
+                    ]
+                )
+            elif icat_bin:
+                subprocess.run(
+                    ["kitty", "+kitten", "icat", "--align", "left", str(thumb_file)]
+                )
+            else:
+                try:
+                    from PIL import Image
+
+                    img = Image.open(thumb_file)
+                    img = img.convert("RGB")
+                    img.thumbnail((max_w, max_h * 2))
+                    w, h = img.size
+                    pixels = img.load()
+                    lines = []
+                    for y in range(0, h - 1, 2):
+                        line = []
+                        for x in range(w):
+                            r1, g1, b1 = pixels[x, y]
+                            r2, g2, b2 = pixels[x, y + 1]
+                            line.append(
+                                f"\033[38;2;{r1};{g1};{b1}m\033[48;2;{r2};{g2};{b2}m▀"
+                            )
+                        line.append("\033[0m")
+                        lines.append("".join(line))
+                    print("\n".join(lines))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    print(f"\033[2m{'─' * max_w}\033[0m")
+
+    # 2. Render Title & Rich Metadata Card Underneath
     print(f"\033[1;36m📺 {title}\033[0m")
     meta_line = []
     if score:
@@ -3042,70 +3105,10 @@ def render_preview(item_str):
     if detail_line:
         print(" • ".join(detail_line))
 
-    preview_cols = int(os.environ.get("FZF_PREVIEW_COLUMNS", "40"))
-    max_w = max(20, min(preview_cols - 4, 38))
-    max_h = max(10, min(int(max_w * 0.52), 18))
-
     if genres:
         print(f"\033[2m🏷️ {', '.join(genres[:4])}\033[0m")
     if trailer:
         print(f"\033[2;34m🎬 Trailer: {trailer}\033[0m")
-    print(f"\033[2m{'─' * max_w}\033[0m\n")
-
-    if image_url:
-        try:
-            safe_slug = re.sub(r"[^\w\-]", "_", slug or title)
-            thumb_file = cache_dir / f"{safe_slug}.jpg"
-            if not thumb_file.exists():
-                req = urllib.request.Request(
-                    image_url, headers={"User-Agent": "Mozilla/5.0"}
-                )
-                with urllib.request.urlopen(req, timeout=5) as resp, open(
-                    thumb_file, "wb"
-                ) as f:
-                    f.write(resp.read())
-
-            chafa_bin = shutil.which("chafa")
-            icat_bin = shutil.which("kitty")
-            if chafa_bin:
-                subprocess.run(
-                    [
-                        chafa_bin,
-                        "--colors=full",
-                        f"--size={max_w}x{max_h}",
-                        "--symbols=vhalf,quad,block",
-                        str(thumb_file),
-                    ]
-                )
-            elif icat_bin:
-                subprocess.run(
-                    ["kitty", "+kitten", "icat", "--align", "left", str(thumb_file)]
-                )
-            else:
-                try:
-                    from PIL import Image
-
-                    img = Image.open(thumb_file).convert("RGB").resize((48, 24))
-                    pixels = list(
-                        img.get_flattened_data()
-                        if hasattr(img, "get_flattened_data")
-                        else img.getdata()
-                    )
-                    w, h = 48, 24
-                    for y in range(0, h, 2):
-                        row1 = pixels[y * w : (y + 1) * w]
-                        row2 = (
-                            pixels[(y + 1) * w : (y + 2) * w] if (y + 1) < h else row1
-                        )
-                        line = "".join(
-                            f"\033[38;2;{r1};{g1};{b1}m\033[48;2;{r2};{g2};{b2}m▀"
-                            for (r1, g1, b1), (r2, g2, b2) in zip(row1, row2)
-                        )
-                        print(line + "\033[0m")
-                except Exception:
-                    pass
-        except Exception:
-            pass
 
 
 def _fzf_pick(title, options, preview_cmd=None):
