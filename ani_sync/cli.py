@@ -2887,6 +2887,15 @@ def pick_option(title, options, default_idx=0, use_fzf=True, preview_cmd=None):
             sys.exit(0)
 
 
+def clean_title_for_search(raw_title):
+    """Clean anime title string by stripping subtitles, season suffixes, and punctuation for fuzzy API matching."""
+    if not raw_title:
+        return ""
+    t = raw_title.split(":")[0].split("-")[0].strip()
+    t = re.sub(r"\([^\)]*\)", "", t).strip()
+    return t or raw_title
+
+
 def save_preview_metadata(results):
     """Save preview metadata mapping for active FZF items."""
     cache_dir = get_cache_dir()
@@ -2948,6 +2957,7 @@ def render_preview(item_str):
 
     # On-the-fly cover artwork & metadata fallback lookup if image URL was not in preview_meta
     if not image_url and title:
+        search_title = clean_title_for_search(title)
         try:
             gql_query = """
             query ($search: String) {
@@ -2966,7 +2976,7 @@ def render_preview(item_str):
             }
             """
             payload = json.dumps(
-                {"query": gql_query, "variables": {"search": title}}
+                {"query": gql_query, "variables": {"search": search_title}}
             ).encode("utf-8")
             req = urllib.request.Request(
                 "https://graphql.anilist.co",
