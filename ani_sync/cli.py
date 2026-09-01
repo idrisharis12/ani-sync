@@ -2811,13 +2811,15 @@ def save_preview_metadata(results):
     preview_file = cache_dir / "preview_meta.json"
     meta = {}
     for idx, r in enumerate(results, 1):
-        key = f"{idx}. {r.get('title', '')}"
-        meta[key] = {
-            "title": r.get("title", ""),
+        clean_t = re.sub(r"\033\[[0-9;]*m", "", r.get("title", "")).strip()
+        info = {
+            "title": clean_t,
             "slug": r.get("slug", ""),
             "image": r.get("image", ""),
         }
-        meta[r.get("title", "")] = meta[key]
+        meta[f"{idx}. {clean_t}"] = info
+        meta[clean_t] = info
+        meta[re.sub(r"^\d+\.\s*", "", clean_t)] = info
     try:
         with open(preview_file, "w", encoding="utf-8") as f:
             json.dump(meta, f)
@@ -2827,7 +2829,9 @@ def save_preview_metadata(results):
 
 def render_preview(item_str):
     """Render FZF preview window with metadata and 24-bit graphic cover thumbnail."""
-    item_str = item_str.strip()
+    item_str = re.sub(r"\033\[[0-9;]*m", "", item_str).strip()
+    raw_title = re.sub(r"^\d+\.\s*", "", item_str).strip()
+
     cache_dir = get_cache_dir()
     preview_file = cache_dir / "preview_meta.json"
 
@@ -2839,14 +2843,46 @@ def render_preview(item_str):
         except Exception:
             pass
 
-    info = meta.get(item_str, {})
-    title = info.get("title") or item_str
+    info = meta.get(item_str) or meta.get(raw_title) or {}
+    title = info.get("title") or raw_title or item_str
     slug = info.get("slug", "")
-    image_url = info.get("image", "")
+    image_url = info.get("image")
 
     print(f"\033[1;36m📺 {title}\033[0m")
     if slug:
         print(f"\033[33mIdentifier:\033[0m {slug}\n")
+
+    # On-the-fly cover artwork fallback lookup if image URL was not in preview_meta
+    if not image_url and title:
+        try:
+            gql_query = """
+            query ($search: String) {
+              Media(search: $search, type: ANIME) {
+                coverImage { large }
+              }
+            }
+            """
+            payload = json.dumps(
+                {"query": gql_query, "variables": {"search": title}}
+            ).encode("utf-8")
+            req = urllib.request.Request(
+                "https://graphql.anilist.co",
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                d = json.loads(resp.read().decode("utf-8"))
+                image_url = (
+                    d.get("data", {})
+                    .get("Media", {})
+                    .get("coverImage", {})
+                    .get("large")
+                )
+        except Exception:
+            pass
 
     if image_url:
         try:
@@ -2856,7 +2892,9 @@ def render_preview(item_str):
                 req = urllib.request.Request(
                     image_url, headers={"User-Agent": "Mozilla/5.0"}
                 )
-                with urllib.request.urlopen(req) as resp, open(thumb_file, "wb") as f:
+                with urllib.request.urlopen(req, timeout=5) as resp, open(
+                    thumb_file, "wb"
+                ) as f:
                     f.write(resp.read())
 
             chafa_bin = shutil.which("chafa")
