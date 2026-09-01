@@ -146,6 +146,11 @@ rm -rf "$TMP_DIR"
 
 python3 -m pip install --quiet --upgrade --no-deps "git+https://github.com/idrisharis12/ani-sync.git" 2>/dev/null || true
 
+# Update active version manager shims (mise, pyenv, asdf) if installed
+if command -v mise &>/dev/null; then
+    mise reshim 2>/dev/null || true
+fi
+
 # Create launcher wrapper in INSTALL_DIR
 cat << 'LAUNCHER' > "$INSTALL_DIR/ani-sync"
 #!/usr/bin/env bash

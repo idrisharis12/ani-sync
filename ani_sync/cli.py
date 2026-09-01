@@ -3042,11 +3042,15 @@ def render_preview(item_str):
     if detail_line:
         print(" • ".join(detail_line))
 
+    preview_cols = int(os.environ.get("FZF_PREVIEW_COLUMNS", "40"))
+    max_w = max(20, min(preview_cols - 4, 38))
+    max_h = max(10, min(int(max_w * 0.52), 18))
+
     if genres:
         print(f"\033[2m🏷️ {', '.join(genres[:4])}\033[0m")
     if trailer:
         print(f"\033[2;34m🎬 Trailer: {trailer}\033[0m")
-    print(f"\033[2m{'─' * 44}\033[0m\n")
+    print(f"\033[2m{'─' * max_w}\033[0m\n")
 
     if image_url:
         try:
@@ -3068,7 +3072,7 @@ def render_preview(item_str):
                     [
                         chafa_bin,
                         "--colors=full",
-                        "--size=44x22",
+                        f"--size={max_w}x{max_h}",
                         "--symbols=vhalf,quad,block",
                         str(thumb_file),
                     ]
@@ -3140,7 +3144,7 @@ def _fzf_pick(title, options, preview_cmd=None):
     ]
     if preview_cmd:
         fzf_cmd.append(f"--preview={preview_cmd}")
-        fzf_cmd.append("--preview-window=right:55%:wrap")
+        fzf_cmd.append("--preview-window=right:55%:nowrap")
 
     proc = subprocess.run(
         fzf_cmd,
