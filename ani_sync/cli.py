@@ -3575,7 +3575,9 @@ def play_loop(
 def update_self(quiet=False):
     """Update ani-sync to the latest version by running the universal installer."""
     if not quiet:
-        print(f"\n{C_CYAN}{C_BOLD}🔄 Checking for ani-sync updates...{C_RESET}")
+        print(
+            f"\n{C_CYAN}{C_BOLD}🔄 Checking and pulling latest ani-sync update from GitHub...{C_RESET}"
+        )
 
     try:
         # Check remote version from config.py
@@ -3588,21 +3590,14 @@ def update_self(quiet=False):
         v_match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', remote_code)
         remote_version = v_match.group(1) if v_match else "latest"
 
-        if remote_version == VERSION:
-            if not quiet:
-                print(
-                    f"{C_GREEN}✓ You are already on the latest version (v{VERSION}){C_RESET}"
-                )
+        if quiet and remote_version == VERSION:
             return
 
-        if quiet:
-            # We are running in the background. Do not run the interactive installer!
-            return
-
-        print(
-            f"{C_YELLOW}New version found: v{remote_version} (Current: v{VERSION}){C_RESET}"
-        )
-        print("Running updater...")
+        if not quiet:
+            print(
+                f"{C_YELLOW}Syncing with GitHub main branch (v{remote_version})...{C_RESET}"
+            )
+            print("Running installer update script...\n")
 
         # Run the installer script to perform a clean update of the package
         subprocess.run(
@@ -3610,9 +3605,10 @@ def update_self(quiet=False):
             shell=True,
             check=True,
         )
-        print(
-            f"\n{C_GREEN}✓ Successfully updated ani-sync to v{remote_version}!{C_RESET}"
-        )
+        if not quiet:
+            print(
+                f"\n{C_GREEN}{C_BOLD}✓ Successfully updated ani-sync to v{remote_version}!{C_RESET}\n"
+            )
     except Exception as e:
         if not quiet:
             print(f"{C_RED}❌ Update failed: {e}{C_RESET}")
