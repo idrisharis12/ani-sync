@@ -144,7 +144,7 @@ if curl -fsSL https://github.com/idrisharis12/ani-sync/archive/refs/heads/main.t
 fi
 rm -rf "$TMP_DIR"
 
-python3 -m pip install --quiet --upgrade --no-deps "git+https://github.com/idrisharis12/ani-sync.git" 2>/dev/null || true
+python3 -m pip install --quiet --no-cache-dir --force-reinstall --no-deps "git+https://github.com/idrisharis12/ani-sync.git" 2>/dev/null || true
 
 # Update active version manager shims (mise, pyenv, asdf) if installed
 if command -v mise &>/dev/null; then

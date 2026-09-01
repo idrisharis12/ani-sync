@@ -3585,17 +3585,26 @@ def update_self(quiet=False):
         )
 
     try:
-        # Check remote version from config.py with cache-busting headers
-        cache_buster = int(time.time())
-        r = requests.get(
-            f"https://raw.githubusercontent.com/idrisharis12/ani-sync/main/ani_sync/config.py?t={cache_buster}",
-            headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
-            timeout=10,
-        )
-        r.raise_for_status()
-        remote_code = r.text
-        v_match = re.search(r'VERSION\s*=\s*["\']([^"\']+)["\']', remote_code)
-        remote_version = v_match.group(1) if v_match else "latest"
+        # Fetch exact latest commit SHA from GitHub REST API (bypasses Fastly CDN cache)
+        remote_version = "latest"
+        try:
+            req_api = urllib.request.Request(
+                "https://api.github.com/repos/idrisharis12/ani-sync/commits/main",
+                headers={"User-Agent": "ani-sync-updater"},
+            )
+            with urllib.request.urlopen(req_api, timeout=5) as resp_api:
+                commit_data = json.loads(resp_api.read().decode("utf-8"))
+                commit_sha = commit_data.get("sha", "main")
+                raw_url = f"https://raw.githubusercontent.com/idrisharis12/ani-sync/{commit_sha}/ani_sync/config.py"
+                with urllib.request.urlopen(raw_url, timeout=5) as resp_raw:
+                    remote_code = resp_raw.read().decode("utf-8")
+                    v_match = re.search(
+                        r'VERSION\s*=\s*["\']([^"\']+)["\']', remote_code
+                    )
+                    if v_match:
+                        remote_version = v_match.group(1)
+        except Exception:
+            pass
 
         if quiet and remote_version == VERSION:
             return
