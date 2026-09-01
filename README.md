@@ -1,3 +1,7 @@
+# ani-sync — Watch & Stream Anime in Terminal with Zero Buffering
+
+`ani-sync` is a CLI tool to **watch anime in terminal**, stream zero-buffering high-speed video, and automatically sync watch progress to **MyAnimeList**, **AniList**, and **Kitsu**.
+
 <p align="center">
   <img src="assets/ani-sync_logo.jpeg" alt="ani-sync logo" width="280" style="border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);" />
 </p>
