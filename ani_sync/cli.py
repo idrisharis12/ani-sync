@@ -4298,7 +4298,7 @@ def main():
         )
     ):
         threading.Thread(
-            target=update_self, kwargs={"status": status, "quiet": True}, daemon=True
+            target=update_self, kwargs={"quiet": True}, daemon=True
         ).start()
 
     party_room = None
