@@ -17,15 +17,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/idrisharis12/ani-sync/stargazers"><img src="https://img.shields.io/github/stars/idrisharis12/ani-sync?style=flat-square&logo=github&color=gold" alt="GitHub Stars" /></a>
-  <a href="https://github.com/idrisharis12/ani-sync/releases"><img src="https://img.shields.io/github/v/release/idrisharis12/ani-sync?style=flat-square&color=brightgreen" alt="Release" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.8+" /></a>
-  <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform" />
-  <img src="https://img.shields.io/badge/Speed-64x%20Turbo-00C853?style=flat-square" alt="64x Turbo Speed" />
-  <img src="https://img.shields.io/badge/AniSkip-Frame--Accurate-FF6F00?style=flat-square" alt="AniSkip Frame-Accurate" />
-  <img src="https://img.shields.io/badge/Party-Syncplay-00E5FF?style=flat-square" alt="Syncplay Watch Together" />
-  <img src="https://img.shields.io/badge/Tracking-MAL%20%7C%20AniList%20%7C%20Kitsu-7C4DFF?style=flat-square" alt="Multi-Platform Tracking" />
+  <a href="https://github.com/idrisharis12/ani-sync/stargazers"><img src="https://img.shields.io/github/stars/idrisharis12/ani-sync?style=for-the-badge&logo=github&color=FFD700" alt="GitHub Stars" /></a>
+  <a href="https://github.com/idrisharis12/ani-sync/releases"><img src="https://img.shields.io/github/v/release/idrisharis12/ani-sync?style=for-the-badge&color=00E676&logo=rocket" alt="Release" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-0088FF.svg?style=for-the-badge&logo=opensourceinitiative" alt="License: MIT" /></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.8+" /></a><br>
+  <img src="https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-2D3748?style=for-the-badge&logo=linux" alt="Platform" />
+  <img src="https://img.shields.io/badge/Speed-64x%20Turbo-00C853?style=for-the-badge&logo=codeforces" alt="64x Turbo Speed" />
+  <img src="https://img.shields.io/badge/AniSkip-Frame--Accurate-FF6F00?style=for-the-badge&logo=fastforward" alt="AniSkip Frame-Accurate" />
+  <img src="https://img.shields.io/badge/Party-Syncplay-00E5FF?style=for-the-badge&logo=wechat" alt="Syncplay Watch Together" />
+  <img src="https://img.shields.io/badge/Tracking-MAL%20%7C%20AniList%20%7C%20Kitsu-7C4DFF?style=for-the-badge&logo=graphql" alt="Multi-Platform Tracking" />
 </p>
 
 <p align="center">
@@ -40,45 +40,47 @@
 
 ---
 
-## 📦 What's New in v2.10.4
+## 📦 Changelog & Recent Updates
 
+<details>
+<summary><b>✨ What's New in v2.10.x (Click to expand)</b></summary>
+
+### v2.10.4
 - **🐛 Fixed Configuration NameError Bug** — Fixed `NameError: name 'CONFIG' is not defined` when initializing volume options in `main()`.
 - **🔊 Complete Volume Parameter Propagation** — Full end-to-end parameter passing for `-v` / `--volume` and configuration variables through `play_loop`, `turbo_play`, and `launch_player`.
 - **💬 Expanded Discord IPC Socket Discovery** — Expanded Linux IPC socket paths to automatically detect **Vesktop**, **Discord Canary**, **Discord PTB**, **Snap**, and **Flatpak** instances.
 - **🔄 Single Consolidated CI/CD Pipeline** — Consolidated multi-stage GitHub Actions workflows into a single `.github/workflows/workflow.yml` file.
 - **🧹 Lint & Quality Audit** — Cleaned up all unused imports, fixed missing f-string placeholders, and added unit tests for player parameter signatures.
 
----
-
-## 📦 What's New in v2.10.2
-
+### v2.10.2
 - **🎮 Fixed Discord Rich Presence** — Repaired the zero-dependency Discord IPC module to successfully detect Unix sockets across Flatpak, Snap, and native Discord installations.
 - **🔊 MPV Volume Control** — Added a native `-v` / `--volume` flag and config setting to explicitly control MPV's launch volume.
 - **⚡ Background Auto-Update Fix** — Solved a critical bug where the invisible background updater would unexpectedly run the interactive shell installer and crash the terminal.
 
----
-
-## 📦 What's New in v2.10.0
-
+### v2.10.0
 - **🚀 Massive Architecture Overhaul** — The 4,000+ line monolithic script has been successfully refactored into the `ani_sync` Python package, fixing namespace collisions and enabling better programmatic usage.
 - **🛡️ Security Hardened Installers** — The universal install script (`install.sh`) no longer uses `--break-system-packages`, drops unrelated dependencies, and removes the stealth APT auto-update hook.
 - **🧵 Thread-Safe Prefetching** — Implementing a threading lock to prevent cache file corruption when rapidly skipping episodes.
 - **🐛 Transparent Error Logging** — Replaced silent failures with a standard `logging` framework, logging exceptions to debug so failures are no longer invisible.
 - **🧹 Cleaned Packaging** — Resolved duplicate Homebrew formulas and PKGBUILDs. Switched CI/CD testing to `pytest` with `black` format enforcement.
 
+</details>
+
 ---
 
-```text
-  📺 ani-sync ❯ 🔍 Search: frieren
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │ ▶  1. Frieren: Beyond Journey's End (28 Episodes) [720p/1080p]         │
+<div align="center">
+<pre><code>
+  📺 <b style="color: #00E676;">ani-sync</b> ❯ 🔍 Search: <i style="color: #FFD700;">frieren</i>
+  ╭────────────────────────────────────────────────────────────────────────╮
+  │ <span style="color: #00E676;">▶</span>  1. Frieren: Beyond Journey's End (28 Episodes) [720p/1080p]         │
   │    2. Frieren: Beyond Journey's End Season 2                           │
   │    3. Sousou no Frieren (Special Mini Anime)                           │
-  └────────────────────────────────────────────────────────────────────────┘
-  ⚡ [Turbo Swarm: 64 Sockets Active] ──► [RAM-Disk: /dev/shm] ──► [MPV: 0.00s Delay]
-  ⏩ [AniSkip: OP 01:25 - 02:55 Jump] ──► [Theme: TokyoNight TrueColor]
-  🔄 [Cloud Sync: MAL ✓ | AniList ✓ | Kitsu ✓] ──► [Discord Presence: Active 🎮]
-```
+  ╰────────────────────────────────────────────────────────────────────────╯
+  ⚡ <b style="color: #00E676;">[Turbo Swarm: 64 Sockets Active]</b> ──► [RAM-Disk: /dev/shm] ──► <b style="color: #FFD700;">[MPV: 0.00s Delay]</b>
+  ⏩ <b style="color: #FF6F00;">[AniSkip: OP 01:25 - 02:55 Jump]</b> ──► [Theme: TokyoNight TrueColor]
+  🔄 <b style="color: #7C4DFF;">[Cloud Sync: MAL ✓ | AniList ✓ | Kitsu ✓]</b> ──► [Discord Presence: Active 🎮]
+</code></pre>
+</div>
 
 ---
 
@@ -158,22 +160,27 @@
 
 ## ⚡ Why ani-sync is Better (Performance Benchmarks)
 
-Streaming anime in a web browser loads bloated JavaScript bundles, video ads, crypto-miners, and pop-unders. `ani-sync` runs directly in your terminal using hardware-accelerated MPV:
+Streaming anime in a web browser loads bloated JavaScript bundles, video ads, crypto-miners, and pop-unders. `ani-sync` runs directly in your terminal using hardware-accelerated MPV!
 
-```text
-┌──────────────────────────────────────┬───────────────────────┬───────────────────────┐
-│ Metric                               │ 🌐 Web Browser Anime  │ 📺 ani-sync v2.7.0    │
-├──────────────────────────────────────┼───────────────────────┼───────────────────────┤
-│ 💾 RAM Memory Footprint              │ 1,800 MB – 3,500 MB   │ 28 MB – 45 MB         │
-│ ⚡ CPU Utilization                   │ 35% – 70% (Software)  │ 2% – 5% (GPU Decoded) │
-│ 🛡️ Telemetry, Popups & Ad Trackers   │ 40+ JavaScript pixels │ 0 (Zero Telemetry)    │
-│ ⏱️ Playback Start & Seek Latency    │ 15s – 30s buffering   │ 0.00s (RAM Cache)     │
-│ 🔄 Multi-Cloud Progress Auto-Sync    │ ❌ None               │ ✅ MAL + AniList+Kitsu│
-│ ⏩ Frame-Accurate OP/ED Skipping     │ ❌ Manual dragging    │ ✅ AniSkip [Tab]/[o]  │
-│ 🔋 Battery Drain (Laptops/Handhelds) │ ⚠️ Heavy Drain        │ 🌿 Ultra Low          │
----
+<details open>
+<summary><b>🚀 Performance Comparison vs Web Browser (Click to collapse)</b></summary>
+<br>
 
-## 💾 Storage Requirements & System Footprint
+| Metric | 🌐 Web Browser Anime | 📺 ani-sync |
+| :--- | :--- | :--- |
+| 💾 **RAM Memory Footprint** | `1,800 MB` – `3,500 MB` | **`28 MB` – `45 MB`** |
+| ⚡ **CPU Utilization** | `35%` – `70%` (Software) | **`2%` – `5%`** (GPU Hardware Decoded) |
+| 🛡️ **Ad Trackers & Telemetry**| 40+ JavaScript pixels | **`0`** (100% Zero Telemetry) |
+| ⏱️ **Start & Seek Latency** | `15s` – `30s` buffering | **`0.00s`** (Instant RAM Cache) |
+| 🔄 **Multi-Cloud Syncing** | ❌ None | ✅ **MAL** + **AniList** + **Kitsu** |
+| ⏩ **Opening / Ending Skip** | ❌ Manual dragging | ✅ **Auto AniSkip** `[Tab]`/`[o]` |
+| 🔋 **Battery Drain (Laptops)**| ⚠️ Heavy Drain | 🌿 **Ultra Low** |
+
+</details>
+
+<details>
+<summary><b>💾 Storage Requirements & System Footprint (Click to expand)</b></summary>
+<br>
 
 `ani-sync` is engineered to be extremely lightweight with minimal disk footprint and system overhead:
 
@@ -185,6 +192,8 @@ Streaming anime in a web browser loads bloated JavaScript bundles, video ads, cr
 | 🧠 **RAM Memory Footprint During Playback** | **~28 MB – 45 MB** | **98% lighter** than web browser streaming (~2,500 MB) |
 | ⚙️ **External Dependencies (`mpv`, `yt-dlp`, `fzf`)** | **~50 MB total** | Standard lightweight system tools |
 | 🔄 **Dynamic Stream Cache Buffer** | **Auto-Managed (~4 GB max)** | Stored in `/dev/shm` RAM-disk on Linux; automatically rotates and purges old episodes |
+
+</details>
 
 ---
 
@@ -219,19 +228,14 @@ flowchart TD
 > [!TIP]
 > **Zero Manual Setup Required**: The installer scripts automatically detect your system package manager and install **ani-sync, FZF fuzzy search, MPV, yt-dlp, and Python dependencies** out of the box!
 
-### 🪟 Windows (One-Line PowerShell / Winget)
-Run this single command in **PowerShell** (Run as Administrator or standard User):
-```powershell
-irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 | iex
-```
-*Or install dependencies via Winget:*
-```powershell
-winget install Python.Python.3.12 junegunn.fzf mpv.net yt-dlp
-```
+### 🚀 Universal Installation
 
----
+The installer scripts automatically detect your system package manager and install **ani-sync, FZF fuzzy search, MPV, yt-dlp, and Python dependencies** out of the box!
 
-### 🐧 Linux & 🍎 macOS (One-Line Universal Installer)
+<details open>
+<summary><b>🐧 Linux & 🍎 macOS (One-Line Universal Installer)</b></summary>
+<br>
+
 Run this single command in your terminal:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash
@@ -241,40 +245,26 @@ To install system-wide into `/usr/local/bin`:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | sudo bash
 ```
+</details>
 
----
+<details>
+<summary><b>🪟 Windows (PowerShell / Winget)</b></summary>
+<br>
 
-### 🏹 Arch Linux (AUR / PKGBUILD)
-```bash
-# Using yay or paru
-yay -S ani-sync
-
-# Or install pre-built binary package
-yay -S ani-sync-bin
+Run this single command in **PowerShell** (Run as Administrator or standard User):
+```powershell
+irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 | iex
 ```
-
----
-
-### 📦 Debian / Ubuntu (`.deb`)
-Download and install the native Debian package:
-```bash
-curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.7.0_all.deb
-sudo apt install -y ./ani-sync_2.7.0_all.deb
+*Or install dependencies via Winget:*
+```powershell
+winget install Python.Python.3.12 junegunn.fzf mpv.net yt-dlp
 ```
+</details>
 
----
+<details>
+<summary><b>📱 Android (Termux)</b></summary>
+<br>
 
-### 🎩 Fedora / RHEL / openSUSE (`.rpm`)
-```bash
-# Install dependencies & run build_rpm.py
-sudo dnf install -y python3 python3-requests python3-tqdm mpv yt-dlp fzf curl
-# Or install via universal installer:
-curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | sudo bash
-```
-
----
-
-### 📱 Android (Termux)
 `ani-sync` runs natively on Android inside **Termux**! It automatically launches streaming video via MPV or the native Android MPV/VLC app:
 ```bash
 # 1. Update Termux & install dependencies
@@ -286,18 +276,40 @@ curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.
 # 3. Stream in low-memory mobile mode
 ani-sync "frieren" --lite
 ```
+</details>
 
----
+<details>
+<summary><b>📦 Linux Package Managers (AUR, .deb, .rpm)</b></summary>
+<br>
 
-### ⚡ Standalone Pre-Compiled Binaries
-No Python installation required:
+**Arch Linux (AUR):**
+```bash
+yay -S ani-sync
+```
+
+**Debian / Ubuntu (.deb):**
+```bash
+curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.7.0_all.deb
+sudo apt install -y ./ani-sync_2.7.0_all.deb
+```
+
+**Fedora / RHEL / openSUSE:**
+```bash
+sudo dnf install -y python3 python3-requests python3-tqdm mpv yt-dlp fzf curl
+curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | sudo bash
+```
+</details>
+
+<details>
+<summary><b>⚡ Standalone Pre-Compiled Binaries (No Python Required)</b></summary>
+<br>
 
 | OS / Architecture | Standalone Executable | One-Line Install Command |
 | :--- | :--- | :--- |
 | 🐧 **Linux (x86_64)** | [`ani-sync-linux-x86_64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-linux-x86_64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
 | 🪟 **Windows (x64)** | [`ani-sync-windows-x86_64.exe`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-windows-x86_64.exe) | `irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 \| iex` |
 | 🍎 **macOS (Apple Silicon)** | [`ani-sync-macos-arm64`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64) | `sudo curl -fsSL https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync-macos-arm64 -o /usr/local/bin/ani-sync && sudo chmod +x /usr/local/bin/ani-sync` |
-| 📦 **Debian / Ubuntu** | [`ani-sync_2.7.0_all.deb`](https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.7.0_all.deb) | `curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.7.0_all.deb && sudo apt install ./ani-sync_2.7.0_all.deb` |
+</details>
 
 ---
 
@@ -761,17 +773,29 @@ Doctor check completed.
 
 ## 🔍 Frequently Asked Questions (SEO & Search Guide)
 
-### How to watch anime in terminal?
-To **watch anime in terminal**, install `ani-sync` (`curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash`) and run `ani-sync "anime title"`. It launches high-speed 64x turbo streaming directly in MPV, VLC, or IINA with 100% zero buffering.
+<details>
+<summary><b>📺 How to watch anime in terminal?</b></summary>
+<br>
+To <b>watch anime in terminal</b>, install <code>ani-sync</code> (<code>curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash</code>) and run <code>ani-sync "anime title"</code>. It launches high-speed 64x turbo streaming directly in MPV, VLC, or IINA with 100% zero buffering.
+</details>
 
-### What is the best CLI anime player for Linux, macOS, Windows & Termux?
-`ani-sync` is the top-rated open-source CLI anime player supporting **Linux** (Arch, Ubuntu, Fedora, Debian), **macOS**, **Windows**, and **Android Termux**. It features 24-bit TrueColor ANSI graphic thumbnails, frame-accurate AniSkip intro skipping, Syncplay watch parties, and automatic MyAnimeList, AniList, and Kitsu multi-platform tracking.
+<details>
+<summary><b>🏆 What is the best CLI anime player for Linux, macOS, Windows & Termux?</b></summary>
+<br>
+<code>ani-sync</code> is the top-rated open-source CLI anime player supporting <b>Linux</b> (Arch, Ubuntu, Fedora, Debian), <b>macOS</b>, <b>Windows</b>, and <b>Android Termux</b>. It features 24-bit TrueColor ANSI graphic thumbnails, frame-accurate AniSkip intro skipping, Syncplay watch parties, and automatic MyAnimeList, AniList, and Kitsu multi-platform tracking.
+</details>
 
-### How to stream anime in command line with zero buffering?
-`ani-sync` uses a 64-socket parallel TCP fragment engine combined with Linux `/dev/shm` RAM-disk caching to eliminate buffering completely, starting playback in **0.0 seconds**.
+<details>
+<summary><b>⚡ How to stream anime in command line with zero buffering?</b></summary>
+<br>
+<code>ani-sync</code> uses a 64-socket parallel TCP fragment engine combined with Linux <code>/dev/shm</code> RAM-disk caching to eliminate buffering completely, starting playback in <b>0.0 seconds</b>.
+</details>
 
-### How to sync MyAnimeList and AniList watch progress automatically from terminal?
-Run `ani-sync auth` to connect your MyAnimeList, AniList, or Kitsu account. Whenever you watch an episode using `ani-sync`, your watch progress, episode count, and completion status are updated across all 3 platforms in parallel.
+<details>
+<summary><b>🔄 How to sync MyAnimeList and AniList watch progress automatically from terminal?</b></summary>
+<br>
+Run <code>ani-sync auth</code> to connect your MyAnimeList, AniList, or Kitsu account. Whenever you watch an episode using <code>ani-sync</code>, your watch progress, episode count, and completion status are updated across all 3 platforms in parallel.
+</details>
 
 ---
 
