@@ -2758,10 +2758,63 @@ def pick_option(title, options, default_idx=0, use_fzf=True, preview_cmd=None):
                 f"{C_RED}Please enter a number between 1 and {len(options)}.{C_RESET}"
             )
         except ValueError:
-            print(f"{C_RED}Invalid input. Please enter a number.{C_RESET}")
+            print(f"{C_RED}Invalid selection. Please enter a number.{C_RESET}")
         except (KeyboardInterrupt, EOFError):
-            print("\n")
             sys.exit(0)
+
+
+def save_preview_metadata(results):
+    """Save preview metadata mapping for active FZF items."""
+    cache_dir = get_cache_dir()
+    preview_file = cache_dir / "preview_meta.json"
+    meta = {}
+    for idx, r in enumerate(results, 1):
+        key = f"{idx}. {r.get('title', '')}"
+        meta[key] = {
+            "title": r.get("title", ""),
+            "slug": r.get("slug", ""),
+            "image": r.get("image", ""),
+        }
+        meta[r.get("title", "")] = meta[key]
+    try:
+        with open(preview_file, "w", encoding="utf-8") as f:
+            json.dump(meta, f)
+    except Exception:
+        pass
+
+
+def render_preview(item_str):
+    """Render FZF preview window with metadata and cover thumbnail."""
+    item_str = item_str.strip()
+    cache_dir = get_cache_dir()
+    preview_file = cache_dir / "preview_meta.json"
+
+    meta = {}
+    if preview_file.exists():
+        try:
+            with open(preview_file, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+        except Exception:
+            pass
+
+    info = meta.get(item_str, {})
+    title = info.get("title") or item_str
+    slug = info.get("slug", "")
+
+    print(f"\033[1;36m📺 {title}\033[0m\n")
+    if slug:
+        print(f"\033[33mSlug:\033[0m {slug}\n")
+
+    chafa_bin = shutil.which("chafa")
+    image_url = info.get("image")
+    if image_url and chafa_bin:
+        try:
+            thumb_file = cache_dir / f"{slug}.jpg"
+            if not thumb_file.exists():
+                urllib.request.urlretrieve(image_url, thumb_file)
+            subprocess.run([chafa_bin, "--size=35x18", str(thumb_file)])
+        except Exception:
+            pass
 
 
 def _fzf_pick(title, options, preview_cmd=None):
@@ -3736,11 +3789,15 @@ def print_help():
 
 
 def main():
+    args = sys.argv[1:]
+    if len(args) >= 2 and args[0] == "_preview":
+        render_preview(args[1])
+        return
+
     # Early profile flag & env var extraction
     profile_env = os.getenv("ANI_SYNC_PROFILE")
     if profile_env:
         set_profile(profile_env)
-    args = sys.argv[1:]
     if "--profile" in args:
         try:
             p_idx = args.index("--profile")
@@ -4092,7 +4149,13 @@ def main():
         chosen_anime = results[0]
     else:
         options = [r["title"] for r in results]
-        selected_idx = pick_option("Search Results:", options, default_idx=0)
+        save_preview_metadata(results)
+        py_bin = sys.executable
+        cli_path = Path(__file__).resolve()
+        preview_cmd = f'"{py_bin}" "{cli_path}" _preview {{}}'
+        selected_idx = pick_option(
+            "Search Results:", options, default_idx=0, preview_cmd=preview_cmd
+        )
         chosen_anime = results[selected_idx]
 
     # Check for seasons / movies franchise options
