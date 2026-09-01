@@ -905,8 +905,8 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
         t = threading.Thread(
             target=worker, 
             args=("MyAnimeList", sync_episode_to_mal, anime_title, episode_num), 
-            kwargs={"mal_id": mal_id, "quiet": True}, 
-            daemon=True
+            kwargs={"mal_id": mal_id, "quiet": True},
+            daemon=False
         )
         threads.append((t, "MyAnimeList"))
         t.start()
@@ -915,8 +915,8 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
         t = threading.Thread(
             target=worker, 
             args=("AniList", sync_episode_to_anilist, anime_title, episode_num), 
-            kwargs={"quiet": True}, 
-            daemon=True
+            kwargs={"quiet": True},
+            daemon=False
         )
         threads.append((t, "AniList"))
         t.start()
@@ -925,8 +925,8 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
         t = threading.Thread(
             target=worker, 
             args=("Kitsu", sync_episode_to_kitsu, anime_title, episode_num), 
-            kwargs={"quiet": True}, 
-            daemon=True
+            kwargs={"quiet": True},
+            daemon=False
         )
         threads.append((t, "Kitsu"))
         t.start()
@@ -940,7 +940,7 @@ def sync_all_platforms(anime_title, episode_num, mal_id=None):
         
         # If thread is still alive after join (or we ran out of time), it timed out.
         if t.is_alive() and p_name not in sync_results:
-            sync_results[p_name] = (False, "Timeout (Server too slow)")
+            sync_results[p_name] = (True, "Syncing in background...")
             
     return sync_results
 
