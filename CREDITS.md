@@ -9,6 +9,7 @@
 | Project | Author / Maintainers | Contribution to ani-sync |
 | :--- | :--- | :--- |
 | **[ani-cli](https://github.com/pystardust/ani-cli)** | **[pystardust](https://github.com/pystardust)** & Contributors | The pioneering shell script that popularized command-line anime streaming and proved that watching anime from the terminal can be faster and cleaner than web browsers. |
+| **[Viu Media](https://github.com/viu-media/viu)** | **[Viu-Media Team](https://github.com/viu-media)** | The terminal image viewer and sleek layout aesthetic that inspired ani-sync's rich anime detail cards and thumbnail preview window. |
 | **[mal-cli](https://github.com/mdomke/mal-cli)** | **[mdomke](https://github.com/mdomke)** | The original command-line tool for MyAnimeList that inspired automated CLI-based episode tracking. |
 | **[animdl](https://github.com/justfoolingaround/animdl)** | **[justfoolingaround](https://github.com/justfoolingaround)** | Early Python-based terminal anime streaming architectures and scraping techniques. |
 | **[aria2](https://github.com/aria2/aria2)** | **[Tatsuhiro Tsujikawa](https://github.com/tatsuhiro-t)** | The multi-connection, multi-source segmented downloading paradigm that inspired ani-sync's 64x parallel fragment swarm engine. |
@@ -20,6 +21,7 @@
 | Software / Tool | Creators / Maintainers | Role in ani-sync |
 | :--- | :--- | :--- |
 | **[mpv](https://github.com/mpv-player/mpv)** | **[mpv-player Team](https://github.com/mpv-player)** | The gold-standard open-source media player powering GPU hardware-accelerated video decoding, on-screen OSD messages, Lua script intro/outro auto-skipping, and buffer management. |
+| **[chafa](https://github.com/hpjansson/chafa)** | **[Hans Petter Jansson (@hpjansson)](https://github.com/hpjansson)** | The ultra-fast terminal graphics and image preview engine powering ani-sync's 24-bit TrueColor Kitty, Sixel, iTerm2, and ANSI cover artwork previews. |
 | **[fzf](https://github.com/junegunn/fzf)** | **[Junegunn Choi (@junegunn)](https://github.com/junegunn)** | The blazingly fast, interactive fuzzy finder powering ani-sync's interactive search, franchise seasons browser, episode selector, and history navigation. |
 | **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** | **[yt-dlp Team](https://github.com/yt-dlp)** & youtube-dl contributors | The unparalleled multi-connection HLS segment downloader and stream extractor that enables 64x turbo downloading. |
 | **[FFmpeg](https://ffmpeg.org/)** | **[FFmpeg Developers](https://ffmpeg.org/)** | The universal multimedia demuxer and codec library enabling MPEG-TS stream fixup and audio/video synchronization. |
@@ -29,7 +31,7 @@
 
 ---
 
-## 🌐 Tracking Platforms & Anime Metadata APIs
+## 🌐 Tracking Platforms, Providers & Metadata APIs
 
 | Platform / API | Organization | Functionality |
 | :--- | :--- | :--- |
@@ -38,6 +40,8 @@
 | **[AniSkip API](https://aniskip.com/)** | **[AniSkip Community](https://aniskip.com/)** | Open-source crowd-sourced database for frame-accurate opening and ending theme timestamp skips. |
 | **[Kitsu JSON:API](https://kitsu.io/)** | **[Kitsu (@kitsu-io)](https://kitsu.io/)** | Clean JSON:API standard used for seamless email/password authentication and library synchronization. |
 | **[AniDB](https://anidb.app/)** | **[AniDB Community](https://anidb.app/)** | Anime title database indexing and HLS stream resolver backend. |
+| **[Consumet API](https://github.com/consumet/consumet.ts)** | **[Consumet Community](https://github.com/consumet)** | Multi-provider streaming mirror resolution engine (HiAnime & Gogoanime auto-failover). |
+| **[Syncplay](https://syncplay.pl/)** | **[Syncplay Team](https://github.com/Syncplay/syncplay)** | Synchronized multi-player video watch party protocol integrated into ani-sync party mode. |
 
 ---
 
@@ -46,6 +50,7 @@
 | Library | Authors / Maintainers | Purpose in ani-sync |
 | :--- | :--- | :--- |
 | **[Requests](https://requests.readthedocs.io/)** | **[Kenneth Reitz (@kennethreitz)](https://github.com/kennethreitz)** & urllib3 team | "HTTP for Humans" — handles all API requests, OAuth exchanges, and web scraping with resilient session management. |
+| **[Pillow (PIL)](https://python-pillow.org/)** | **[Jeffrey A. Clark (@aclark42)](https://github.com/aclark42)** & PIL contributors | Python Imaging Library powering pure Python 24-bit TrueColor ANSI half-block fallback thumbnail rendering. |
 | **[tqdm](https://github.com/tqdm/tqdm)** | **[Casper da Costa-Luis (@casperdcl)](https://github.com/casperdcl)** & contributors | Fast, extensible CLI progress bars during multi-platform library synchronization. |
 | **[PyInstaller](https://pyinstaller.org/)** | **[PyInstaller Development Team](https://github.com/pyinstaller)** | Compiles standalone, self-contained single-file binaries for Linux, macOS, and Windows with 0 runtime dependencies. |
 | **[Black](https://github.com/psf/black)** & **[isort](https://github.com/PyCQA/isort)** | **[Python Software Foundation](https://www.python.org/psf/)** | Automated PEP 8 code formatting and import sorting across the repository. |
