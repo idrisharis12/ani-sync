@@ -86,6 +86,7 @@
 
 ## 📑 Table of Contents
 - [✨ Core Features](#-core-features)
+- [🎥 Feature Demonstrations & Gallery](#-feature-demonstrations--gallery)
 - [⚡ Why ani-sync is Better (Performance Benchmarks)](#-why-ani-sync-is-better-performance-benchmarks)
 - [💾 Storage Requirements & System Footprint](#-storage-requirements--system-footprint)
 - [⚡ Turbo-Speed Swarm Architecture](#-turbo-speed-swarm-architecture)
@@ -159,6 +160,46 @@
 ---
 
 ## ⚡ Why ani-sync is Better (Performance Benchmarks)
+
+---
+
+## 🎥 Feature Demonstrations & Gallery
+
+<details open>
+<summary><b>1. 🚀 Zero-Buffering Playback & Turbo Swarm (Click to expand)</b></summary>
+<br>
+<p align="center">
+  <i>(Replace this placeholder with a GIF showing the 64x turbo download process and instant MPV startup)</i><br>
+  <img src="https://placehold.co/800x400/1e1e2e/cba6f7?text=Insert+Playback+GIF+Here" alt="Terminal Playback Demo" style="border-radius: 8px;" />
+</p>
+</details>
+
+<details open>
+<summary><b>2. ☁️ Multi-Platform Watchlist & Auto-Sync (Click to expand)</b></summary>
+<br>
+<p align="center">
+  <i>(Replace this placeholder with a GIF showing `ani-sync -w` and background syncing to MAL/AniList)</i><br>
+  <img src="https://placehold.co/800x400/1e1e2e/89b4fa?text=Insert+Cloud+Sync+GIF+Here" alt="Watchlist Sync Demo" style="border-radius: 8px;" />
+</p>
+</details>
+
+<details open>
+<summary><b>3. 📅 Interactive Airing Schedule (Click to expand)</b></summary>
+<br>
+<p align="center">
+  <i>(Replace this placeholder with a GIF showing the `ani-sync schedule` command and countdowns)</i><br>
+  <img src="https://placehold.co/800x400/1e1e2e/a6e3a1?text=Insert+Schedule+GIF+Here" alt="Schedule Demo" style="border-radius: 8px;" />
+</p>
+</details>
+
+<details open>
+<summary><b>4. ⚙️ Custom Configuration Wizard & Theming (Click to expand)</b></summary>
+<br>
+<p align="center">
+  <i>(Replace this placeholder with a GIF showing `ani-sync config` and switching FZF themes)</i><br>
+  <img src="https://placehold.co/800x400/1e1e2e/f38ba8?text=Insert+Config+Wizard+GIF+Here" alt="Config & Theme Demo" style="border-radius: 8px;" />
+</p>
+</details>
 
 Streaming anime in a web browser loads bloated JavaScript bundles, video ads, crypto-miners, and pop-unders. `ani-sync` runs directly in your terminal using hardware-accelerated MPV!
 
@@ -289,8 +330,8 @@ yay -S ani-sync
 
 **Debian / Ubuntu (.deb):**
 ```bash
-curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.11.21_all.deb
-sudo apt install -y ./ani-sync_2.11.21_all.deb
+curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.11.22_all.deb
+sudo apt install -y ./ani-sync_2.11.22_all.deb
 ```
 
 **Fedora / RHEL / openSUSE:**
