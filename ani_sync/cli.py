@@ -3057,9 +3057,9 @@ def render_preview(item_str):
                 subprocess.run(
                     [
                         chafa_bin,
+                        "--colors=full",
                         "--size=44x22",
                         "--symbols=vhalf,quad,block",
-                        "--fill=space",
                         str(thumb_file),
                     ]
                 )
