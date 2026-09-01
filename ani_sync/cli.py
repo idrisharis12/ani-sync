@@ -7,7 +7,7 @@ exec python3 "$0" "$@"
 import concurrent.futures
 import html
 import io
-from ani_sync.config import VERSION
+from ani_sync.config import CURRENT_PROFILE, VERSION, set_profile
 import json
 import os
 import platform
@@ -3294,6 +3294,7 @@ def run_doctor():
     )
     print(f"{C_BOLD}System & Runtime Environment:{C_RESET}")
     print(f"  {C_GREEN}✓{C_RESET} Platform:          {C_CYAN}{os_label}{C_RESET}")
+    print(f"  {C_GREEN}✓{C_RESET} Active Profile:    {C_CYAN}{CURRENT_PROFILE}{C_RESET}")
     print(
         f"  {C_GREEN}✓{C_RESET} Architecture:      {C_CYAN}{pform.machine()}{C_RESET}"
     )
@@ -3735,8 +3736,20 @@ def print_help():
 
 
 def main():
-    load_config()
+    # Early profile flag & env var extraction
+    profile_env = os.getenv("ANI_SYNC_PROFILE")
+    if profile_env:
+        set_profile(profile_env)
     args = sys.argv[1:]
+    if "--profile" in args:
+        try:
+            p_idx = args.index("--profile")
+            if p_idx + 1 < len(args):
+                set_profile(args[p_idx + 1])
+                args = [a for j, a in enumerate(args) if j not in (p_idx, p_idx + 1)]
+        except Exception:
+            pass
+    load_config()
 
     # Early theme flag extraction
     if "--theme" in args:

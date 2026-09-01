@@ -85,6 +85,7 @@ def launch_player(
     party_room=None,
     low_ram=False,
     volume=None,
+    start_time=None,
 ):
     """Launch player with large demuxer RAM buffers and frame-accurate AniSkip."""
     media_title = f"{title} - Episode {ep_num}"
@@ -146,6 +147,8 @@ def launch_player(
         ]
         if volume is not None:
             cmd.append(f"--volume={volume}")
+        if start_time and float(start_time) > 5:
+            cmd.append(f"--start={int(start_time)}")
         cmd.extend([
             f"--demuxer-max-bytes={demux_bytes}",
             f"--demuxer-max-back-bytes={back_bytes}",

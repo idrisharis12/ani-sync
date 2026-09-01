@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-VERSION = "2.10.4"
+VERSION = "2.11.0"
 
 IS_WINDOWS = sys.platform == "win32"
 IS_TERMUX = (
@@ -157,8 +157,32 @@ def load_history():
     return {"last_watched": None, "history": []}
 
 
-def save_history(slug, title, episode_num, quality="720p", mode="sub"):
-    """Record watched episode to local history."""
+BASE_CONFIG_DIR = get_config_dir()
+CONFIG_DIR = BASE_CONFIG_DIR
+CONFIG_PATH = CONFIG_DIR / "config.env"
+HISTORY_PATH = CONFIG_DIR / "history.json"
+CREDENTIALS_PATH = CONFIG_DIR / "credentials.json"
+CURRENT_PROFILE = "default"
+
+
+def set_profile(name):
+    """Switch active user profile directory for isolated configs, watch history, and tokens."""
+    global CONFIG_DIR, CONFIG_PATH, HISTORY_PATH, CREDENTIALS_PATH, CURRENT_PROFILE
+    if name and name != "default":
+        CURRENT_PROFILE = name
+        CONFIG_DIR = BASE_CONFIG_DIR / "profiles" / name
+    else:
+        CURRENT_PROFILE = "default"
+        CONFIG_DIR = BASE_CONFIG_DIR
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    CONFIG_PATH = CONFIG_DIR / "config.env"
+    HISTORY_PATH = CONFIG_DIR / "history.json"
+    CREDENTIALS_PATH = CONFIG_DIR / "credentials.json"
+    load_config()
+
+
+def save_history(slug, title, episode_num, quality="720p", mode="sub", time_pos=0):
+    """Record watched episode to local history including playback timestamp position."""
     data = load_history()
     entry = {
         "slug": slug,
@@ -166,6 +190,7 @@ def save_history(slug, title, episode_num, quality="720p", mode="sub"):
         "episode": episode_num,
         "quality": quality,
         "mode": mode,
+        "time_pos": time_pos,
         "timestamp": int(time.time()),
     }
     data["last_watched"] = entry
