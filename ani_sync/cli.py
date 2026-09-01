@@ -1523,7 +1523,7 @@ def load_history():
     return {"last_watched": None, "history": []}
 
 
-def save_history(slug, title, episode_num, quality="720p", mode="sub"):
+def save_history(slug, title, episode_num, quality="720p", mode="sub", time_pos=0):
     """Record watched episode to local history and check for appreciation milestone."""
     data = load_history()
     entry = {
@@ -1533,6 +1533,7 @@ def save_history(slug, title, episode_num, quality="720p", mode="sub"):
         "quality": quality,
         "mode": mode,
         "timestamp": int(time.time()),
+        "time_pos": time_pos,
     }
     data["last_watched"] = entry
 
