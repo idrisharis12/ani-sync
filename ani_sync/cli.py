@@ -31,7 +31,6 @@ logger = logging.getLogger("ani_sync")
 _prefetch_lock = threading.Lock()
 
 import requests
-from ani_sync.config import VERSION
 
 # Enable ANSI colors & UTF-8 on Windows Command Prompt & PowerShell
 IS_WINDOWS = sys.platform == "win32"
@@ -349,7 +348,7 @@ def run_auth():
     auth_link = f"{AUTH_URL}?{urllib.parse.urlencode(params)}"
 
     print(f"\n{C_YELLOW}Opening browser for authorization...{C_RESET}")
-    print(f"If your browser doesn't open automatically, visit this URL:")
+    print("If your browser doesn't open automatically, visit this URL:")
     print(f"{C_BLUE}{auth_link}{C_RESET}\n")
 
     try:
@@ -464,7 +463,6 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None, quiet=False):
                 data = search_res.json()
                 if data.get("data"):
                     mal_id = data["data"][0]["node"]["id"]
-                    found_title = data["data"][0]["node"].get("title", anime_title)
         except Exception:
             logger.debug("Failed to fetch data", exc_info=True)
 
@@ -473,7 +471,7 @@ def sync_episode_to_mal(anime_title, episode_num, mal_id=None, quiet=False):
             print(
                 f"{C_YELLOW}⚠️  Could not find MAL entry for '{anime_title}'{C_RESET}"
             )
-        return False, f"Anime not found on MAL"
+        return False, "Anime not found on MAL"
 
     try:
         update_url = f"{API_URL}/anime/{mal_id}/my_list_status"
@@ -699,7 +697,7 @@ def run_kitsu_auth():
         f"{C_CYAN}{C_BOLD}============================================================{C_RESET}"
     )
     print(f"\n{C_YELLOW}Kitsu uses email/password authentication.{C_RESET}")
-    print(f"Your credentials are sent directly to Kitsu and are NOT stored locally.\n")
+    print("Your credentials are sent directly to Kitsu and are NOT stored locally.\n")
 
     username = input(f"{C_BOLD}Enter your Kitsu email or username: {C_RESET}").strip()
     if not username:
@@ -2265,6 +2263,7 @@ def turbo_play(
     mal_id=None,
     party_room=None,
     low_ram=False,
+    volume=None,
 ):
     """Zero-latency instant playback with high-throughput RAM buffer and local cache fallback."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
@@ -2885,6 +2884,8 @@ def play_loop(
     auto_skip=False,
     party_room=None,
     low_ram=False,
+    volume=None,
+    provider="auto",
 ):
     """Watch loop with next, replay, previous, change episode/quality/season."""
     slug = anime["slug"]
@@ -2923,7 +2924,9 @@ def play_loop(
         print(
             f"\n{C_CYAN}Resolving streams for Episode {ep_num} ({mode.upper()})...{C_RESET}"
         )
-        streams = get_episode_streams(ep_id, mode=mode, anime_slug=slug, ep_num=ep_num)
+        streams = get_episode_streams(
+            ep_id, mode=mode, anime_slug=slug, ep_num=ep_num, provider=provider
+        )
         if not streams:
             print(
                 f"{C_RED}❌ Could not resolve video streams for Episode {ep_num}.{C_RESET}"
@@ -3106,6 +3109,10 @@ def play_loop(
                     direct=direct,
                     download_only=download_only,
                     auto_skip=auto_skip,
+                    party_room=party_room,
+                    low_ram=low_ram,
+                    volume=volume,
+                    provider=provider,
                 )
             elif cmd.lower() in ("m", "menu", "fzf"):
                 menu_opts = []
@@ -3182,6 +3189,10 @@ def play_loop(
                         direct=direct,
                         download_only=download_only,
                         auto_skip=auto_skip,
+                        party_room=party_room,
+                        low_ram=low_ram,
+                        volume=volume,
+                        provider=provider,
                     )
                 elif action == "score":
                     run_score_command(anime_title=title, mal_id=mal_id)
@@ -3646,7 +3657,7 @@ def run_help_browser(topic_query=None):
                 return
         print(f"\n{C_YELLOW}No specific help page found for '{topic_query}'.{C_RESET}")
         print(
-            f"Available topics: stream, schedule, download, theme, aniskip, party, score, termux, doctor\n"
+            "Available topics: stream, schedule, download, theme, aniskip, party, score, termux, doctor\n"
         )
         return
 
@@ -3721,6 +3732,7 @@ def print_help():
 
 
 def main():
+    load_config()
     args = sys.argv[1:]
 
     # Early theme flag extraction
@@ -3956,9 +3968,8 @@ def main():
     direct = False
     download_only = False
     auto_skip = False
-    use_fzf = True
     low_ram = False
-    volume = CONFIG.get("volume")
+    volume = os.getenv("VOLUME") or os.getenv("ANI_SYNC_VOLUME")
 
     i = 0
     while i < len(args):
@@ -3999,7 +4010,6 @@ def main():
         elif arg in ("--skip", "--auto-skip"):
             auto_skip = True
         elif arg == "--no-fzf":
-            use_fzf = False
             global _FZF_ENABLED
             _FZF_ENABLED = False
         elif arg == "--dub":
@@ -4131,6 +4141,7 @@ def main():
         party_room=party_room,
         low_ram=low_ram,
             volume=volume,
+        provider=provider,
     )
 
 

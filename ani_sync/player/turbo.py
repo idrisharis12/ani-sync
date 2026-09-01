@@ -3,13 +3,11 @@
 
 import shutil
 import subprocess
-import threading
-from pathlib import Path
 
 from ani_sync.config import CACHE_DIR, IS_TERMUX, USER_AGENT, sanitize_filename
 from ani_sync.player.launcher import launch_player
 from ani_sync.providers.manager import resolve_streams
-from ani_sync.ui.themes import C_BOLD, C_CYAN, C_DIM, C_GREEN, C_RED, C_RESET
+from ani_sync.ui.themes import C_BOLD, C_CYAN, C_GREEN, C_RED, C_RESET
 
 
 def turbo_play(
@@ -23,6 +21,7 @@ def turbo_play(
     mal_id=None,
     party_room=None,
     low_ram=False,
+    volume=None,
 ):
     """Zero-latency instant playback with high-throughput RAM buffer and local cache fallback."""
     safe_title = sanitize_filename(f"{title}_EP{ep_num}")
@@ -46,6 +45,7 @@ def turbo_play(
             mal_id=mal_id,
             party_room=party_room,
             low_ram=low_ram,
+            volume=volume,
         )
 
     # 2. Download-only mode
@@ -110,6 +110,7 @@ def turbo_play(
         mal_id=mal_id,
         party_room=party_room,
         low_ram=low_ram,
+        volume=volume,
     )
 
     # Cache cleanup: Keep newest ~4GB of anime

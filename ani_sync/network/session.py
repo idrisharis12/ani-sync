@@ -4,7 +4,6 @@
 import json
 import os
 import subprocess
-import urllib.parse
 import requests
 
 from ani_sync.config import USER_AGENT, log_debug

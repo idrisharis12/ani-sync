@@ -5,7 +5,6 @@ Synchronizes semantic versioning across all package manifests, scripts, and docu
 """
 
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -141,6 +140,11 @@ def bump_all(new_ver):
         BASE_DIR / "default.nix",
         r'version\s*=\s*["\'][^"\']+["\'];',
         f'version = "{new_ver}";',
+    )
+    update_file(
+        BASE_DIR / "packaging/ani-sync.json",
+        r'"version"\s*:\s*["\'][^"\']+["\']',
+        f'"version": "{new_ver}"',
     )
 
     print(

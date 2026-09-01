@@ -7,8 +7,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from ani_sync.config import IS_TERMUX, IS_WINDOWS, USER_AGENT, load_config
+from ani_sync.config import CONFIG_DIR, IS_TERMUX, IS_WINDOWS, USER_AGENT, load_config
 from ani_sync.player.aniskip import fetch_aniskip_times, get_auto_skip_script
+from ani_sync.tracking.discord import DiscordRPC
 from ani_sync.ui.themes import (
     C_BOLD,
     C_CYAN,
@@ -83,6 +84,7 @@ def launch_player(
     mal_id=None,
     party_room=None,
     low_ram=False,
+    volume=None,
 ):
     """Launch player with large demuxer RAM buffers and frame-accurate AniSkip."""
     media_title = f"{title} - Episode {ep_num}"
@@ -141,6 +143,10 @@ def launch_player(
             "--profile=fast",
             "--audio-buffer=0.8",
             "--cache=yes",
+        ]
+        if volume is not None:
+            cmd.append(f"--volume={volume}")
+        cmd.extend([
             f"--demuxer-max-bytes={demux_bytes}",
             f"--demuxer-max-back-bytes={back_bytes}",
             f"--demuxer-readahead-secs={readahead}",
@@ -152,12 +158,16 @@ def launch_player(
             "--hls-bitrate=max",
             "--network-timeout=20",
             "--msg-level=ffmpeg=error",
-        ]
+        ])
         skip_script = get_auto_skip_script(
             auto_skip=auto_skip, aniskip_data=aniskip_data
         )
         if skip_script:
             cmd.append(f"--script={skip_script}")
+        user_scripts_dir = CONFIG_DIR / "scripts"
+        if user_scripts_dir.exists():
+            for script_file in user_scripts_dir.glob("*.lua"):
+                cmd.append(f"--script={script_file}")
         cmd.append(target_path)
     elif player == "vlc" or "vlc" in Path(player_bin).stem.lower():
         cmd = [
@@ -196,5 +206,9 @@ def launch_player(
         f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro | [o] Skip Outro | [q] Quit{C_RESET}\n"
     )
 
-    proc = subprocess.run(cmd)
-    return proc.returncode == 0
+    DiscordRPC.start_activity(title, ep_num)
+    try:
+        proc = subprocess.run(cmd)
+        return proc.returncode == 0
+    finally:
+        DiscordRPC.stop_activity()

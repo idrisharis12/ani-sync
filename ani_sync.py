@@ -9,7 +9,6 @@ deployments. The real implementation now lives in the `ani_sync` package.
 import os
 import sys
 import subprocess
-import urllib.request
 
 # Ensure the package directory is on sys.path when running standalone.
 current_dir = os.path.dirname(os.path.abspath(__file__))

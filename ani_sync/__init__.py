@@ -15,10 +15,9 @@ from ani_sync.config import (
     save_history,
     load_history,
     get_last_watched,
-    _append_config,
 )
 from ani_sync.ui import themes
-from ani_sync.ui.themes import apply_theme, THEMES, get_current_theme
+from ani_sync.ui.themes import apply_theme, THEMES
 
 __all__ = [
     "VERSION",

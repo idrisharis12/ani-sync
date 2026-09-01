@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Multi-provider resolution engine with automatic failover."""
 
+import concurrent.futures
+
 from ani_sync.config import log_debug
 from ani_sync.providers.anidb import AniDBProvider
 from ani_sync.providers.gogo import GogoProvider
@@ -16,7 +18,7 @@ PROVIDERS = {
 def resolve_streams(
     episode_id, mode="sub", anime_slug=None, ep_num=1, provider_name="auto"
 ):
-    """Fetch streams with automatic fallback across AniDB, Gogo, and HiAnime providers."""
+    """Fetch streams with concurrent multi-provider lookup and automatic failover."""
     provider_name = (provider_name or "auto").lower()
 
     # 1. Selected specific provider
@@ -30,18 +32,40 @@ def resolve_streams(
         except Exception as e:
             log_debug(f"Selected provider {provider_name} failed: {e}")
 
-    # 2. Auto-Failover: Try AniDB -> Gogo -> HiAnime
-    fallback_order = ["anidb", "gogo", "hianime"]
-    for p_name in fallback_order:
+    # 2. Try primary AniDB provider first
+    try:
+        anidb_res = PROVIDERS["anidb"].get_streams(
+            episode_id, mode=mode, anime_slug=anime_slug, ep_num=ep_num
+        )
+        if anidb_res:
+            log_debug("Streams resolved via primary provider 'anidb'")
+            return anidb_res
+    except Exception as e:
+        log_debug(f"Primary provider 'anidb' attempt failed: {e}")
+
+    # 3. Concurrent Failover: Run fallback providers (Gogo & HiAnime) in parallel
+    def _fetch_from_provider(p_name):
         try:
             p = PROVIDERS[p_name]
-            streams = p.get_streams(
+            st = p.get_streams(
                 episode_id, mode=mode, anime_slug=anime_slug, ep_num=ep_num
             )
-            if streams:
-                log_debug(f"Streams successfully resolved via provider '{p_name}'")
-                return streams
+            if st:
+                log_debug(f"Streams resolved via fallback provider '{p_name}'")
+                return p_name, st
         except Exception as e:
-            log_debug(f"Provider '{p_name}' failover attempt error: {e}")
+            log_debug(f"Fallback provider '{p_name}' error: {e}")
+        return p_name, None
+
+    fallback_providers = ["gogo", "hianime"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        futures = {
+            executor.submit(_fetch_from_provider, p_name): p_name
+            for p_name in fallback_providers
+        }
+        for future in concurrent.futures.as_completed(futures):
+            p_name, st = future.result()
+            if st:
+                return st
 
     return {}

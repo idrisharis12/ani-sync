@@ -6,9 +6,7 @@ with zero external Python runtime dependencies required by end-users.
 """
 
 import hashlib
-import os
 import platform
-import shutil
 import subprocess
 import sys
 import tarfile

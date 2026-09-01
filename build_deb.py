@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import io
-import os
 import tarfile
 import time
 from pathlib import Path

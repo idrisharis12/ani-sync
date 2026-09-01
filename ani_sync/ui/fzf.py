@@ -5,21 +5,18 @@ import os
 import platform
 import shutil
 import subprocess
-import sys
 import tarfile
 import urllib.request
 import zipfile
 from pathlib import Path
 
-from ani_sync.config import IS_WINDOWS, IS_TERMUX, log_debug
+from ani_sync.config import IS_WINDOWS, log_debug
 from ani_sync.ui.themes import (
     C_BOLD,
     C_CYAN,
-    C_DIM,
     C_GREEN,
     C_RED,
     C_RESET,
-    C_YELLOW,
     _FZF_THEME_COLORS,
 )
 

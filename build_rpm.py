@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Build script for Fedora/RHEL/openSUSE RPM packages of ani-sync."""
 
-import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 VERSION = "2.10.4"

@@ -5,7 +5,7 @@ import os
 import requests
 
 from ani_sync.config import _append_config, load_config, log_debug
-from ani_sync.ui.themes import C_BOLD, C_CYAN, C_GREEN, C_RED, C_RESET, C_YELLOW
+from ani_sync.ui.themes import C_CYAN, C_GREEN, C_RESET, C_YELLOW
 
 ANILIST_API_URL = "https://graphql.anilist.co"
 ANILIST_AUTH_URL = "https://anilist.co/api/v2/oauth/authorize"

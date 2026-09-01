@@ -54,12 +54,19 @@ class DiscordRPC:
                                 log_debug(f"Failed to open pipe {pipe_name}: {pe}")
                 else:
                     uid = os.getuid()
+                    xdg_runtime = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{uid}")
                     base_paths = [
                         f"/run/user/{uid}/",
                         f"/run/user/{uid}/app/com.discordapp.Discord/",
+                        f"/run/user/{uid}/app/com.discordapp.DiscordCanary/",
+                        f"/run/user/{uid}/app/com.discordapp.DiscordPTB/",
+                        f"/run/user/{uid}/app/dev.vencord.Vesktop/",
                         f"/run/user/{uid}/snap.discord/",
-                        os.environ.get("XDG_RUNTIME_DIR", "") + "/",
+                        xdg_runtime + "/",
+                        f"{xdg_runtime}/app/com.discordapp.Discord/",
+                        f"{xdg_runtime}/app/dev.vencord.Vesktop/",
                         "/tmp/",
+                        "/tmp/app/com.discordapp.Discord/",
                     ]
                     
                     for base in base_paths:

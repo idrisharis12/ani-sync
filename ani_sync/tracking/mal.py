@@ -1,25 +1,12 @@
 # -*- coding: utf-8 -*-
 """MyAnimeList OAuth2 authentication, token caching, and watch progress synchronization."""
 
-import html
 import os
-import secrets
 import time
-import urllib.parse
-import webbrowser
 import requests
 
-from ani_sync.config import CONFIG_PATH, _append_config, load_config, log_debug
-from ani_sync.ui.themes import (
-    C_BLUE,
-    C_BOLD,
-    C_CYAN,
-    C_GREEN,
-    C_RED,
-    C_RESET,
-    C_YELLOW,
-    C_DIM,
-)
+from ani_sync.config import _append_config, load_config, log_debug
+from ani_sync.ui.themes import C_CYAN, C_GREEN, C_RED, C_RESET, C_YELLOW
 
 TOKEN_URL = "https://myanimelist.net/v1/oauth2/token"
 AUTH_URL = "https://myanimelist.net/v1/oauth2/authorize"
