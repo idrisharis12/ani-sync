@@ -101,9 +101,9 @@ if (Test-Path "$PSScriptRoot\ani_sync") {
     Copy-Item "$PSScriptRoot\ani_sync" -Destination "$InstallDir\ani_sync" -Recurse -Force
 } else {
     Write-Host "  Installing ani-sync via pip..." -ForegroundColor Yellow
-    python -m pip install "git+https://github.com/idrisharis12/ani-sync.git"
+    python -m pip install "https://github.com/idrisharis12/ani-sync/archive/refs/heads/main.zip"
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Failed to install ani-sync via pip. Please ensure git is installed." -ForegroundColor Red
+        Write-Host "❌ Failed to install ani-sync via pip." -ForegroundColor Red
         exit 1
     }
 }
