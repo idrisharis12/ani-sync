@@ -43,9 +43,10 @@ if (-not $HasPython) {
     Write-Host "Python not found (or Windows Store stub detected). Attempting automatic installation via winget..." -ForegroundColor Yellow
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         winget install Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements
-        Write-Host "✅ Python was installed! However, you must restart your terminal for the PATH changes to take effect." -ForegroundColor Green
-        Write-Host "Please close this PowerShell window, open a new one, and run this installer command again." -ForegroundColor Yellow
-        return
+        Write-Host "✅ Python was installed! Refreshing environment variables..." -ForegroundColor Green
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+        $HasPython = $true
+        $PyCmd = "python"
     } else {
         Write-Host "❌ Python is not installed. Please install Python from https://www.python.org/downloads/" -ForegroundColor Red
         throw "Installation aborted."
