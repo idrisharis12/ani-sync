@@ -29,13 +29,13 @@ $PyCmd = "python"
 $HasPython = $false
 try {
     $out = & python --version 2>&1
-    if ($out -match "Python") { $HasPython = $true }
+    if ($out -match "Python 3\.") { $HasPython = $true }
 } catch {}
 
 if (-not $HasPython) {
     try {
         $out = & py --version 2>&1
-        if ($out -match "Python") { $HasPython = $true; $PyCmd = "py" }
+        if ($out -match "Python 3\.") { $HasPython = $true; $PyCmd = "py" }
     } catch {}
 }
 
