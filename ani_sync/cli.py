@@ -2126,6 +2126,9 @@ def find_player_binary(player="mpv"):
         if exe_win:
             return exe_win
         if player == "mpv":
+            exe_mpvnet = shutil.which("mpvnet.exe") or shutil.which("mpvnet")
+            if exe_mpvnet:
+                return exe_mpvnet
             candidates = [
                 Path.home() / "scoop" / "apps" / "mpv" / "current" / "mpv.exe",
                 Path(os.environ.get("LOCALAPPDATA", ""))
