@@ -1733,11 +1733,25 @@ def http_get(url, is_json=False):
 
 def search_anime(query):
     """Search for anime on AniDB provider and enrich with AniList cover artwork."""
-    url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
-    html_text = http_get(url)
-    matches = re.findall(
-        r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
-    )
+    import concurrent.futures
+    
+    def fetch_page(page_num):
+        url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}&page={page_num}"
+        try:
+            return http_get(url)
+        except Exception:
+            return ""
+
+    html_texts = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        html_texts = list(executor.map(fetch_page, [1, 2, 3]))
+
+    matches = []
+    for text in html_texts:
+        matches.extend(re.findall(
+            r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", text, re.DOTALL
+        ))
+        
     results = []
     seen = set()
     for slug, raw_title in matches:
@@ -1750,7 +1764,7 @@ def search_anime(query):
     try:
         gql_query = """
         query ($search: String) {
-          Page(perPage: 15) {
+          Page(perPage: 50) {
             media(search: $search, type: ANIME) {
               title { romaji english }
               coverImage { extraLarge large }
