@@ -45,7 +45,7 @@ if (-not $HasPython) {
         winget install Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements
         Write-Host "✅ Python was installed! However, you must restart your terminal for the PATH changes to take effect." -ForegroundColor Green
         Write-Host "Please close this PowerShell window, open a new one, and run this installer command again." -ForegroundColor Yellow
-        exit 0
+        return
     } else {
         Write-Host "❌ Python is not installed. Please install Python from https://www.python.org/downloads/" -ForegroundColor Red
         throw "Installation aborted."
