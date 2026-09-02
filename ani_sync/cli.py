@@ -3769,10 +3769,16 @@ def update_self(quiet=False):
             print("Running installer update script...\n")
 
         # Run the installer script to perform a clean update of the package
+        kwargs = {}
+        if quiet:
+            kwargs["stdout"] = subprocess.DEVNULL
+            kwargs["stderr"] = subprocess.DEVNULL
+            
         subprocess.run(
             "curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash",
             shell=True,
             check=True,
+            **kwargs
         )
         if not quiet:
             print(
