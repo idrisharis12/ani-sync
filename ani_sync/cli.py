@@ -3103,8 +3103,10 @@ def render_preview(item_str):
             pass
 
     preview_cols = int(os.environ.get("FZF_PREVIEW_COLUMNS", "40"))
-    max_w = max(20, min(preview_cols - 4, 36))
-    max_h = max(10, min(int(max_w * 0.48), 16))
+    preview_lines = int(os.environ.get("FZF_PREVIEW_LINES", "20"))
+    
+    max_w = max(20, preview_cols - 4)
+    max_h = max(10, preview_lines - 8)
 
     # 1. Render Cover Image Artwork at the top
     if image_url:
@@ -3120,8 +3122,27 @@ def render_preview(item_str):
                 ) as f:
                     f.write(resp.read())
 
+            icat_bin = shutil.which("kitty")
             chafa_bin = shutil.which("chafa")
-            if chafa_bin:
+            is_kitty = "kitty" in os.environ.get("TERM", "").lower() or "KITTY_WINDOW_ID" in os.environ
+
+            if icat_bin and is_kitty:
+                fzf_cols = os.environ.get("FZF_PREVIEW_COLUMNS", str(max_w))
+                fzf_lines = os.environ.get("FZF_PREVIEW_LINES", str(max_h))
+                res = subprocess.run(
+                    [
+                        icat_bin, "+kitten", "icat",
+                        "--transfer-mode=memory",
+                        "--unicode-placeholder",
+                        "--stdin=no",
+                        f"--place={fzf_cols}x{fzf_lines}@0x0",
+                        str(thumb_file)
+                    ],
+                    capture_output=True,
+                )
+                sys.stdout.buffer.write(res.stdout)
+                sys.stdout.flush()
+            elif chafa_bin:
                 res = subprocess.run(
                     [
                         chafa_bin,
