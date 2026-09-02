@@ -3124,9 +3124,10 @@ def render_preview(item_str):
 
             icat_bin = shutil.which("kitty")
             chafa_bin = shutil.which("chafa")
-            is_kitty = "kitty" in os.environ.get("TERM", "").lower() or "KITTY_WINDOW_ID" in os.environ
+            env_dump = str(os.environ).lower()
+            is_kitty_compat = any(x in env_dump for x in ["kitty", "wezterm", "ghostty", "konsole"])
 
-            if icat_bin and is_kitty:
+            if icat_bin and is_kitty_compat:
                 fzf_cols = os.environ.get("FZF_PREVIEW_COLUMNS", str(max_w))
                 fzf_lines = os.environ.get("FZF_PREVIEW_LINES", str(max_h))
                 res = subprocess.run(
