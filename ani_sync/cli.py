@@ -3218,7 +3218,7 @@ def _fzf_pick(title, options, preview_cmd=None):
 
     fzf_cmd = [
         "fzf",
-        "--height=~60%",
+        "--height=80%",
         "--layout=reverse",
         "--border=rounded",
         "--margin=1,2",

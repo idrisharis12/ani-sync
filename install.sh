@@ -44,7 +44,7 @@ mkdir -p "$SHARE_DIR"
 # ------------------------------------------------------------------------------
 # 1. Package Manager Detection & System Dependencies (fzf, mpv, yt-dlp, curl, etc.)
 # ------------------------------------------------------------------------------
-echo -e "${CYAN}[1/4] Checking and installing system dependencies (fzf, mpv, yt-dlp, curl)...${NC}"
+echo -e "${CYAN}[1/4] Checking and installing system dependencies (fzf, mpv, yt-dlp, chafa, curl)...${NC}"
 
 install_system_packages() {
     if command -v apt-get &>/dev/null; then
