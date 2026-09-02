@@ -3771,8 +3771,13 @@ def update_self(quiet=False):
             kwargs["stdout"] = subprocess.DEVNULL
             kwargs["stderr"] = subprocess.DEVNULL
             
+        if sys.platform == "win32":
+            update_cmd = 'powershell -NoProfile -Command "irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 | iex"'
+        else:
+            update_cmd = "curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash"
+            
         subprocess.run(
-            "curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash",
+            update_cmd,
             shell=True,
             check=True,
             **kwargs
