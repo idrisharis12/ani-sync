@@ -25,11 +25,27 @@ if (-not (Test-Path $BinDir)) {
 
 # 1. Check Python
 Write-Host "[1/5] Checking Python installation..." -ForegroundColor Yellow
-$HasPython = (Get-Command python -ErrorAction SilentlyContinue) -or (Get-Command py -ErrorAction SilentlyContinue)
+$PyCmd = "python"
+$HasPython = $false
+try {
+    $out = & python --version 2>&1
+    if ($out -match "Python") { $HasPython = $true }
+} catch {}
+
 if (-not $HasPython) {
-    Write-Host "Python not found. Attempting automatic installation via winget..." -ForegroundColor Yellow
+    try {
+        $out = & py --version 2>&1
+        if ($out -match "Python") { $HasPython = $true; $PyCmd = "py" }
+    } catch {}
+}
+
+if (-not $HasPython) {
+    Write-Host "Python not found (or Windows Store stub detected). Attempting automatic installation via winget..." -ForegroundColor Yellow
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         winget install Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements
+        Write-Host "✅ Python was installed! However, you must restart your terminal for the PATH changes to take effect." -ForegroundColor Green
+        Write-Host "Please close this PowerShell window, open a new one, and run this installer command again." -ForegroundColor Yellow
+        exit 0
     } else {
         Write-Host "❌ Python is not installed. Please install Python from https://www.python.org/downloads/" -ForegroundColor Red
         throw "Installation aborted."
@@ -38,7 +54,7 @@ if (-not $HasPython) {
 
 # 2. Install Python dependencies
 Write-Host "[2/5] Installing Python dependencies (requests, tqdm, yt-dlp)..." -ForegroundColor Yellow
-python -m pip install --quiet --upgrade requests tqdm yt-dlp Pillow 2>$null
+& $PyCmd -m pip install --quiet --upgrade requests tqdm yt-dlp Pillow 2>$null
 
 # 3. Check and Auto-Install FZF (Interactive Fuzzy Search)
 Write-Host "[3/5] Setting up interactive FZF fuzzy search..." -ForegroundColor Yellow
@@ -101,7 +117,7 @@ if (Test-Path "$PSScriptRoot\ani_sync") {
     Copy-Item "$PSScriptRoot\ani_sync" -Destination "$InstallDir\ani_sync" -Recurse -Force
 } else {
     Write-Host "  Installing ani-sync via pip..." -ForegroundColor Yellow
-    python -m pip install "https://github.com/idrisharis12/ani-sync/archive/refs/heads/main.zip"
+    & $PyCmd -m pip install "https://github.com/idrisharis12/ani-sync/archive/refs/heads/main.zip"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "❌ Failed to install ani-sync via pip." -ForegroundColor Red
         throw "Installation aborted."
@@ -114,7 +130,7 @@ $LauncherScript = @"
 @echo off
 set "PATH=$InstallDir;%PATH%"
 set "PYTHONPATH=$InstallDir;%PYTHONPATH%"
-python -m ani_sync %*
+$PyCmd -m ani_sync %*
 "@
 Set-Content -Path $CmdPath -Value $LauncherScript -Encoding ASCII
 # Remove the old .ps1 if it exists so it doesn't conflict
