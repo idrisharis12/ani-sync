@@ -166,6 +166,16 @@
 ## 🎥 Feature Demonstrations & Gallery
 
 <details open>
+<summary><b>0. 🔎 Interactive FZF Search with High-Res Image Previews (Click to expand)</b></summary>
+<br>
+<p align="center">
+  <i>ani-sync perfectly aligns crisp Kitty Graphics protocol thumbnails directly inside the FZF preview pane. If your terminal doesn't support Kitty Graphics, it seamlessly falls back to dynamically scaled ANSI block characters!</i><br>
+  <img src="assets/fzf_preview_kitty.png" width="45%" alt="FZF Kitty Protocol Preview" style="border-radius: 8px;" />
+  <img src="assets/fzf_preview_ansi.png" width="45%" alt="FZF ANSI Scaling Preview" style="border-radius: 8px;" />
+</p>
+</details>
+
+<details open>
 <summary><b>1. 🚀 Zero-Buffering Playback & Turbo Swarm (Click to expand)</b></summary>
 <br>
 <p align="center">
@@ -330,8 +340,8 @@ yay -S ani-sync
 
 **Debian / Ubuntu (.deb):**
 ```bash
-curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.11.40_all.deb
-sudo apt install -y ./ani-sync_2.11.40_all.deb
+curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.11.41_all.deb
+sudo apt install -y ./ani-sync_2.11.41_all.deb
 ```
 
 **Fedora / RHEL / openSUSE:**
