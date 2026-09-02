@@ -3139,23 +3139,30 @@ def render_preview(item_str):
                 if line_count < max_h:
                     print("\n" * (max_h - line_count), end="")
             elif icat_bin:
-                fzf_cols = os.environ.get("FZF_PREVIEW_COLUMNS", str(max_w))
-                fzf_lines = os.environ.get("FZF_PREVIEW_LINES", str(max_h))
+                icat_target = str(thumb_file)
+                try:
+                    from PIL import Image
+                    resized_file = cache_dir / f"{safe_slug}_resized.jpg"
+                    if not resized_file.exists():
+                        with Image.open(thumb_file) as img:
+                            # 1 terminal row is approx 20 pixels high
+                            target_h = max_h * 18
+                            img.thumbnail((target_h, target_h))
+                            img.save(resized_file, "JPEG")
+                    icat_target = str(resized_file)
+                except Exception:
+                    pass
+
                 res = subprocess.run(
-                    [
-                        "kitty",
-                        "+kitten",
-                        "icat",
-                        "--transfer-mode=memory",
-                        "--unicode-placeholder",
-                        "--stdin=no",
-                        f"--place={fzf_cols}x{fzf_lines}@0x0",
-                        str(thumb_file),
-                    ],
+                    ["kitty", "+kitten", "icat", "--align", "left", icat_target],
                     capture_output=True,
                 )
                 sys.stdout.buffer.write(res.stdout)
                 sys.stdout.flush()
+                
+                line_count = res.stdout.count(b"\n")
+                if line_count < max_h:
+                    print("\n" * (max_h - line_count), end="")
             else:
                 try:
                     from PIL import Image
