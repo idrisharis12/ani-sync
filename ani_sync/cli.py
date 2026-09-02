@@ -2130,6 +2130,9 @@ def find_player_binary(player="mpv"):
             if exe_mpvnet:
                 return exe_mpvnet
             candidates = [
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "mpv.net" / "mpvnet.exe",
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WindowsApps" / "mpvnet.exe",
+                Path("C:/Program Files/mpv.net/mpvnet.exe"),
                 Path.home() / "scoop" / "apps" / "mpv" / "current" / "mpv.exe",
                 Path(os.environ.get("LOCALAPPDATA", ""))
                 / "Programs"
@@ -2424,8 +2427,13 @@ def launch_player(
         f"{C_DIM}Shortcuts: [Tab]/[i] Skip Intro | [o] Skip Outro | [q] Quit{C_RESET}\n"
     )
 
-    proc = subprocess.run(cmd)
-    return proc.returncode == 0
+    try:
+        proc = subprocess.run(cmd)
+        return proc.returncode == 0
+    except FileNotFoundError:
+        print(f"\n{C_RED}❌ Error: Media player '{player_bin}' not found!{C_RESET}")
+        print(f"{C_YELLOW}Please install MPV to play streams natively.{C_RESET}")
+        return False
 
 
 def turbo_play(
