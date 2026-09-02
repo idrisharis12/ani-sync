@@ -82,10 +82,10 @@ Write-Host "[4/5] Checking media player & stream acceleration..." -ForegroundCol
 if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
     Write-Host "  MPV not detected. Attempting install via winget..." -ForegroundColor DarkGray
     if (Get-Command winget -ErrorAction SilentlyContinue) {
-        winget install mpv.net --silent --accept-source-agreements --accept-package-agreements 2>$null
+        winget install --exact --id mpv.net --source winget --silent --accept-source-agreements --accept-package-agreements 2>$null
     }
     if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
-        Write-Host "  ⚠️  MPV recommended for zero-buffering playback. Install with: winget install mpv.net" -ForegroundColor DarkYellow
+        Write-Host "  ⚠️  MPV recommended for zero-buffering playback. Install with: winget install --exact --id mpv.net --source winget" -ForegroundColor DarkYellow
     }
 }
 
@@ -101,7 +101,11 @@ if (Test-Path "$PSScriptRoot\ani_sync") {
     Copy-Item "$PSScriptRoot\ani_sync" -Destination "$InstallDir\ani_sync" -Recurse -Force
 } else {
     Write-Host "  Installing ani-sync via pip..." -ForegroundColor Yellow
-    & pip install "git+https://github.com/idrisharis12/ani-sync.git"
+    python -m pip install "git+https://github.com/idrisharis12/ani-sync.git"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Failed to install ani-sync via pip. Please ensure git is installed." -ForegroundColor Red
+        exit 1
+    }
 }
 
 # Create a batch file launcher
