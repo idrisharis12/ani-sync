@@ -109,8 +109,6 @@ if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
 # 5. Install ani-sync scripts and wrappers
 Write-Host "[5/5] Installing ani-sync..." -ForegroundColor Yellow
 
-$CmdPath = "$BinDir\ani-sync.cmd"
-$Ps1Path = "$BinDir\ani-sync.ps1"
 
 # Copy or download ani-sync package
 if (Test-Path "$PSScriptRoot\ani_sync") {
@@ -125,25 +123,22 @@ if (Test-Path "$PSScriptRoot\ani_sync") {
     }
 }
 
-# Create a batch file launcher to bypass PowerShell Execution Policies
-Write-Host "  Creating launcher in $BinDir..." -ForegroundColor Cyan
-$LauncherScript = @"
-@echo off
-set "PATH=$InstallDir;%PATH%"
-set "PYTHONPATH=$InstallDir;%PYTHONPATH%"
-$PyCmd -m ani_sync %*
-"@
-Set-Content -Path $CmdPath -Value $LauncherScript -Encoding ASCII
-# Remove the old .ps1 if it exists so it doesn't conflict
-if (Test-Path $Ps1Path) { Remove-Item $Ps1Path -Force -ErrorAction SilentlyContinue }
+# Retrieve the pip Scripts installation directory dynamically
+$ScriptsPath = & $PyCmd -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+if (-not $ScriptsPath) { $ScriptsPath = "$env:USERPROFILE\AppData\Local\Programs\Python\Python312\Scripts" }
 
-# Add to User PATH if missing
+# Add Python Scripts and BinDir to User PATH if missing
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if ($UserPath -notlike "*$ScriptsPath*") {
+    $UserPath = "$UserPath;$ScriptsPath"
+    Write-Host "✓ Added Python Scripts to User PATH." -ForegroundColor Green
+}
 if ($UserPath -notlike "*$BinDir*") {
-    [Environment]::SetEnvironmentVariable("Path", "$UserPath;$BinDir", "User")
-    $env:Path = "$BinDir;$env:Path"
+    $UserPath = "$UserPath;$BinDir"
     Write-Host "✓ Added $BinDir to User PATH." -ForegroundColor Green
 }
+[Environment]::SetEnvironmentVariable("Path", $UserPath, "User")
+$env:Path = "$ScriptsPath;$BinDir;" + $env:Path
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green

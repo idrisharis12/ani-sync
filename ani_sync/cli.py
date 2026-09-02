@@ -3765,20 +3765,25 @@ def update_self(quiet=False):
             )
             print("Running installer update script...\n")
 
-        # Run the installer script to perform a clean update of the package
+        # Perform a clean update of the python package via pip
+        # This completely avoids triggering Windows Defender AMSI heuristics from PowerShell
         kwargs = {}
         if quiet:
             kwargs["stdout"] = subprocess.DEVNULL
             kwargs["stderr"] = subprocess.DEVNULL
             
-        if sys.platform == "win32":
-            update_cmd = 'powershell -NoProfile -Command "irm https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.ps1 | iex"'
-        else:
-            update_cmd = "curl -fsSL https://raw.githubusercontent.com/idrisharis12/ani-sync/main/install.sh | bash"
-            
         subprocess.run(
-            update_cmd,
-            shell=True,
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--no-cache-dir",
+                "--force-reinstall",
+                "--no-deps",
+                "git+https://github.com/idrisharis12/ani-sync.git"
+            ],
             check=True,
             **kwargs
         )
