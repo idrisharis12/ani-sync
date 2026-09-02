@@ -3121,7 +3121,6 @@ def render_preview(item_str):
                     f.write(resp.read())
 
             chafa_bin = shutil.which("chafa")
-            icat_bin = shutil.which("kitty")
             if chafa_bin:
                 res = subprocess.run(
                     [
@@ -3135,31 +3134,6 @@ def render_preview(item_str):
                 sys.stdout.buffer.write(res.stdout)
                 sys.stdout.flush()
 
-                line_count = res.stdout.count(b"\n")
-                if line_count < max_h:
-                    print("\n" * (max_h - line_count), end="")
-            elif icat_bin:
-                icat_target = str(thumb_file)
-                try:
-                    from PIL import Image
-                    resized_file = cache_dir / f"{safe_slug}_resized.jpg"
-                    if not resized_file.exists():
-                        with Image.open(thumb_file) as img:
-                            # 1 terminal row is approx 20 pixels high
-                            target_h = max_h * 18
-                            img.thumbnail((target_h, target_h))
-                            img.save(resized_file, "JPEG")
-                    icat_target = str(resized_file)
-                except Exception:
-                    pass
-
-                res = subprocess.run(
-                    ["kitty", "+kitten", "icat", "--align", "left", icat_target],
-                    capture_output=True,
-                )
-                sys.stdout.buffer.write(res.stdout)
-                sys.stdout.flush()
-                
                 line_count = res.stdout.count(b"\n")
                 if line_count < max_h:
                     print("\n" * (max_h - line_count), end="")
