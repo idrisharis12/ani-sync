@@ -32,7 +32,7 @@ if (-not $HasPython) {
         winget install Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements
     } else {
         Write-Host "❌ Python is not installed. Please install Python from https://www.python.org/downloads/" -ForegroundColor Red
-        exit 1
+        throw "Installation aborted."
     }
 }
 
@@ -104,7 +104,7 @@ if (Test-Path "$PSScriptRoot\ani_sync") {
     python -m pip install "https://github.com/idrisharis12/ani-sync/archive/refs/heads/main.zip"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "❌ Failed to install ani-sync via pip." -ForegroundColor Red
-        exit 1
+        throw "Installation aborted."
     }
 }
 
