@@ -3139,16 +3139,23 @@ def render_preview(item_str):
                 if line_count < max_h:
                     print("\n" * (max_h - line_count), end="")
             elif icat_bin:
+                fzf_cols = os.environ.get("FZF_PREVIEW_COLUMNS", str(max_w))
+                fzf_lines = os.environ.get("FZF_PREVIEW_LINES", str(max_h))
                 res = subprocess.run(
-                    ["kitty", "+kitten", "icat", "--align", "left", str(thumb_file)],
+                    [
+                        "kitty",
+                        "+kitten",
+                        "icat",
+                        "--transfer-mode=memory",
+                        "--unicode-placeholder",
+                        "--stdin=no",
+                        f"--place={fzf_cols}x{fzf_lines}@0x0",
+                        str(thumb_file),
+                    ],
                     capture_output=True,
                 )
                 sys.stdout.buffer.write(res.stdout)
                 sys.stdout.flush()
-
-                line_count = res.stdout.count(b"\n")
-                if line_count < max_h:
-                    print("\n" * (max_h - line_count), end="")
             else:
                 try:
                     from PIL import Image

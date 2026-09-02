@@ -330,8 +330,8 @@ yay -S ani-sync
 
 **Debian / Ubuntu (.deb):**
 ```bash
-curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.11.32_all.deb
-sudo apt install -y ./ani-sync_2.11.32_all.deb
+curl -LO https://github.com/idrisharis12/ani-sync/releases/latest/download/ani-sync_2.11.33_all.deb
+sudo apt install -y ./ani-sync_2.11.33_all.deb
 ```
 
 **Fedora / RHEL / openSUSE:**
