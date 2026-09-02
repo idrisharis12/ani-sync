@@ -108,19 +108,17 @@ if (Test-Path "$PSScriptRoot\ani_sync") {
     }
 }
 
-# Create a batch file launcher
-Write-Host "  Creating launcher in $InstallDir..." -ForegroundColor Cyan
+# Create a batch file launcher to bypass PowerShell Execution Policies
+Write-Host "  Creating launcher in $BinDir..." -ForegroundColor Cyan
 $LauncherScript = @"
 @echo off
 set "PATH=$InstallDir;%PATH%"
 set "PYTHONPATH=$InstallDir;%PYTHONPATH%"
 python -m ani_sync %*
 "@
-Set-Content -Path "$InstallDir\ani-sync.bat" -Value $LauncherScript -Encoding ASCII
-
-# Create PowerShell wrapper
-$Ps1Content = "`$env:PATH = `"$InstallDir;`$env:PATH`"`r`n`$env:PYTHONPATH = `"$InstallDir;`$env:PYTHONPATH`"`r`npython -m ani_sync @args"
-Set-Content -Path $Ps1Path -Value $Ps1Content -Force
+Set-Content -Path $CmdPath -Value $LauncherScript -Encoding ASCII
+# Remove the old .ps1 if it exists so it doesn't conflict
+if (Test-Path $Ps1Path) { Remove-Item $Ps1Path -Force -ErrorAction SilentlyContinue }
 
 # Add to User PATH if missing
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
