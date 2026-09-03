@@ -3273,24 +3273,63 @@ def _fzf_pick(title, options, preview_cmd=None):
         fzf_cmd.append(f"--preview={preview_cmd}")
         fzf_cmd.append("--preview-window=right:55%:nowrap")
 
-    proc = subprocess.run(
-        fzf_cmd,
-        input=input_text,
-        stdout=subprocess.PIPE,
-        stderr=None,
-        text=True,
-    )
+    import platform as _platform, tempfile as _tempfile
+    if _platform.system() == "Windows":
+        # On Windows, fzf cannot use subprocess PIPE for stdout as it requires
+        # a real TTY for interactive rendering — this causes a thread deadlock.
+        # Write fzf input/output to temp files instead.
+        tmp_in_path = None
+        tmp_out_path = None
+        try:
+            with _tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", delete=False, encoding="utf-8"
+            ) as tmp_in:
+                tmp_in.write(input_text)
+                tmp_in_path = tmp_in.name
+
+            with _tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", delete=False, encoding="utf-8"
+            ) as tmp_out:
+                tmp_out_path = tmp_out.name
+
+            with open(tmp_in_path, "r", encoding="utf-8") as fin, \
+                 open(tmp_out_path, "w", encoding="utf-8") as fout:
+                proc = subprocess.run(fzf_cmd, stdin=fin, stdout=fout, stderr=None)
+
+            if proc.returncode not in (0,):
+                if proc.returncode in (1, 130):
+                    sys.exit(0)
+                return None
+
+            with open(tmp_out_path, "r", encoding="utf-8") as f:
+                selected = f.read().strip()
+        finally:
+            for p in (tmp_in_path, tmp_out_path):
+                if p:
+                    try:
+                        os.unlink(p)
+                    except OSError:
+                        pass
+    else:
+        proc = subprocess.run(
+            fzf_cmd,
+            input=input_text,
+            stdout=subprocess.PIPE,
+            stderr=None,
+            text=True,
+        )
+        selected = proc.stdout.strip() if proc.stdout else ""
+        if proc.returncode != 0 or not selected:
+            if proc.returncode in (1, 130):
+                sys.exit(0)
+            return None
 
     # Clear any lingering native terminal images (Kitty, etc) that FZF left behind
     print("\033_Ga=d;\033\\", end="", flush=True)
 
-    if proc.returncode != 0 or not proc.stdout.strip():
-        if proc.returncode in (1, 130):
-            # User cancelled via Esc or Ctrl+C
-            sys.exit(0)
+    if not selected:
         return None
 
-    selected = proc.stdout.strip()
     num_match = re.match(r"^(\d+)\.", selected)
     if num_match:
         return int(num_match.group(1)) - 1
