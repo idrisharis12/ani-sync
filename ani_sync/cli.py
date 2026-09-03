@@ -2873,6 +2873,12 @@ _FZF_CHECKED = False
 def _has_fzf():
     """Check if fzf is available on the system, auto-installing standalone binary if missing."""
     global _FZF_CHECKED
+    # fzf requires a POSIX TTY for interactive rendering and is not reliably
+    # compatible with Windows PowerShell/cmd — disable it entirely on Windows
+    # to ensure a consistent numbered-menu interface across all searches.
+    if sys.platform == "win32":
+        return False
+
     _ensure_path()
 
     exe = shutil.which("fzf") or shutil.which("fzf.exe")
@@ -2899,6 +2905,7 @@ def _has_fzf():
 
 
 _FZF_ENABLED = True  # Set to False by --no-fzf CLI flag
+
 
 
 def parse_episode_range(range_str):
