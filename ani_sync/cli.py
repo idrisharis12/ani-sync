@@ -2948,8 +2948,8 @@ def pick_option(title, options, default_idx=0, use_fzf=True, preview_cmd=None):
             result = _fzf_pick(title, options, preview_cmd=preview_cmd)
             if result is not None:
                 return result
-        except Exception:
-            pass  # Fallback to numbered menu
+        except BaseException:
+            pass  # Fallback to numbered menu (catches KeyboardInterrupt too)
 
     # Sleek styled numbered menu fallback
     clean_t = re.sub(r"\033\[[0-9;]*m", "", title).strip()
