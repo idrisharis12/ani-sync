@@ -1732,9 +1732,14 @@ def http_get(url, is_json=False):
 
 
 def search_anime(query):
-    """Search for anime on AniDB provider and enrich with AniList cover artwork."""
+    """Search for anime on AniDB provider with automatic Kitsu/AniList API failover."""
     import concurrent.futures
 
+    results = []
+    seen_slugs = set()
+    seen_titles = set()
+
+    # 1. Primary: Try AniDB provider browse search
     def fetch_page(page_num):
         url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}&page={page_num}"
         try:
@@ -1742,27 +1747,83 @@ def search_anime(query):
         except Exception:
             return ""
 
-    html_texts = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        html_texts = list(executor.map(fetch_page, [1, 2, 3]))
+    try:
+        html_texts = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            html_texts = list(executor.map(fetch_page, [1, 2, 3]))
 
-    matches = []
-    for text in html_texts:
-        matches.extend(
-            re.findall(
-                r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", text, re.DOTALL
+        matches = []
+        for text in html_texts:
+            if text:
+                matches.extend(
+                    re.findall(
+                        r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"",
+                        text,
+                        re.DOTALL,
+                    )
+                )
+
+        for slug, raw_title in matches:
+            if slug not in seen_slugs:
+                seen_slugs.add(slug)
+                title = html.unescape(raw_title).strip()
+                seen_titles.add(title.lower())
+                results.append({"slug": slug, "title": title, "image": None})
+    except Exception:
+        pass
+
+    # 2. Secondary Failover: If AniDB returned no results, query Kitsu API
+    if not results:
+        try:
+            kitsu_url = f"https://kitsu.io/api/edge/anime?filter[text]={urllib.parse.quote_plus(query)}&page[limit]=20"
+            req = urllib.request.Request(
+                kitsu_url,
+                headers={
+                    "User-Agent": USER_AGENT,
+                    "Accept": "application/vnd.api+json",
+                },
             )
-        )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                k_data = json.loads(resp.read().decode("utf-8"))
+                items = k_data.get("data", [])
+                for item in items:
+                    attrs = item.get("attributes", {})
+                    title = (
+                        attrs.get("canonicalTitle")
+                        or attrs.get("titles", {}).get("en")
+                        or attrs.get("titles", {}).get("en_jp")
+                    )
+                    if not title or title.lower() in seen_titles:
+                        continue
+                    seen_titles.add(title.lower())
+                    k_slug = attrs.get("slug") or re.sub(
+                        r"[^\w\s-]", "", title.lower()
+                    ).strip().replace(" ", "-")
+                    poster = attrs.get("posterImage") or {}
+                    img = (
+                        poster.get("medium")
+                        or poster.get("large")
+                        or poster.get("original")
+                    )
+                    rating = attrs.get("averageRating")
+                    score = round(float(rating) / 10.0, 1) if rating else None
+                    episodes = attrs.get("episodeCount")
+                    status = (attrs.get("status") or "").upper()
+                    results.append(
+                        {
+                            "slug": k_slug,
+                            "title": title,
+                            "image": img,
+                            "score": score,
+                            "episodes": episodes,
+                            "status": status,
+                            "synopsis": attrs.get("synopsis", ""),
+                        }
+                    )
+        except Exception:
+            pass
 
-    results = []
-    seen = set()
-    for slug, raw_title in matches:
-        if slug not in seen:
-            seen.add(slug)
-            title = html.unescape(raw_title).strip()
-            results.append({"slug": slug, "title": title, "image": None})
-
-    # Enrich with cover images and metadata from AniList GraphQL
+    # 3. Enrich with cover images and metadata from AniList GraphQL (if working)
     try:
         gql_query = """
         query ($search: String) {
@@ -1808,10 +1869,14 @@ def search_anime(query):
                         or (eng and (t_lower in eng or eng in t_lower))
                     ):
                         c_img = m.get("coverImage", {})
-                        res["image"] = c_img.get("extraLarge") or c_img.get("large")
-                        res["score"] = m.get("averageScore")
-                        res["episodes"] = m.get("episodes")
-                        res["status"] = m.get("status")
+                        if not res.get("image"):
+                            res["image"] = c_img.get("extraLarge") or c_img.get("large")
+                        if not res.get("score"):
+                            res["score"] = m.get("averageScore")
+                        if not res.get("episodes"):
+                            res["episodes"] = m.get("episodes")
+                        if not res.get("status"):
+                            res["status"] = m.get("status")
                         res["genres"] = m.get("genres", [])
                         st_nodes = m.get("studios", {}).get("nodes", [])
                         if st_nodes:
@@ -1840,20 +1905,50 @@ def search_anime(query):
 
 
 def get_trending_anime():
-    """Fetch currently top trending and airing anime."""
-    url = f"{ANIDB_BASE}/browse"
-    html_text = http_get(url)
-    matches = re.findall(
-        r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
-    )
-    results = []
-    seen = set()
-    for slug, raw_title in matches:
-        if slug not in seen:
-            seen.add(slug)
-            title = html.unescape(raw_title).strip()
-            results.append({"slug": slug, "title": title})
-    return results
+    """Fetch currently top trending and airing anime with failover."""
+    try:
+        url = f"{ANIDB_BASE}/browse"
+        html_text = http_get(url)
+        matches = re.findall(
+            r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
+        )
+        results = []
+        seen = set()
+        for slug, raw_title in matches:
+            if slug not in seen:
+                seen.add(slug)
+                title = html.unescape(raw_title).strip()
+                results.append({"slug": slug, "title": title})
+        if results:
+            return results
+    except Exception:
+        pass
+
+    # Kitsu trending fallback
+    try:
+        kitsu_url = "https://kitsu.io/api/edge/trending/anime"
+        req = urllib.request.Request(
+            kitsu_url,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "application/vnd.api+json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            items = data.get("data", [])
+            results = []
+            for item in items:
+                attrs = item.get("attributes", {})
+                title = attrs.get("canonicalTitle")
+                if title:
+                    slug = attrs.get("slug") or re.sub(
+                        r"[^\w\s-]", "", title.lower()
+                    ).strip().replace(" ", "-")
+                    results.append({"slug": slug, "title": title})
+            return results
+    except Exception:
+        return []
 
 
 def get_airing_schedule():
@@ -2002,36 +2097,71 @@ def run_schedule():
 
 
 def get_anime_details(slug):
-    """Fetch anime seasons and mal_id if present."""
-    url = f"{ANIDB_BASE}/anime/{slug}"
-    html_text = http_get(url)
-    mal_id_match = re.search(r"myanimelist\.net/anime/([0-9]+)", html_text)
-    mal_id = int(mal_id_match.group(1)) if mal_id_match else None
+    """Fetch anime seasons and mal_id if present with error failover."""
+    try:
+        url = f"{ANIDB_BASE}/anime/{slug}"
+        html_text = http_get(url)
+        mal_id_match = re.search(r"myanimelist\.net/anime/([0-9]+)", html_text)
+        mal_id = int(mal_id_match.group(1)) if mal_id_match else None
 
-    # Parse related seasons / franchise entries
-    seasons = []
-    season_section = re.search(r">Seasons<.*?>Details<", html_text, re.DOTALL)
-    if season_section:
-        sec_text = season_section.group(0)
-        s_matches = re.findall(
-            r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text
-        )
-        seen = {slug}
-        for s_slug, s_title in s_matches:
-            if s_slug not in seen:
-                seen.add(s_slug)
-                seasons.append(
-                    {"slug": s_slug, "title": html.unescape(s_title).strip()}
-                )
-    return {"mal_id": mal_id, "seasons": seasons}
+        # Parse related seasons / franchise entries
+        seasons = []
+        season_section = re.search(r">Seasons<.*?>Details<", html_text, re.DOTALL)
+        if season_section:
+            sec_text = season_section.group(0)
+            s_matches = re.findall(
+                r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text
+            )
+            seen = {slug}
+            for s_slug, s_title in s_matches:
+                if s_slug not in seen:
+                    seen.add(s_slug)
+                    seasons.append(
+                        {"slug": s_slug, "title": html.unescape(s_title).strip()}
+                    )
+        return {"mal_id": mal_id, "seasons": seasons}
+    except Exception:
+        return {"mal_id": None, "seasons": []}
 
 
 def get_episodes(slug):
-    """Fetch available episodes for an anime."""
-    anime_id = slug.split("-")[-1]
-    url = f"{ANIDB_BASE}/api/frontend/anime/{anime_id}/episodes"
-    data = http_get(url, is_json=True)
-    return data.get("episodes", [])
+    """Fetch available episodes for an anime with automatic failover."""
+    try:
+        anime_id = slug.split("-")[-1]
+        if anime_id.isdigit():
+            url = f"{ANIDB_BASE}/api/frontend/anime/{anime_id}/episodes"
+            data = http_get(url, is_json=True)
+            eps = data.get("episodes", [])
+            if eps:
+                return eps
+    except Exception:
+        pass
+
+    # Kitsu / title episode count failover
+    ep_count = 12
+    try:
+        query_slug = urllib.parse.quote_plus(slug.replace("-", " "))
+        kitsu_url = (
+            f"https://kitsu.io/api/edge/anime?filter[text]={query_slug}&page[limit]=1"
+        )
+        req = urllib.request.Request(
+            kitsu_url,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "application/vnd.api+json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            items = data.get("data", [])
+            if items:
+                cnt = items[0].get("attributes", {}).get("episodeCount")
+                if cnt and isinstance(cnt, int) and cnt > 0:
+                    ep_count = cnt
+    except Exception:
+        pass
+
+    return [{"number": i, "id": f"{slug}-ep-{i}"} for i in range(1, ep_count + 1)]
 
 
 def get_episode_streams(

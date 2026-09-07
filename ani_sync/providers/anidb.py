@@ -16,47 +16,61 @@ class AniDBProvider(BaseProvider):
     name = "anidb"
 
     def search(self, query):
-        url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
-        html_text = http_get(url)
-        matches = re.findall(
-            r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
-        )
-        results = []
-        seen = set()
-        for slug, raw_title in matches:
-            if slug not in seen:
-                seen.add(slug)
-                title = html.unescape(raw_title).strip()
-                results.append({"slug": slug, "title": title})
-        return results
+        try:
+            url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
+            html_text = http_get(url)
+            matches = re.findall(
+                r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
+            )
+            results = []
+            seen = set()
+            for slug, raw_title in matches:
+                if slug not in seen:
+                    seen.add(slug)
+                    title = html.unescape(raw_title).strip()
+                    results.append({"slug": slug, "title": title})
+            return results
+        except Exception as e:
+            log_debug(f"AniDB search error: {e}")
+            return []
 
     def get_details(self, slug):
-        url = f"{ANIDB_BASE}/anime/{slug}"
-        html_text = http_get(url)
-        mal_id_match = re.search(r"myanimelist\.net/anime/([0-9]+)", html_text)
-        mal_id = int(mal_id_match.group(1)) if mal_id_match else None
+        try:
+            url = f"{ANIDB_BASE}/anime/{slug}"
+            html_text = http_get(url)
+            mal_id_match = re.search(r"myanimelist\.net/anime/([0-9]+)", html_text)
+            mal_id = int(mal_id_match.group(1)) if mal_id_match else None
 
-        seasons = []
-        season_section = re.search(r">Seasons<.*?>Details<", html_text, re.DOTALL)
-        if season_section:
-            sec_text = season_section.group(0)
-            s_matches = re.findall(
-                r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text
-            )
-            seen = {slug}
-            for s_slug, s_title in s_matches:
-                if s_slug not in seen:
-                    seen.add(s_slug)
-                    seasons.append(
-                        {"slug": s_slug, "title": html.unescape(s_title).strip()}
-                    )
-        return {"mal_id": mal_id, "seasons": seasons}
+            seasons = []
+            season_section = re.search(r">Seasons<.*?>Details<", html_text, re.DOTALL)
+            if season_section:
+                sec_text = season_section.group(0)
+                s_matches = re.findall(
+                    r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text
+                )
+                seen = {slug}
+                for s_slug, s_title in s_matches:
+                    if s_slug not in seen:
+                        seen.add(s_slug)
+                        seasons.append(
+                            {"slug": s_slug, "title": html.unescape(s_title).strip()}
+                        )
+            return {"mal_id": mal_id, "seasons": seasons}
+        except Exception as e:
+            log_debug(f"AniDB get_details error: {e}")
+            return {"mal_id": None, "seasons": []}
 
     def get_episodes(self, slug):
-        anime_id = slug.split("-")[-1]
-        url = f"{ANIDB_BASE}/api/frontend/anime/{anime_id}/episodes"
-        data = http_get(url, is_json=True)
-        return data.get("episodes", [])
+        try:
+            anime_id = slug.split("-")[-1]
+            if not anime_id.isdigit():
+                return []
+            url = f"{ANIDB_BASE}/api/frontend/anime/{anime_id}/episodes"
+            data = http_get(url, is_json=True)
+            return data.get("episodes", [])
+        except Exception as e:
+            log_debug(f"AniDB get_episodes error: {e}")
+            return []
 
     def get_streams(self, episode_id, mode="sub", anime_slug=None, ep_num=1):
         streams = {}
