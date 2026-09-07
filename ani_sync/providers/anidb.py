@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""AniDB primary HLS streaming provider backend."""
+"""AniDB primary HLS streaming provider backend with Browser Bundle error handling & response repair."""
 
 import html
 import re
@@ -12,13 +12,49 @@ from ani_sync.providers.base import BaseProvider
 ANIDB_BASE = "https://anidb.app"
 
 
+class ResponseRepair:
+    """Sanitize and repair malformed UTF-8/XML responses from AniDB (ported from anime-db/ani-db-browser-bundle)."""
+
+    @staticmethod
+    def repair(content: str) -> str:
+        if not content:
+            return ""
+        # Remove invalid musical symbol surrogate pairs and null control bytes
+        content = content.replace("\xf0\x9d\x84\x87", "").replace("\x00", "")
+        return content
+
+
+class ErrorDetector:
+    """Detect AniDB API errors, bans, and rate-limits (ported from anime-db/ani-db-browser-bundle)."""
+
+    @staticmethod
+    def detect(response_text: str):
+        if not response_text:
+            return
+        if "<error>" in response_text:
+            match = re.search(r"<error>([^<]+)</error>", response_text, re.IGNORECASE)
+            if match:
+                err_msg = match.group(1).strip()
+                if err_msg.lower() == "banned":
+                    raise PermissionError("AniDB client IP is currently banned or rate-limited.")
+                elif "not found" in err_msg.lower():
+                    raise FileNotFoundError(f"AniDB resource not found: {err_msg}")
+                else:
+                    raise RuntimeError(f"AniDB API error: {err_msg}")
+        if "503 Service Unavailable" in response_text or "Just a moment..." in response_text:
+            raise PermissionError("AniDB returned Cloudflare 503 Service Unavailable.")
+
+
 class AniDBProvider(BaseProvider):
     name = "anidb"
 
     def search(self, query):
         try:
             url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
-            html_text = http_get(url)
+            raw_html = http_get(url)
+            html_text = ResponseRepair.repair(raw_html)
+            ErrorDetector.detect(html_text)
+
             matches = re.findall(
                 r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", html_text, re.DOTALL
             )
