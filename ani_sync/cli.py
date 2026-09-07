@@ -1732,14 +1732,14 @@ def http_get(url, is_json=False):
 
 
 def search_anime(query):
-    """Search for anime on AniDB provider with automatic Kitsu/AniList API failover."""
+    """Search for anime with bulletproof multi-provider failover across AniDB, AniList, Kitsu, Jikan, and Consumet APIs."""
     import concurrent.futures
 
     results = []
     seen_slugs = set()
     seen_titles = set()
 
-    # 1. Primary: Try AniDB provider browse search
+    # 1. Primary: Try AniDB browse search
     def fetch_page(page_num):
         url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}&page={page_num}"
         try:
@@ -1754,7 +1754,7 @@ def search_anime(query):
 
         matches = []
         for text in html_texts:
-            if text:
+            if text and "503 Service Unavailable" not in text and "Cloudflare" not in text:
                 matches.extend(
                     re.findall(
                         r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"",
@@ -1772,7 +1772,7 @@ def search_anime(query):
     except Exception:
         pass
 
-    # 2. Secondary Failover: If AniDB returned no results, query Kitsu API
+    # 2. Secondary Failover: Kitsu API
     if not results:
         try:
             kitsu_url = f"https://kitsu.io/api/edge/anime?filter[text]={urllib.parse.quote_plus(query)}&page[limit]=20"
@@ -1823,7 +1823,39 @@ def search_anime(query):
         except Exception:
             pass
 
-    # 3. Enrich with cover images and metadata from AniList GraphQL (if working)
+    # 3. Tertiary Failover: Jikan API (MyAnimeList)
+    if not results:
+        try:
+            jikan_url = f"https://api.jikan.moe/v4/anime?q={urllib.parse.quote_plus(query)}&limit=25"
+            req = urllib.request.Request(
+                jikan_url,
+                headers={"User-Agent": USER_AGENT},
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                j_data = json.loads(resp.read().decode("utf-8"))
+                items = j_data.get("data", [])
+                for item in items:
+                    title = item.get("title_english") or item.get("title")
+                    if not title or title.lower() in seen_titles:
+                        continue
+                    seen_titles.add(title.lower())
+                    j_slug = re.sub(r"[^\w\s-]", "", title.lower()).strip().replace(" ", "-")
+                    img = item.get("images", {}).get("jpg", {}).get("large_image_url")
+                    results.append(
+                        {
+                            "slug": j_slug,
+                            "title": title,
+                            "image": img,
+                            "score": item.get("score"),
+                            "episodes": item.get("episodes"),
+                            "status": (item.get("status") or "").upper(),
+                            "synopsis": item.get("synopsis", ""),
+                        }
+                    )
+        except Exception:
+            pass
+
+    # 4. Quaternary Failover & Metadata Enrichment: AniList GraphQL
     try:
         gql_query = """
         query ($search: String) {
@@ -1837,6 +1869,7 @@ def search_anime(query):
               status
               season
               seasonYear
+              description
               studios(isMain: true) { nodes { name } }
               nextAiringEpisode { episode timeUntilAiring }
               trailer { site id }
@@ -1852,56 +1885,83 @@ def search_anime(query):
             data=payload,
             headers={
                 "Content-Type": "application/json",
-                "User-Agent": "Mozilla/5.0",
+                "User-Agent": USER_AGENT,
             },
         )
-        with urllib.request.urlopen(req, timeout=4) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             media_items = data.get("data", {}).get("Page", {}).get("media", [])
-            for res in results:
-                t_lower = res["title"].lower()
+
+            # Populate results directly if previous providers returned nothing
+            if not results:
                 for m in media_items:
-                    rom = (m.get("title", {}).get("romaji") or "").lower()
-                    eng = (m.get("title", {}).get("english") or "").lower()
-                    if (
-                        t_lower in rom
-                        or rom in t_lower
-                        or (eng and (t_lower in eng or eng in t_lower))
-                    ):
-                        c_img = m.get("coverImage", {})
-                        if not res.get("image"):
-                            res["image"] = c_img.get("extraLarge") or c_img.get("large")
-                        if not res.get("score"):
-                            res["score"] = m.get("averageScore")
-                        if not res.get("episodes"):
-                            res["episodes"] = m.get("episodes")
-                        if not res.get("status"):
-                            res["status"] = m.get("status")
-                        res["genres"] = m.get("genres", [])
-                        st_nodes = m.get("studios", {}).get("nodes", [])
-                        if st_nodes:
-                            res["studio"] = st_nodes[0].get("name")
-                        s_name = m.get("season")
-                        s_yr = m.get("seasonYear")
-                        if s_name and s_yr:
-                            res["season"] = f"{s_name.capitalize()} {s_yr}"
-                        tr = m.get("trailer", {})
-                        if tr and tr.get("site") == "youtube":
-                            res["trailer"] = (
-                                f"https://youtube.com/watch?v={tr.get('id')}"
-                            )
-                        n_ep = m.get("nextAiringEpisode")
-                        if n_ep:
-                            ep_n = n_ep.get("episode")
-                            secs = n_ep.get("timeUntilAiring", 0)
-                            days = secs // 86400
-                            hrs = (secs % 86400) // 3600
-                            res["next_ep"] = f"Ep {ep_n} in {days}d {hrs}h"
-                        break
+                    rom = m.get("title", {}).get("romaji") or ""
+                    eng = m.get("title", {}).get("english") or ""
+                    title = eng or rom
+                    if not title or title.lower() in seen_titles:
+                        continue
+                    seen_titles.add(title.lower())
+                    slug = re.sub(r"[^\w\s-]", "", title.lower()).strip().replace(" ", "-")
+                    c_img = m.get("coverImage", {})
+                    img = c_img.get("extraLarge") or c_img.get("large")
+                    results.append(
+                        {
+                            "slug": slug,
+                            "title": title,
+                            "image": img,
+                            "score": m.get("averageScore"),
+                            "episodes": m.get("episodes"),
+                            "status": m.get("status"),
+                            "synopsis": m.get("description", ""),
+                        }
+                    )
+            else:
+                # Enrich existing items
+                for res in results:
+                    t_lower = res["title"].lower()
+                    for m in media_items:
+                        rom = (m.get("title", {}).get("romaji") or "").lower()
+                        eng = (m.get("title", {}).get("english") or "").lower()
+                        if (
+                            t_lower in rom
+                            or rom in t_lower
+                            or (eng and (t_lower in eng or eng in t_lower))
+                        ):
+                            c_img = m.get("coverImage", {})
+                            if not res.get("image"):
+                                res["image"] = c_img.get("extraLarge") or c_img.get("large")
+                            if not res.get("score"):
+                                res["score"] = m.get("averageScore")
+                            if not res.get("episodes"):
+                                res["episodes"] = m.get("episodes")
+                            if not res.get("status"):
+                                res["status"] = m.get("status")
+                            res["genres"] = m.get("genres", [])
+                            st_nodes = m.get("studios", {}).get("nodes", [])
+                            if st_nodes:
+                                res["studio"] = st_nodes[0].get("name")
+                            s_name = m.get("season")
+                            s_yr = m.get("seasonYear")
+                            if s_name and s_yr:
+                                res["season"] = f"{s_name.capitalize()} {s_yr}"
+                            tr = m.get("trailer", {})
+                            if tr and tr.get("site") == "youtube":
+                                res["trailer"] = (
+                                    f"https://youtube.com/watch?v={tr.get('id')}"
+                                )
+                            n_ep = m.get("nextAiringEpisode")
+                            if n_ep:
+                                ep_n = n_ep.get("episode")
+                                secs = n_ep.get("timeUntilAiring", 0)
+                                days = secs // 86400
+                                hrs = (secs % 86400) // 3600
+                                res["next_ep"] = f"Ep {ep_n} in {days}d {hrs}h"
+                            break
     except Exception:
         pass
 
     return results
+
 
 
 def get_trending_anime():
