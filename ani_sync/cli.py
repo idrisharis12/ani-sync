@@ -1734,7 +1734,7 @@ def http_get(url, is_json=False):
 def search_anime(query):
     """Search for anime on AniDB provider and enrich with AniList cover artwork."""
     import concurrent.futures
-    
+
     def fetch_page(page_num):
         url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}&page={page_num}"
         try:
@@ -1748,10 +1748,12 @@ def search_anime(query):
 
     matches = []
     for text in html_texts:
-        matches.extend(re.findall(
-            r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", text, re.DOTALL
-        ))
-        
+        matches.extend(
+            re.findall(
+                r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", text, re.DOTALL
+            )
+        )
+
     results = []
     seen = set()
     for slug, raw_title in matches:
@@ -2144,8 +2146,14 @@ def find_player_binary(player="mpv"):
             if exe_mpvnet:
                 return exe_mpvnet
             candidates = [
-                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "mpv.net" / "mpvnet.exe",
-                Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WindowsApps" / "mpvnet.exe",
+                Path(os.environ.get("LOCALAPPDATA", ""))
+                / "Programs"
+                / "mpv.net"
+                / "mpvnet.exe",
+                Path(os.environ.get("LOCALAPPDATA", ""))
+                / "Microsoft"
+                / "WindowsApps"
+                / "mpvnet.exe",
                 Path("C:/Program Files/mpv.net/mpvnet.exe"),
                 Path.home() / "scoop" / "apps" / "mpv" / "current" / "mpv.exe",
                 Path(os.environ.get("LOCALAPPDATA", ""))
@@ -2907,7 +2915,6 @@ def _has_fzf():
 _FZF_ENABLED = True  # Set to False by --no-fzf CLI flag
 
 
-
 def parse_episode_range(range_str):
     """Parse flexible episode ranges (e.g., '1-12', '1,3,5', '1-5,8,10-12')."""
     if not range_str:
@@ -3125,7 +3132,7 @@ def render_preview(item_str):
 
     preview_cols = int(os.environ.get("FZF_PREVIEW_COLUMNS", "40"))
     preview_lines = int(os.environ.get("FZF_PREVIEW_LINES", "20"))
-    
+
     max_w = max(20, preview_cols - 4)
     max_h = max(10, preview_lines - 8)
 
@@ -3146,19 +3153,23 @@ def render_preview(item_str):
             icat_bin = shutil.which("kitty")
             chafa_bin = shutil.which("chafa")
             env_dump = str(os.environ).lower()
-            is_kitty_compat = any(x in env_dump for x in ["kitty", "wezterm", "ghostty", "konsole"])
+            is_kitty_compat = any(
+                x in env_dump for x in ["kitty", "wezterm", "ghostty", "konsole"]
+            )
 
             if icat_bin and is_kitty_compat:
                 fzf_cols = os.environ.get("FZF_PREVIEW_COLUMNS", str(max_w))
                 fzf_lines = os.environ.get("FZF_PREVIEW_LINES", str(max_h))
                 res = subprocess.run(
                     [
-                        icat_bin, "+kitten", "icat",
+                        icat_bin,
+                        "+kitten",
+                        "icat",
                         "--transfer-mode=memory",
                         "--unicode-placeholder",
                         "--stdin=no",
                         f"--place={fzf_cols}x{fzf_lines}@0x0",
-                        str(thumb_file)
+                        str(thumb_file),
                     ],
                     capture_output=True,
                 )
@@ -3281,6 +3292,7 @@ def _fzf_pick(title, options, preview_cmd=None):
         fzf_cmd.append("--preview-window=right:55%:nowrap")
 
     import platform as _platform, tempfile as _tempfile
+
     if _platform.system() == "Windows":
         # On Windows, fzf cannot use subprocess PIPE for stdout as it requires
         # a real TTY for interactive rendering — this causes a thread deadlock.
@@ -3299,8 +3311,9 @@ def _fzf_pick(title, options, preview_cmd=None):
             ) as tmp_out:
                 tmp_out_path = tmp_out.name
 
-            with open(tmp_in_path, "r", encoding="utf-8") as fin, \
-                 open(tmp_out_path, "w", encoding="utf-8") as fout:
+            with open(tmp_in_path, "r", encoding="utf-8") as fin, open(
+                tmp_out_path, "w", encoding="utf-8"
+            ) as fout:
                 proc = subprocess.run(fzf_cmd, stdin=fin, stdout=fout, stderr=None)
 
             if proc.returncode not in (0,):
@@ -3831,7 +3844,7 @@ def update_self(quiet=False):
         if quiet:
             kwargs["stdout"] = subprocess.DEVNULL
             kwargs["stderr"] = subprocess.DEVNULL
-            
+
         subprocess.run(
             [
                 sys.executable,
@@ -3842,10 +3855,10 @@ def update_self(quiet=False):
                 "--no-cache-dir",
                 "--force-reinstall",
                 "--no-deps",
-                "git+https://github.com/idrisharis12/ani-sync.git"
+                "git+https://github.com/idrisharis12/ani-sync.git",
             ],
             check=True,
-            **kwargs
+            **kwargs,
         )
         if not quiet:
             print(
