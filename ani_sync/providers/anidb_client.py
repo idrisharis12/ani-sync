@@ -17,7 +17,20 @@ from ani_sync.config import log_debug
 from ani_sync.network.session import http_get
 
 ANIDB_HTTP_API = "https://api.anidb.net/httpapi"
+ANIDB_WIKI_DOCS = "https://wiki.anidb.net/HTTP_API_Definition"
 ED2K_CHUNK_SIZE = 9728000  # 9500 KiB
+
+# APIS.json OpenAPI discovery specification metadata (api-evangelist/anidb)
+ANIDB_API_SPEC = {
+    "aid": "anidb",
+    "name": "AniDB",
+    "description": "Anime Database HTTP API",
+    "humanURL": ANIDB_WIKI_DOCS,
+    "baseURL": ANIDB_HTTP_API,
+    "specificationVersion": "0.23",
+    "category": "Anime",
+    "maintainer": "API Evangelist (apis.json)",
+}
 
 
 def pure_md4(message: bytes) -> bytes:
