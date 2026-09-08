@@ -1732,14 +1732,14 @@ def http_get(url, is_json=False):
 
 
 def search_anime(query):
-    """Search for anime with bulletproof multi-provider failover across AniDB, AniList, Kitsu, Jikan, and Consumet APIs."""
+    """Search for anime with bulletproof multi-provider failover and pagination across AniDB, Kitsu, Jikan, and AniList APIs."""
     import concurrent.futures
 
     results = []
     seen_slugs = set()
     seen_titles = set()
 
-    # 1. Primary: Try AniDB browse search
+    # 1. Primary: Try AniDB browse search (pages 1 to 5 for up to 100 results)
     def fetch_page(page_num):
         url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}&page={page_num}"
         try:
@@ -1749,8 +1749,8 @@ def search_anime(query):
 
     try:
         html_texts = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            html_texts = list(executor.map(fetch_page, [1, 2, 3]))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            html_texts = list(executor.map(fetch_page, range(1, 6)))
 
         matches = []
         for text in html_texts:
@@ -1772,20 +1772,28 @@ def search_anime(query):
     except Exception:
         pass
 
-    # 2. Secondary Failover: Kitsu API
-    if not results:
+    # 2. Secondary: Kitsu API with offset pagination (offsets 0, 20, 40, 60, 80 for up to 100 results)
+    def fetch_kitsu_page(offset):
+        kitsu_url = f"https://kitsu.io/api/edge/anime?filter[text]={urllib.parse.quote_plus(query)}&page[limit]=20&page[offset]={offset}"
+        req = urllib.request.Request(
+            kitsu_url,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "application/vnd.api+json",
+            },
+        )
         try:
-            kitsu_url = f"https://kitsu.io/api/edge/anime?filter[text]={urllib.parse.quote_plus(query)}&page[limit]=20"
-            req = urllib.request.Request(
-                kitsu_url,
-                headers={
-                    "User-Agent": USER_AGENT,
-                    "Accept": "application/vnd.api+json",
-                },
-            )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 k_data = json.loads(resp.read().decode("utf-8"))
-                items = k_data.get("data", [])
+                return k_data.get("data", [])
+        except Exception:
+            return []
+
+    if len(results) < 50:
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                k_pages = list(executor.map(fetch_kitsu_page, [0, 20, 40, 60, 80]))
+            for items in k_pages:
                 for item in items:
                     attrs = item.get("attributes", {})
                     title = (
@@ -1823,10 +1831,10 @@ def search_anime(query):
         except Exception:
             pass
 
-    # 3. Tertiary Failover: Jikan API (MyAnimeList)
-    if not results:
+    # 3. Tertiary: Jikan API (MyAnimeList) (limit=50)
+    if len(results) < 50:
         try:
-            jikan_url = f"https://api.jikan.moe/v4/anime?q={urllib.parse.quote_plus(query)}&limit=25"
+            jikan_url = f"https://api.jikan.moe/v4/anime?q={urllib.parse.quote_plus(query)}&limit=50"
             req = urllib.request.Request(
                 jikan_url,
                 headers={"User-Agent": USER_AGENT},
@@ -1855,11 +1863,11 @@ def search_anime(query):
         except Exception:
             pass
 
-    # 4. Quaternary Failover & Metadata Enrichment: AniList GraphQL
+    # 4. Quaternary & Metadata Enrichment: AniList GraphQL (perPage: 100)
     try:
         gql_query = """
         query ($search: String) {
-          Page(perPage: 50) {
+          Page(perPage: 100) {
             media(search: $search, type: ANIME) {
               title { romaji english }
               coverImage { extraLarge large }
