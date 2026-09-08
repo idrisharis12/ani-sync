@@ -1,6 +1,6 @@
 # ==============================================================================
-# ani-sync Windows Universal Auto-Installer
-# Automatically installs ani-sync, FZF fuzzy search, yt-dlp, MPV, and Python dependencies
+# ani-sync Windows Universal Auto-Installer (PowerShell)
+# Automatically installs ani-sync, FZF, MPV, yt-dlp, FFmpeg & Python dependencies
 # ==============================================================================
 
 $ErrorActionPreference = "Continue"
@@ -12,7 +12,7 @@ Write-Host "     Stream Anime & Auto-Sync Watch Progress  " -ForegroundColor Cya
 Write-Host "  ============================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Directories
+# Target Directories
 $InstallDir = "$env:LOCALAPPDATA\ani-sync"
 $BinDir = "$env:USERPROFILE\.local\bin"
 
@@ -40,7 +40,7 @@ if (-not $HasPython) {
 }
 
 if (-not $HasPython) {
-    Write-Host "Python not found (or Windows Store stub detected). Attempting automatic installation via winget..." -ForegroundColor Yellow
+    Write-Host "Python 3 not detected. Attempting automatic installation via winget..." -ForegroundColor Yellow
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         winget install Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements
         Write-Host "✅ Python was installed! Refreshing environment variables..." -ForegroundColor Green
@@ -54,11 +54,11 @@ if (-not $HasPython) {
 }
 
 # 2. Install Python dependencies
-Write-Host "[2/5] Installing Python dependencies (requests, tqdm, yt-dlp)..." -ForegroundColor Yellow
+Write-Host "[2/5] Installing Python packages (requests, tqdm, yt-dlp, Pillow)..." -ForegroundColor Yellow
 & $PyCmd -m pip install --quiet --upgrade requests tqdm yt-dlp Pillow 2>$null
 
 # 3. Check and Auto-Install FZF (Interactive Fuzzy Search)
-Write-Host "[3/5] Setting up interactive FZF fuzzy search..." -ForegroundColor Yellow
+Write-Host "[3/5] Setting up FZF fuzzy search..." -ForegroundColor Yellow
 $HasFzf = (Get-Command fzf -ErrorAction SilentlyContinue) -or (Test-Path "$BinDir\fzf.exe") -or (Test-Path "$InstallDir\fzf.exe")
 if (-not $HasFzf) {
     $FzfInstalled = $false
@@ -94,25 +94,25 @@ if (-not $HasFzf) {
     Write-Host "  ✓ FZF is already installed." -ForegroundColor Green
 }
 
-# 4. Check for MPV & yt-dlp
-Write-Host "[4/5] Checking media player & stream acceleration..." -ForegroundColor Yellow
+# 4. Check for MPV & FFmpeg
+Write-Host "[4/5] Checking media player & stream codecs (MPV, FFmpeg)..." -ForegroundColor Yellow
 if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
     Write-Host "  MPV not detected. Attempting install via winget..." -ForegroundColor DarkGray
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         winget install --exact --id mpv.net --source winget --silent --accept-source-agreements --accept-package-agreements 2>$null
     }
     if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
-        Write-Host "  ⚠️  MPV recommended for zero-buffering playback. Install with: winget install --exact --id mpv.net --source winget" -ForegroundColor DarkYellow
+        Write-Host "  ⚠️ MPV recommended for zero-buffering playback. Install with: winget install --exact --id mpv.net --source winget" -ForegroundColor DarkYellow
     }
+} else {
+    Write-Host "  ✓ MPV detected." -ForegroundColor Green
 }
 
 # 5. Install ani-sync scripts and wrappers
 Write-Host "[5/5] Installing ani-sync..." -ForegroundColor Yellow
 
-
-# Copy or download ani-sync package
 if (Test-Path "$PSScriptRoot\ani_sync") {
-    Write-Host "  Copying ani_sync package from current directory..." -ForegroundColor Yellow
+    Write-Host "  Copying ani_sync package from local directory..." -ForegroundColor Yellow
     Copy-Item "$PSScriptRoot\ani_sync" -Destination "$InstallDir\ani_sync" -Recurse -Force
 } else {
     Write-Host "  Installing ani-sync via pip..." -ForegroundColor Yellow
@@ -127,7 +127,7 @@ if (Test-Path "$PSScriptRoot\ani_sync") {
 $ScriptsPath = & $PyCmd -c "import sysconfig; print(sysconfig.get_path('scripts'))"
 if (-not $ScriptsPath) { $ScriptsPath = "$env:USERPROFILE\AppData\Local\Programs\Python\Python312\Scripts" }
 
-# Add Python Scripts and BinDir to User PATH if missing
+# Add Python Scripts, InstallDir, and BinDir to User PATH if missing
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($UserPath -notlike "*$ScriptsPath*") {
     $UserPath = "$UserPath;$ScriptsPath"
@@ -137,14 +137,22 @@ if ($UserPath -notlike "*$BinDir*") {
     $UserPath = "$UserPath;$BinDir"
     Write-Host "✓ Added $BinDir to User PATH." -ForegroundColor Green
 }
+if ($UserPath -notlike "*$InstallDir*") {
+    $UserPath = "$UserPath;$InstallDir"
+    Write-Host "✓ Added $InstallDir to User PATH." -ForegroundColor Green
+}
 [Environment]::SetEnvironmentVariable("Path", $UserPath, "User")
-$env:Path = "$ScriptsPath;$BinDir;" + $env:Path
+$env:Path = "$ScriptsPath;$BinDir;$InstallDir;" + $env:Path
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host "           ✓ Successfully installed ani-sync!               " -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Green
-Write-Host "Run 'ani-sync <anime name>' or 'ani-sync' to start." -ForegroundColor Cyan
-Write-Host "To link your tracking accounts: ani-sync auth" -ForegroundColor Cyan
-Write-Host "To check system status:         ani-sync doctor" -ForegroundColor Cyan
+Write-Host "Quick Start:" -ForegroundColor Yellow
+Write-Host "  ani-sync                     Interactive anime search & launcher" -ForegroundColor Cyan
+Write-Host "  ani-sync `"`"frieren`"`"           Search and stream specific anime" -ForegroundColor Cyan
+Write-Host "  ani-sync -c                  Continue watching next episode" -ForegroundColor Cyan
+Write-Host "  ani-sync history             Browse watch history with interactive FZF" -ForegroundColor Cyan
+Write-Host "  ani-sync auth                Connect MyAnimeList / AniList / Kitsu" -ForegroundColor Cyan
+Write-Host "  ani-sync doctor              Verify dependencies and system health" -ForegroundColor Cyan
 Write-Host ""
