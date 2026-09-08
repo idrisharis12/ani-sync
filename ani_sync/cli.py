@@ -3152,8 +3152,11 @@ def pick_option(title, options, default_idx=0, use_fzf=True, preview_cmd=None):
             result = _fzf_pick(title, options, preview_cmd=preview_cmd)
             if result is not None:
                 return result
-        except BaseException:
-            pass  # Fallback to numbered menu (catches KeyboardInterrupt too)
+            sys.exit(0)
+        except (KeyboardInterrupt, SystemExit):
+            sys.exit(0)
+        except Exception:
+            pass  # Fallback to numbered menu ONLY if fzf execution threw an exception (e.g. failed to launch)
 
     # Sleek styled numbered menu fallback
     clean_t = re.sub(r"\033\[[0-9;]*m", "", title).strip()
@@ -3506,10 +3509,8 @@ def _fzf_pick(title, options, preview_cmd=None):
             ) as fout:
                 proc = subprocess.run(fzf_cmd, stdin=fin, stdout=fout, stderr=None)
 
-            if proc.returncode not in (0,):
-                if proc.returncode in (1, 130):
-                    sys.exit(0)
-                return None
+            if proc.returncode != 0:
+                sys.exit(0)
 
             with open(tmp_out_path, "r", encoding="utf-8") as f:
                 selected = f.read().strip()
@@ -3530,9 +3531,7 @@ def _fzf_pick(title, options, preview_cmd=None):
         )
         selected = proc.stdout.strip() if proc.stdout else ""
         if proc.returncode != 0 or not selected:
-            if proc.returncode in (1, 130):
-                sys.exit(0)
-            return None
+            sys.exit(0)
 
     # Clear any lingering native terminal images (Kitty, etc) that FZF left behind
     print("\033_Ga=d;\033\\", end="", flush=True)

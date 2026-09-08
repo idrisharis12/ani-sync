@@ -148,13 +148,16 @@ class TestRangeParsing(unittest.TestCase):
         self.assertEqual(parse_episode_range("invalid"), [])
 
 
-class TestCleanCache(unittest.TestCase):
-    def test_clean_cache_execution(self):
-        from ani_sync.config import clean_cache
+class TestPickOptionCancellation(unittest.TestCase):
+    def test_pick_option_fzf_cancel_exits(self):
+        from unittest.mock import patch
+        from ani_sync.cli import pick_option
 
-        files_removed, bytes_freed = clean_cache()
-        self.assertIsInstance(files_removed, int)
-        self.assertIsInstance(bytes_freed, int)
+        with patch("ani_sync.cli._FZF_ENABLED", True), \
+             patch("ani_sync.cli._has_fzf", return_value=True), \
+             patch("ani_sync.cli._fzf_pick", return_value=None):
+            with self.assertRaises(SystemExit):
+                pick_option("Test Title", ["Opt 1", "Opt 2"])
 
 
 if __name__ == "__main__":

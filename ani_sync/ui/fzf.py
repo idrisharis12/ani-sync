@@ -140,7 +140,13 @@ def run_fzf_menu(items, prompt="Select: ", header="", preview=None):
             )
             stdout, _ = proc.communicate(input="\n".join(items))
             selected = stdout.strip()
-            return selected if selected else None
+            if proc.returncode in (1, 130) or (proc.returncode != 0 and not selected):
+                sys.exit(0)
+            if proc.returncode == 0 and selected:
+                return selected
+            sys.exit(0)
+        except (KeyboardInterrupt, SystemExit):
+            sys.exit(0)
         except Exception:
             pass
 
