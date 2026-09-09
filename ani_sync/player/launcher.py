@@ -186,69 +186,53 @@ def launch_player(
 
             # Detect exact episode file index in batch torrents
             file_idx = get_torrent_episode_index(torrent_streamer, target_path, ep_num)
-            print(
-                f"{C_DIM}Starting P2P stream proxy on http://127.0.0.1:8888/ (File index {file_idx})...{C_RESET}"
-            )
 
-            # Run peerflix in background as a local streaming HTTP server
-            server_cmd = [
+            # Build MPV arguments to pass to peerflix via '--'
+            demux_bytes = "150M" if (low_ram or IS_TERMUX) else "500M"
+            back_bytes = "30M" if (low_ram or IS_TERMUX) else "100M"
+            readahead = "60" if (low_ram or IS_TERMUX) else "300"
+            stream_buf = "4MiB" if (low_ram or IS_TERMUX) else "16MiB"
+            mpv_args = [
+                f"--force-media-title={media_title}",
+                f"--user-agent={USER_AGENT}",
+                "--referrer=https://anidb.app/",
+                "--hwdec=auto-safe",
+                "--profile=fast",
+                "--audio-buffer=0.8",
+                "--cache=yes",
+                f"--demuxer-max-bytes={demux_bytes}",
+                f"--demuxer-max-back-bytes={back_bytes}",
+                f"--demuxer-readahead-secs={readahead}",
+                f"--stream-buffer-size={stream_buf}",
+                "--cache-pause=no",
+                "--force-seekable=yes",
+                "--demuxer-seekable-cache=yes",
+                "--msg-level=ffmpeg=error",
+            ]
+            if volume is not None:
+                mpv_args.append(f"--volume={volume}")
+            if start_time and float(start_time) > 5:
+                mpv_args.append(f"--start={int(start_time)}")
+
+            skip_script = get_auto_skip_script(
+                auto_skip=auto_skip, aniskip_data=aniskip_data
+            )
+            if skip_script:
+                mpv_args.append(f"--scripts={skip_script}")
+
+            cmd = [
                 torrent_streamer,
                 target_path,
-                "-p",
-                "8888",
                 "-i",
                 str(file_idx),
                 "-c",
                 "250",
                 "--remove",
-            ]
-            server_proc = subprocess.Popen(
-                server_cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-
-            # Wait for HTTP server to become live and ready to serve
-            http_url = "http://127.0.0.1:8888/"
-            ready = False
-            for _ in range(40):
-                if server_proc.poll() is not None:
-                    break
-                try:
-                    import urllib.request
-
-                    req = urllib.request.Request(
-                        http_url, headers={"User-Agent": USER_AGENT}
-                    )
-                    with urllib.request.urlopen(req, timeout=0.5) as resp:
-                        if resp.status in (200, 206):
-                            ready = True
-                            break
-                except Exception:
-                    pass
-                time.sleep(0.4)
-
-            # Launch native MPV connected to localhost:8888
-            try:
-                return launch_player(
-                    http_url,
-                    title,
-                    ep_num,
-                    player=player,
-                    auto_skip=auto_skip,
-                    mal_id=mal_id,
-                    party_room=party_room,
-                    low_ram=low_ram,
-                    volume=volume,
-                    start_time=start_time,
-                )
-            finally:
-                try:
-                    server_proc.terminate()
-                    server_proc.wait(timeout=2)
-                except Exception:
-                    server_proc.kill()
-                shutil.rmtree("/tmp/torrent-stream", ignore_errors=True)
+                "--mpv",
+                "--",
+            ] + mpv_args
+            proc = subprocess.run(cmd)
+            return proc.returncode == 0
         else:
             print(
                 f"\n{C_CYAN}{C_BOLD}🧲 Magnet stream resolved via Nyaa P2P Fallback:{C_RESET}"
