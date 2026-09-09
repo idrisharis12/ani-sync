@@ -2096,8 +2096,104 @@ def run_schedule():
         )
 
 
-def get_anime_details(slug):
+def get_franchise_relations(search_title):
+    """Fetch related seasons, movies, OVAs, and specials via AniList GraphQL."""
+    if not search_title:
+        return []
+    clean_q = re.sub(r"-\d+$", "", search_title).replace("-", " ").strip()
+    query = """
+    query ($search: String) {
+      Media (search: $search, type: ANIME) {
+        id
+        idMal
+        title { romaji english }
+        format
+        episodes
+        seasonYear
+        relations {
+          edges {
+            relationType
+            node {
+              id
+              idMal
+              title { romaji english }
+              format
+              episodes
+              seasonYear
+            }
+          }
+        }
+      }
+    }
+    """
+    try:
+        req = urllib.request.Request(
+            "https://graphql.anilist.co",
+            data=json.dumps({"query": query, "variables": {"search": clean_q}}).encode(
+                "utf-8"
+            ),
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
+                "Accept": "application/json",
+                "Origin": "https://anilist.co",
+                "Referer": "https://anilist.co/",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            media = data.get("data", {}).get("Media")
+            if not media:
+                return []
+            results = []
+            seen = set()
+            main_t = (
+                media.get("title", {}).get("romaji")
+                or media.get("title", {}).get("english")
+                or clean_q
+            )
+            seen.add(main_t.lower())
+
+            for edge in media.get("relations", {}).get("edges", []):
+                node = edge.get("node") or {}
+                fmt = node.get("format")
+                if fmt in ("TV", "MOVIE", "OVA", "ONA", "SPECIAL"):
+                    t = node.get("title", {}).get("romaji") or node.get(
+                        "title", {}
+                    ).get("english")
+                    if t and t.lower() not in seen:
+                        seen.add(t.lower())
+                        rel = (
+                            edge.get("relationType", "RELATED")
+                            .capitalize()
+                            .replace("_", " ")
+                        )
+                        ep_cnt = node.get("episodes")
+                        eps_str = f"{ep_cnt} eps" if ep_cnt else ""
+                        yr_str = str(node.get("seasonYear") or "")
+                        meta_str = " • ".join([x for x in [fmt, eps_str, yr_str] if x])
+                        results.append(
+                            {
+                                "title": t,
+                                "slug": re.sub(r"[^a-zA-Z0-9]+", "-", t)
+                                .strip("-")
+                                .lower(),
+                                "relation": rel,
+                                "format": fmt,
+                                "meta": meta_str,
+                                "mal_id": node.get("idMal"),
+                            }
+                        )
+            return results
+    except Exception as e:
+        log_debug(f"AniList franchise lookup failed: {e}")
+        return []
+
+
+def get_anime_details(slug, title=None):
     """Fetch anime seasons and mal_id if present with error failover."""
+    search_key = title or slug
+    franchise = get_franchise_relations(search_key) if search_key else []
     try:
         url = f"{ANIDB_BASE}/anime/{slug}"
         html_text = http_get(url)
@@ -2105,23 +2201,28 @@ def get_anime_details(slug):
         mal_id = int(mal_id_match.group(1)) if mal_id_match else None
 
         # Parse related seasons / franchise entries
-        seasons = []
+        seasons = list(franchise)
         season_section = re.search(r">Seasons<.*?>Details<", html_text, re.DOTALL)
         if season_section:
             sec_text = season_section.group(0)
             s_matches = re.findall(
                 r"/anime/([a-z0-9-]+-[0-9]+)\"[^>]*title=\"([^\"]+)\"", sec_text
             )
-            seen = {slug}
+            seen = {slug} | {s["slug"] for s in seasons}
             for s_slug, s_title in s_matches:
                 if s_slug not in seen:
                     seen.add(s_slug)
                     seasons.append(
-                        {"slug": s_slug, "title": html.unescape(s_title).strip()}
+                        {
+                            "slug": s_slug,
+                            "title": html.unescape(s_title).strip(),
+                            "relation": "Season",
+                            "format": "TV",
+                        }
                     )
         return {"mal_id": mal_id, "seasons": seasons}
     except Exception:
-        return {"mal_id": None, "seasons": []}
+        return {"mal_id": None, "seasons": franchise}
 
 
 def get_episodes(slug):
@@ -5003,14 +5104,24 @@ def main():
         chosen_anime = results[selected_idx]
 
     # Check for seasons / movies franchise options
-    details = get_anime_details(chosen_anime["slug"])
+    title_key = chosen_anime.get("title") or chosen_anime.get("slug")
+    details = get_anime_details(chosen_anime.get("slug"), title=title_key)
     seasons = details.get("seasons", [])
     if seasons:
-        franchise_options = [f"{chosen_anime['title']} (Selected)"] + [
-            s["title"] for s in seasons
-        ]
+        franchise_options = [f"⭐ {chosen_anime['title']} (Selected / Current)"]
+        for s in seasons:
+            rel = s.get("relation") or "Related"
+            meta = s.get("meta") or s.get("format") or ""
+            icon = (
+                "🎬"
+                if s.get("format") == "MOVIE"
+                else ("📼" if s.get("format") in ("OVA", "ONA", "SPECIAL") else "📺")
+            )
+            meta_str = f" • {meta}" if meta else ""
+            franchise_options.append(f"{icon} [{rel}] {s['title']}{meta_str}")
+
         f_idx = pick_option(
-            f"Seasons & Movies for '{chosen_anime['title']}':",
+            f"Select Season, Movie, or OVA for '{chosen_anime['title']}':",
             franchise_options,
             default_idx=0,
         )

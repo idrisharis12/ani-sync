@@ -59,6 +59,19 @@ class NyaaProvider(BaseProvider):
             # If followed immediately by 'with ', 'and ', or alphanumeric words before delimiters
             if re.match(r"^(with\s+|and\s+|vs\.?\s+|at\s+)", after):
                 return False
+
+            # Strict season boundary check:
+            # If target title does not explicitly request season 2/3/etc., do not match S2/Season 2 torrents
+            target_has_season = bool(
+                re.search(r"(?:season\s*\d+|s0?\d+|2nd|3rd|4th)", s_low)
+            )
+            if not target_has_season:
+                # Disallow torrent names indicating Season 2+, S02, 2nd Season, etc.
+                if re.search(
+                    r"(?:[\s\._\-\[]s0?[2-9]|season\s*[2-9]|2nd\s*season|3rd\s*season|4th\s*season)",
+                    t_low,
+                ):
+                    return False
             return True
 
         for q in queries:
