@@ -135,6 +135,52 @@ def launch_player(
     player_bin = find_player_binary(player)
     aniskip_data = fetch_aniskip_times(mal_id, ep_num) if mal_id else None
 
+    # Handle BitTorrent / Magnet Fallback
+    if target_path.startswith("magnet:") or "torrent" in target_path:
+        webtorrent_bin = (
+            shutil.which("webtorrent")
+            or shutil.which("webtorrent.cmd")
+            or shutil.which("peerflix")
+        )
+        if webtorrent_bin:
+            print(f"\n{C_CYAN}🧲 Streaming via BitTorrent (Nyaa fallback)...{C_RESET}")
+            cmd = [webtorrent_bin, target_path, "--mpv"]
+            proc = subprocess.run(cmd)
+            return proc.returncode == 0
+        else:
+            print(
+                f"\n{C_CYAN}{C_BOLD}🧲 Magnet stream resolved via Nyaa P2P Fallback:{C_RESET}"
+            )
+            print(f"{C_DIM}{target_path}{C_RESET}\n")
+            copied = False
+            if shutil.which("wl-copy"):
+                try:
+                    subprocess.run(
+                        ["wl-copy"], input=target_path.encode("utf-8"), check=True
+                    )
+                    copied = True
+                except Exception:
+                    pass
+            elif shutil.which("xclip"):
+                try:
+                    subprocess.run(
+                        ["xclip", "-selection", "clipboard"],
+                        input=target_path.encode("utf-8"),
+                        check=True,
+                    )
+                    copied = True
+                except Exception:
+                    pass
+            if copied:
+                print(
+                    f"{C_GREEN}✓ Copied magnet link to system clipboard! (Paste into qBittorrent or torrent player){C_RESET}"
+                )
+            print(
+                f"{C_YELLOW}💡 Tip: To stream torrents directly in MPV without manual download, install webtorrent:{C_RESET}"
+            )
+            print(f"{C_DIM}   npm install -g webtorrent-cli{C_RESET}\n")
+            return True
+
     # Syncplay Party Mode
     if party_room:
         syncplay_bin = shutil.which("syncplay") or shutil.which("syncplay.exe")

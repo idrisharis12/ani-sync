@@ -160,5 +160,15 @@ class TestPickOptionCancellation(unittest.TestCase):
                 pick_option("Test Title", ["Opt 1", "Opt 2"])
 
 
+class TestNyaaProvider(unittest.TestCase):
+    def test_nyaa_provider_registry(self):
+        from ani_sync.providers.nyaa import NyaaProvider
+        provider = NyaaProvider()
+        self.assertEqual(provider.name, "nyaa")
+        self.assertEqual(provider.search("test"), [])
+        self.assertEqual(provider.get_episodes("test"), [])
+
+
 if __name__ == "__main__":
     unittest.main()
+

@@ -7,7 +7,7 @@ exec python3 "$0" "$@"
 import concurrent.futures
 import html
 import io
-from ani_sync.config import CURRENT_PROFILE, VERSION, set_profile
+from ani_sync.config import CURRENT_PROFILE, VERSION, log_debug, set_profile
 import json
 import os
 import platform
@@ -1732,138 +1732,35 @@ def http_get(url, is_json=False):
 
 
 def search_anime(query):
-    """Search for anime with bulletproof multi-provider failover and pagination across AniDB, Kitsu, Jikan, and AniList APIs."""
-    import concurrent.futures
-
+    """Search for anime with multi-provider aggregation across AniList, Kitsu, AniDB, and Jikan APIs."""
     results = []
     seen_slugs = set()
     seen_titles = set()
 
-    # 1. Primary: Try AniDB browse search (pages 1 to 5 for up to 100 results)
-    def fetch_page(page_num):
-        url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}&page={page_num}"
-        try:
-            return http_get(url)
-        except Exception:
-            return ""
-
-    try:
-        html_texts = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            html_texts = list(executor.map(fetch_page, range(1, 6)))
-
-        matches = []
-        for text in html_texts:
-            if text and "503 Service Unavailable" not in text and "Cloudflare" not in text:
-                matches.extend(
-                    re.findall(
-                        r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"",
-                        text,
-                        re.DOTALL,
-                    )
-                )
-
-        for slug, raw_title in matches:
-            if slug not in seen_slugs:
-                seen_slugs.add(slug)
-                title = html.unescape(raw_title).strip()
-                seen_titles.add(title.lower())
-                results.append({"slug": slug, "title": title, "image": None})
-    except Exception:
-        pass
-
-    # 2. Secondary: Kitsu API with offset pagination (offsets 0, 20, 40, 60, 80 for up to 100 results)
-    def fetch_kitsu_page(offset):
-        kitsu_url = f"https://kitsu.io/api/edge/anime?filter[text]={urllib.parse.quote_plus(query)}&page[limit]=20&page[offset]={offset}"
-        req = urllib.request.Request(
-            kitsu_url,
-            headers={
-                "User-Agent": USER_AGENT,
-                "Accept": "application/vnd.api+json",
-            },
+    def add_item(slug, title, image=None, score=None, episodes=None, status=None, synopsis=""):
+        if not title:
+            return
+        clean_t = re.sub(r"[^\w\s]", "", title.lower()).strip()
+        if not clean_t or clean_t in seen_titles:
+            return
+        seen_titles.add(clean_t)
+        s = slug or re.sub(r"[^\w\s-]", "", title.lower()).strip().replace(" ", "-")
+        if s in seen_slugs:
+            s = f"{s}-{len(results)}"
+        seen_slugs.add(s)
+        results.append(
+            {
+                "slug": s,
+                "title": title,
+                "image": image,
+                "score": score,
+                "episodes": episodes,
+                "status": status,
+                "synopsis": synopsis,
+            }
         )
-        try:
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                k_data = json.loads(resp.read().decode("utf-8"))
-                return k_data.get("data", [])
-        except Exception:
-            return []
 
-    if len(results) < 50:
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                k_pages = list(executor.map(fetch_kitsu_page, [0, 20, 40, 60, 80]))
-            for items in k_pages:
-                for item in items:
-                    attrs = item.get("attributes", {})
-                    title = (
-                        attrs.get("canonicalTitle")
-                        or attrs.get("titles", {}).get("en")
-                        or attrs.get("titles", {}).get("en_jp")
-                    )
-                    if not title or title.lower() in seen_titles:
-                        continue
-                    seen_titles.add(title.lower())
-                    k_slug = attrs.get("slug") or re.sub(
-                        r"[^\w\s-]", "", title.lower()
-                    ).strip().replace(" ", "-")
-                    poster = attrs.get("posterImage") or {}
-                    img = (
-                        poster.get("medium")
-                        or poster.get("large")
-                        or poster.get("original")
-                    )
-                    rating = attrs.get("averageRating")
-                    score = round(float(rating) / 10.0, 1) if rating else None
-                    episodes = attrs.get("episodeCount")
-                    status = (attrs.get("status") or "").upper()
-                    results.append(
-                        {
-                            "slug": k_slug,
-                            "title": title,
-                            "image": img,
-                            "score": score,
-                            "episodes": episodes,
-                            "status": status,
-                            "synopsis": attrs.get("synopsis", ""),
-                        }
-                    )
-        except Exception:
-            pass
-
-    # 3. Tertiary: Jikan API (MyAnimeList) (limit=50)
-    if len(results) < 50:
-        try:
-            jikan_url = f"https://api.jikan.moe/v4/anime?q={urllib.parse.quote_plus(query)}&limit=50"
-            req = urllib.request.Request(
-                jikan_url,
-                headers={"User-Agent": USER_AGENT},
-            )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                j_data = json.loads(resp.read().decode("utf-8"))
-                items = j_data.get("data", [])
-                for item in items:
-                    title = item.get("title_english") or item.get("title")
-                    if not title or title.lower() in seen_titles:
-                        continue
-                    seen_titles.add(title.lower())
-                    j_slug = re.sub(r"[^\w\s-]", "", title.lower()).strip().replace(" ", "-")
-                    img = item.get("images", {}).get("jpg", {}).get("large_image_url")
-                    results.append(
-                        {
-                            "slug": j_slug,
-                            "title": title,
-                            "image": img,
-                            "score": item.get("score"),
-                            "episodes": item.get("episodes"),
-                            "status": (item.get("status") or "").upper(),
-                            "synopsis": item.get("synopsis", ""),
-                        }
-                    )
-        except Exception:
-            pass
-
-    # 4. Quaternary & Metadata Enrichment: AniList GraphQL (perPage: 100)
+    # 1. Primary: AniList GraphQL (perPage: 100 for maximum coverage and instant 0.3s speed)
     try:
         gql_query = """
         query ($search: String) {
@@ -1885,86 +1782,101 @@ def search_anime(query):
           }
         }
         """
-        payload = json.dumps(
-            {"query": gql_query, "variables": {"search": query}}
-        ).encode("utf-8")
+        payload = json.dumps({"query": gql_query, "variables": {"search": query}}).encode("utf-8")
         req = urllib.request.Request(
             "https://graphql.anilist.co",
             data=payload,
             headers={
                 "Content-Type": "application/json",
                 "User-Agent": USER_AGENT,
+                "Accept": "application/json",
+                "Origin": "https://anilist.co",
+                "Referer": "https://anilist.co/",
             },
         )
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             media_items = data.get("data", {}).get("Page", {}).get("media", [])
+            for m in media_items:
+                rom = m.get("title", {}).get("romaji") or ""
+                eng = m.get("title", {}).get("english") or ""
+                title = eng or rom
+                if not title:
+                    continue
+                c_img = m.get("coverImage", {})
+                img = c_img.get("extraLarge") or c_img.get("large")
+                score = (
+                    round(m.get("averageScore") / 10.0, 1)
+                    if m.get("averageScore")
+                    else None
+                )
+                add_item(
+                    slug=None,
+                    title=title,
+                    image=img,
+                    score=score,
+                    episodes=m.get("episodes"),
+                    status=m.get("status"),
+                    synopsis=m.get("description", ""),
+                )
+    except Exception as e:
+        log_debug(f"AniList search error: {e}")
 
-            # Populate results directly if previous providers returned nothing
-            if not results:
-                for m in media_items:
-                    rom = m.get("title", {}).get("romaji") or ""
-                    eng = m.get("title", {}).get("english") or ""
-                    title = eng or rom
-                    if not title or title.lower() in seen_titles:
-                        continue
-                    seen_titles.add(title.lower())
-                    slug = re.sub(r"[^\w\s-]", "", title.lower()).strip().replace(" ", "-")
-                    c_img = m.get("coverImage", {})
-                    img = c_img.get("extraLarge") or c_img.get("large")
-                    results.append(
-                        {
-                            "slug": slug,
-                            "title": title,
-                            "image": img,
-                            "score": m.get("averageScore"),
-                            "episodes": m.get("episodes"),
-                            "status": m.get("status"),
-                            "synopsis": m.get("description", ""),
-                        }
+    # 2. Secondary: Kitsu API with offset pagination (offsets 0, 20, 40)
+    for offset in (0, 20, 40):
+        if len(results) >= 100:
+            break
+        try:
+            kitsu_url = f"https://kitsu.io/api/edge/anime?filter[text]={urllib.parse.quote_plus(query)}&page[limit]=20&page[offset]={offset}"
+            req = urllib.request.Request(
+                kitsu_url,
+                headers={
+                    "User-Agent": USER_AGENT,
+                    "Accept": "application/vnd.api+json",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                k_data = json.loads(resp.read().decode("utf-8"))
+                for item in k_data.get("data", []):
+                    attrs = item.get("attributes", {})
+                    title = (
+                        attrs.get("canonicalTitle")
+                        or attrs.get("titles", {}).get("en")
+                        or attrs.get("titles", {}).get("en_jp")
                     )
-            else:
-                # Enrich existing items
-                for res in results:
-                    t_lower = res["title"].lower()
-                    for m in media_items:
-                        rom = (m.get("title", {}).get("romaji") or "").lower()
-                        eng = (m.get("title", {}).get("english") or "").lower()
-                        if (
-                            t_lower in rom
-                            or rom in t_lower
-                            or (eng and (t_lower in eng or eng in t_lower))
-                        ):
-                            c_img = m.get("coverImage", {})
-                            if not res.get("image"):
-                                res["image"] = c_img.get("extraLarge") or c_img.get("large")
-                            if not res.get("score"):
-                                res["score"] = m.get("averageScore")
-                            if not res.get("episodes"):
-                                res["episodes"] = m.get("episodes")
-                            if not res.get("status"):
-                                res["status"] = m.get("status")
-                            res["genres"] = m.get("genres", [])
-                            st_nodes = m.get("studios", {}).get("nodes", [])
-                            if st_nodes:
-                                res["studio"] = st_nodes[0].get("name")
-                            s_name = m.get("season")
-                            s_yr = m.get("seasonYear")
-                            if s_name and s_yr:
-                                res["season"] = f"{s_name.capitalize()} {s_yr}"
-                            tr = m.get("trailer", {})
-                            if tr and tr.get("site") == "youtube":
-                                res["trailer"] = (
-                                    f"https://youtube.com/watch?v={tr.get('id')}"
-                                )
-                            n_ep = m.get("nextAiringEpisode")
-                            if n_ep:
-                                ep_n = n_ep.get("episode")
-                                secs = n_ep.get("timeUntilAiring", 0)
-                                days = secs // 86400
-                                hrs = (secs % 86400) // 3600
-                                res["next_ep"] = f"Ep {ep_n} in {days}d {hrs}h"
-                            break
+                    if not title:
+                        continue
+                    poster = attrs.get("posterImage") or {}
+                    img = (
+                        poster.get("medium")
+                        or poster.get("large")
+                        or poster.get("original")
+                    )
+                    rating = attrs.get("averageRating")
+                    score = round(float(rating) / 10.0, 1) if rating else None
+                    add_item(
+                        slug=attrs.get("slug"),
+                        title=title,
+                        image=img,
+                        score=score,
+                        episodes=attrs.get("episodeCount"),
+                        status=(attrs.get("status") or "").upper(),
+                        synopsis=attrs.get("synopsis", ""),
+                    )
+        except Exception as e:
+            log_debug(f"Kitsu offset {offset} search error: {e}")
+
+    # 3. Tertiary: AniDB browse search
+    try:
+        url = f"{ANIDB_BASE}/browse?q={urllib.parse.quote_plus(query)}"
+        text = http_get(url)
+        if text and "503 Service Unavailable" not in text and "Cloudflare" not in text:
+            matches = re.findall(
+                r"/anime/([a-z0-9-]+-[0-9]+).*?alt=\"([^\"]+)\"", text, re.DOTALL
+            )
+            for slug, raw_title in matches:
+                title = html.unescape(raw_title).strip()
+                add_item(slug=slug, title=title)
     except Exception:
         pass
 
@@ -2239,78 +2151,18 @@ def get_episode_streams(
     ep_num=1,
     provider="auto",
 ):
-    """Fetch m3u8 streams with resilient multi-provider auto-failover."""
-    streams = {}
+    """Fetch m3u8 or torrent streams with resilient multi-provider auto-failover."""
+    from ani_sync.providers.manager import resolve_streams
 
-    # Provider 1: AniDB HLS Backend (Primary)
-    if provider in ("auto", "anidb") and episode_id:
-        try:
-            url = f"{ANIDB_BASE}/api/frontend/episode/{episode_id}/languages"
-            data = http_get(url, is_json=True)
-            languages = data.get("languages", [])
+    clean_slug = re.sub(r"-\d+$", "", anime_slug) if anime_slug else ""
+    return resolve_streams(
+        episode_id,
+        mode=mode,
+        anime_slug=clean_slug,
+        ep_num=ep_num,
+        provider_name=provider,
+    )
 
-            target_code = "eng" if mode == "dub" else "jpn"
-            embed_url = None
-            for lang in languages:
-                if lang.get("code") == target_code:
-                    embed_url = lang.get("embed_url")
-                    break
-            if not embed_url and languages:
-                embed_url = languages[0].get("embed_url")
-
-            if embed_url:
-                embed_html = http_get(embed_url)
-                m3u8_match = re.search(r"file:\s*['\"]([^'\"]+)['\"]", embed_html)
-                if m3u8_match:
-                    master_m3u8_url = m3u8_match.group(1)
-                    master_content = http_get(master_m3u8_url)
-
-                    lines = master_content.splitlines()
-                    for i, line in enumerate(lines):
-                        if line.startswith("#EXT-X-STREAM-INF"):
-                            res_match = re.search(r"RESOLUTION=\d+x(\d+)", line)
-                            quality_label = (
-                                f"{res_match.group(1)}p" if res_match else "Auto"
-                            )
-                            if i + 1 < len(lines):
-                                stream_link = lines[i + 1].strip()
-                                if not stream_link.startswith("http"):
-                                    stream_link = urllib.parse.urljoin(
-                                        master_m3u8_url, stream_link
-                                    )
-                                streams[quality_label] = stream_link
-
-                    if not streams:
-                        streams["Auto / Best"] = master_m3u8_url
-        except Exception:
-            pass
-
-    if streams:
-        return streams
-
-    # Provider 2: Secondary Mirror Failover (Gogo / Consumet fast CDN)
-    if anime_slug and provider in ("auto", "gogo", "secondary"):
-        clean_slug = anime_slug.rsplit("-", 1)[0]
-        fallback_endpoints = [
-            f"https://api.consumet.org/anime/gogoanime/watch/{clean_slug}-episode-{ep_num}",
-            f"https://consumet.vercel.app/anime/gogoanime/watch/{clean_slug}-episode-{ep_num}",
-        ]
-        for fb_url in fallback_endpoints:
-            try:
-                res = requests.get(fb_url, timeout=5)
-                if res.status_code == 200:
-                    sources = res.json().get("sources", [])
-                    for s in sources:
-                        q = s.get("quality", "Auto / Best")
-                        if q == "default":
-                            q = "Auto / Best"
-                        streams[q] = s.get("url")
-                    if streams:
-                        break
-            except Exception:
-                pass
-
-    return streams
 
 
 # ----------------------------------------------------------------------
@@ -3663,6 +3515,12 @@ def play_loop(
         if not streams:
             print(
                 f"{C_RED}❌ Could not resolve video streams for Episode {ep_num}.{C_RESET}"
+            )
+            print(
+                f"{C_YELLOW}⚠️  Note: Primary streaming provider (anidb.app) is currently under maintenance mode (HTTP 503).{C_RESET}"
+            )
+            print(
+                f"{C_DIM}💡 Check back shortly or try searching for another anime title.{C_RESET}\n"
             )
             break
 
