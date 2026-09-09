@@ -3,12 +3,14 @@
 
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
 import sys
 import threading
 import time
+import urllib.request
 from pathlib import Path
 
 from ani_sync.config import CONFIG_DIR, IS_TERMUX, IS_WINDOWS, USER_AGENT, load_config
@@ -118,6 +120,37 @@ def find_player_binary(player="mpv"):
     return player
 
 
+def get_torrent_episode_index(streamer_bin, target_path, ep_num):
+    """Inspect torrent file list to find the exact file index matching the requested episode number."""
+    if not ep_num or int(ep_num) <= 0:
+        return 0
+    try:
+        proc = subprocess.run(
+            [streamer_bin, target_path, "--list"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        lines = proc.stdout.splitlines()
+        ep_pats = [
+            re.compile(rf"(?:s\d+)?e{int(ep_num):02d}(?:\D|$)", re.I),
+            re.compile(rf"(?:s\d+)?e{int(ep_num)}(?:\D|$)", re.I),
+            re.compile(rf"(?:ep|episode|\s|-|_){int(ep_num):02d}(?:\D|$)", re.I),
+            re.compile(rf"(?:ep|episode|\s|-|_){int(ep_num)}(?:\D|$)", re.I),
+        ]
+        for line in lines:
+            m = re.match(r"^\s*(\d+)\s*:\s*(.+?)\s*:\s*[\d\.]+\s*[KMGT]?B", line)
+            if m:
+                idx = int(m.group(1))
+                fname = m.group(2)
+                for pat in ep_pats:
+                    if pat.search(fname):
+                        return idx
+    except Exception:
+        pass
+    return int(ep_num) - 1
+
+
 def launch_player(
     target_path,
     title,
@@ -149,33 +182,69 @@ def launch_player(
                 subprocess.run(["pkill", "-f", "peerflix"], stderr=subprocess.DEVNULL)
             except Exception:
                 pass
-            # Pass optimized streaming demuxer flags to peerflix's mpv instance
-            cmd = [
+
+            # Detect exact episode file index in batch torrents
+            file_idx = get_torrent_episode_index(torrent_streamer, target_path, ep_num)
+            print(
+                f"{C_DIM}Starting P2P stream proxy on http://127.0.0.1:8888/ (File index {file_idx})...{C_RESET}"
+            )
+
+            # Run peerflix in background as a local streaming HTTP server
+            server_cmd = [
                 torrent_streamer,
                 target_path,
-                "--mpv",
+                "-p",
+                "8888",
+                "-i",
+                str(file_idx),
                 "--remove",
             ]
-            # If an episode number is known, specify index (0-indexed) for batch torrents
-            if ep_num and int(ep_num) > 0:
-                cmd.extend(["-i", str(int(ep_num) - 1)])
-
-            # Zero-delay instant playback flags for MPV
-            cmd.extend(
-                [
-                    "--",
-                    "--cache-pause=no",
-                    "--cache-pause-initial=no",
-                    "--demuxer-max-bytes=100M",
-                    "--demuxer-readahead-secs=10",
-                    "--cache=yes",
-                    "--cache-secs=15",
-                ]
+            server_proc = subprocess.Popen(
+                server_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
+
+            # Wait for HTTP server to become live and ready to serve
+            http_url = "http://127.0.0.1:8888/"
+            ready = False
+            for _ in range(40):
+                if server_proc.poll() is not None:
+                    break
+                try:
+                    import urllib.request
+
+                    req = urllib.request.Request(
+                        http_url, headers={"User-Agent": USER_AGENT}
+                    )
+                    with urllib.request.urlopen(req, timeout=0.5) as resp:
+                        if resp.status in (200, 206):
+                            ready = True
+                            break
+                except Exception:
+                    pass
+                time.sleep(0.4)
+
+            # Launch native MPV connected to localhost:8888
             try:
-                proc = subprocess.run(cmd)
-                return proc.returncode == 0
+                return launch_player(
+                    http_url,
+                    title,
+                    ep_num,
+                    player=player,
+                    auto_skip=auto_skip,
+                    mal_id=mal_id,
+                    party_room=party_room,
+                    low_ram=low_ram,
+                    volume=volume,
+                    start_time=start_time,
+                )
             finally:
+                try:
+                    server_proc.terminate()
+                    server_proc.wait(timeout=2)
+                except Exception:
+                    server_proc.kill()
                 shutil.rmtree("/tmp/torrent-stream", ignore_errors=True)
         else:
             print(

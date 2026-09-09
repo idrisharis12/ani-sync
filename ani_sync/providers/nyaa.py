@@ -106,13 +106,39 @@ class NyaaProvider(BaseProvider):
                                         block,
                                     )
                                     seeds = int(m_seeds[0]) if m_seeds else 0
+                                    # Prioritize single-episode releases over multi-gigabyte batch releases
+                                    low_name = t_name.lower()
+                                    is_batch = bool(
+                                        re.search(
+                                            r"\b(?:batch|complete|01\s*[-~]\s*\d+)\b",
+                                            low_name,
+                                        )
+                                    )
+                                    has_ep = bool(
+                                        re.search(
+                                            rf"(?:-\s*|e|ep|episode\s*|\s){ep_num:02d}(?:[\s\._\-\[]|$)",
+                                            low_name,
+                                        )
+                                        or re.search(
+                                            rf"(?:-\s*|e|ep|episode\s*|\s){ep_num}(?:[\s\._\-\[]|$)",
+                                            low_name,
+                                        )
+                                    )
+                                    is_single = 1 if (has_ep and not is_batch) else 0
                                     matched_candidates.append(
-                                        (seeds, t_name, html.unescape(m_mag.group(1)))
+                                        (
+                                            is_single,
+                                            seeds,
+                                            t_name,
+                                            html.unescape(m_mag.group(1)),
+                                        )
                                     )
 
                         if matched_candidates:
-                            matched_candidates.sort(key=lambda x: x[0], reverse=True)
-                            top_seeds, top_name, top_mag = matched_candidates[0]
+                            matched_candidates.sort(
+                                key=lambda x: (x[0], x[1]), reverse=True
+                            )
+                            _, top_seeds, top_name, top_mag = matched_candidates[0]
                             log_debug(
                                 f"NyaaProvider resolved healthiest swarm '{top_name}' with {top_seeds} seeders for '{clean_title}'"
                             )
@@ -164,9 +190,30 @@ class NyaaProvider(BaseProvider):
                                     elif "infoHash" in child.tag:
                                         info_hash = (child.text or "").strip()
 
+                                low_title = item_title.lower()
+                                is_b = bool(
+                                    re.search(
+                                        r"\b(?:batch|complete|01\s*[-~]\s*\d+)\b",
+                                        low_title,
+                                    )
+                                )
+                                has_e = bool(
+                                    re.search(
+                                        rf"(?:-\s*|e|ep|episode\s*|\s){ep_num:02d}(?:[\s\._\-\[]|$)",
+                                        low_title,
+                                    )
+                                    or re.search(
+                                        rf"(?:-\s*|e|ep|episode\s*|\s){ep_num}(?:[\s\._\-\[]|$)",
+                                        low_title,
+                                    )
+                                )
+                                is_sing = 1 if (has_e and not is_b) else 0
+
                                 if info_hash:
                                     magnet = f"magnet:?xt=urn:btih:{info_hash}&dn={urllib.parse.quote(item_title)}&{tr_params}"
-                                    rss_candidates.append((s_count, item_title, magnet))
+                                    rss_candidates.append(
+                                        (is_sing, s_count, item_title, magnet)
+                                    )
                                 else:
                                     link_elem = it.find("link")
                                     if (
@@ -175,12 +222,19 @@ class NyaaProvider(BaseProvider):
                                         and link_elem.text.startswith("magnet:")
                                     ):
                                         rss_candidates.append(
-                                            (s_count, item_title, link_elem.text)
+                                            (
+                                                is_sing,
+                                                s_count,
+                                                item_title,
+                                                link_elem.text,
+                                            )
                                         )
 
                         if rss_candidates:
-                            rss_candidates.sort(key=lambda x: x[0], reverse=True)
-                            top_seeds, top_name, top_mag = rss_candidates[0]
+                            rss_candidates.sort(
+                                key=lambda x: (x[0], x[1]), reverse=True
+                            )
+                            _, top_seeds, top_name, top_mag = rss_candidates[0]
                             log_debug(
                                 f"NyaaProvider resolved RSS magnet '{top_name}' with {top_seeds} seeds for query '{q}'"
                             )
