@@ -200,13 +200,16 @@ def launch_player(
                 "--profile=fast",
                 "--audio-buffer=0.8",
                 "--cache=yes",
+                "--cache-pause=yes",
+                "--cache-pause-initial=yes",
+                "--cache-pause-wait=3",
                 f"--demuxer-max-bytes={demux_bytes}",
                 f"--demuxer-max-back-bytes={back_bytes}",
                 f"--demuxer-readahead-secs={readahead}",
                 f"--stream-buffer-size={stream_buf}",
-                "--cache-pause=no",
                 "--force-seekable=yes",
                 "--demuxer-seekable-cache=yes",
+                "--network-timeout=60",
                 "--msg-level=ffmpeg=error",
             ]
             if volume is not None:
@@ -231,7 +234,12 @@ def launch_player(
                 "--mpv",
                 "--",
             ] + mpv_args
+            start_t = time.time()
             proc = subprocess.run(cmd)
+            elapsed = time.time() - start_t
+            if elapsed < 10:
+                # Playback failed or exited prematurely
+                return False
             return proc.returncode == 0
         else:
             print(
