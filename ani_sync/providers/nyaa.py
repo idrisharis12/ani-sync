@@ -28,6 +28,8 @@ class NyaaProvider(BaseProvider):
             return {}
 
         queries = [
+            f'"{clean_title}" {ep_num:02d}',
+            f'"{clean_title}" {ep_num}',
             f"{clean_title} {ep_num:02d}",
             f"{clean_title} {ep_num}",
         ]
@@ -48,8 +50,8 @@ class NyaaProvider(BaseProvider):
         for q in queries:
             encoded_q = urllib.parse.quote_plus(q)
             for base in mirrors:
-                # 1. Try HTML search table (extracts magnets directly)
-                search_url = f"{base}/?f=0&c=1_2&q={encoded_q}"
+                # 1. Try HTML search table sorted by seeders
+                search_url = f"{base}/?f=0&c=1_2&s=seeders&o=desc&q={encoded_q}"
                 try:
                     req = urllib.request.Request(search_url, headers=headers)
                     with urllib.request.urlopen(req, timeout=4) as resp:
@@ -71,8 +73,8 @@ class NyaaProvider(BaseProvider):
                 except Exception as e:
                     log_debug(f"NyaaProvider search on {base} failed: {e}")
 
-                # 2. Try RSS endpoint fallback
-                rss_url = f"{base}/?page=rss&q={encoded_q}&c=1_2&f=0"
+                # 2. Try RSS endpoint fallback sorted by seeders
+                rss_url = f"{base}/?page=rss&q={encoded_q}&c=1_2&f=0&s=seeders&o=desc"
                 try:
                     req = urllib.request.Request(rss_url, headers=headers)
                     with urllib.request.urlopen(req, timeout=4) as resp:
@@ -80,9 +82,23 @@ class NyaaProvider(BaseProvider):
                         root = ET.fromstring(xml_data)
                         items = root.findall("./channel/item")
                         if items:
-                            torrent_url = items[0].find("link").text
+                            # Parse seeders from custom element if present to pick top seeded item
+                            best_item = items[0]
+                            max_seeds = -1
+                            for it in items:
+                                for child in it:
+                                    if "seeders" in child.tag:
+                                        try:
+                                            s_count = int(child.text or 0)
+                                            if s_count > max_seeds:
+                                                max_seeds = s_count
+                                                best_item = it
+                                        except Exception:
+                                            pass
+                                        break
+                            torrent_url = best_item.find("link").text
                             log_debug(
-                                f"NyaaProvider resolved RSS item from {base} for query '{q}'"
+                                f"NyaaProvider resolved RSS item from {base} with {max_seeds} seeds for query '{q}'"
                             )
                             return {
                                 "1080p": torrent_url,
