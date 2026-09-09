@@ -155,12 +155,23 @@ def launch_player(
                 target_path,
                 "--mpv",
                 "--remove",
-                "--",
-                "--demuxer-max-bytes=250M",
-                "--demuxer-readahead-secs=120",
-                "--cache=yes",
-                "--cache-secs=120",
             ]
+            # If an episode number is known, specify index (0-indexed) for batch torrents
+            if ep_num and int(ep_num) > 0:
+                cmd.extend(["-i", str(int(ep_num) - 1)])
+
+            # Zero-delay instant playback flags for MPV
+            cmd.extend(
+                [
+                    "--",
+                    "--cache-pause=no",
+                    "--cache-pause-initial=no",
+                    "--demuxer-max-bytes=100M",
+                    "--demuxer-readahead-secs=10",
+                    "--cache=yes",
+                    "--cache-secs=15",
+                ]
+            )
             try:
                 proc = subprocess.run(cmd)
                 return proc.returncode == 0

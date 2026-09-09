@@ -4670,8 +4670,8 @@ def main():
                 "--restart",
                 "unless-stopped",
                 "-p",
-                "4000:4000",
-                "ghcr.io/ghoshrishi5/hianime-api:latest",
+                "4000:8000",
+                "shalinshah07/hianime-api:latest",
             ]
             try:
                 res = subprocess.run(cmd, capture_output=True, text=True)
