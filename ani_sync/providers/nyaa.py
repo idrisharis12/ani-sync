@@ -40,6 +40,8 @@ def enrich_magnet(mag_url: str) -> str:
         return f"{mag_url}{delimiter}{GLOBAL_TR_PARAMS}"
     return mag_url
 
+
+class NyaaProvider(BaseProvider):
     name = "nyaa"
 
     def search(self, query):
