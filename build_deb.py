@@ -4,7 +4,7 @@ import tarfile
 import time
 from pathlib import Path
 
-VERSION = "2.11.58"
+VERSION = "2.11.59"
 PACKAGE_NAME = "ani-sync"
 DIST_DIR = Path("dist")
 DIST_DIR.mkdir(exist_ok=True)
@@ -19,7 +19,7 @@ Version: {VERSION}
 Section: utils
 Priority: optional
 Architecture: all
-Depends: python3, python3-requests, python3-tqdm, mpv, yt-dlp, curl, fzf
+Depends: python3, python3-requests, python3-tqdm, mpv, yt-dlp, curl, fzf, nodejs, npm
 Maintainer: Idris Haris <https://github.com/idrisharis12/ani-sync>
 Description: Terminal anime streamer and MyAnimeList auto-sync client
  Stream anime episodes directly in your terminal and automatically

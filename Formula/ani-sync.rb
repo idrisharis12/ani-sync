@@ -1,7 +1,7 @@
 class AniSync < Formula
   desc "Stream anime from terminal with 64x turbo speed & multi-platform tracking"
   homepage "https://github.com/idrisharis12/ani-sync"
-  url "https://github.com/idrisharis12/ani-sync/archive/refs/tags/v2.11.58.tar.gz"
+  url "https://github.com/idrisharis12/ani-sync/archive/refs/tags/v2.11.59.tar.gz"
   sha256 "SKIP"
   license "MIT"
 
@@ -10,6 +10,7 @@ class AniSync < Formula
   depends_on "mpv"
   depends_on "yt-dlp"
   depends_on "curl"
+  depends_on "node"
 
   resource "requests" do
     url "https://files.pythonhosted.org/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz"

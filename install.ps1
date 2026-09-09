@@ -108,8 +108,24 @@ if (-not (Get-Command mpv -ErrorAction SilentlyContinue)) {
     Write-Host "  ✓ MPV detected." -ForegroundColor Green
 }
 
-# 5. Install ani-sync scripts and wrappers
-Write-Host "[5/5] Installing ani-sync..." -ForegroundColor Yellow
+# 5. Check and install Node.js & peerflix for resilient P2P streaming
+Write-Host "[5/6] Checking P2P streaming runtime (Node.js, peerflix)..." -ForegroundColor Yellow
+if (-not (Get-Command peerflix -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Command node -ErrorAction SilentlyContinue) -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Write-Host "  Installing Node.js via winget..." -ForegroundColor DarkGray
+        winget install OpenJS.NodeJS.LTS --silent --accept-source-agreements --accept-package-agreements 2>$null
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+    }
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Write-Host "  Installing peerflix globally via npm..." -ForegroundColor DarkGray
+        npm install -g peerflix 2>$null
+    }
+} else {
+    Write-Host "  ✓ peerflix is installed." -ForegroundColor Green
+}
+
+# 6. Install ani-sync scripts and wrappers
+Write-Host "[6/6] Installing ani-sync..." -ForegroundColor Yellow
 
 if (Test-Path "$PSScriptRoot\ani_sync") {
     Write-Host "  Copying ani_sync package from local directory..." -ForegroundColor Yellow

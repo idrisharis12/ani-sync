@@ -2,7 +2,7 @@
 
 pkgs.python3Packages.buildPythonApplication rec {
   pname = "ani-sync";
-  version = "2.11.58";
+  version = "2.11.59";
 
   src = ./.;
 

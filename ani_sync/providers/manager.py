@@ -119,8 +119,7 @@ def resolve_streams(
             log_debug(f"Fallback provider '{p_name}' error: {e}")
         return p_name, None
 
-    # In auto mode, only query fast CDN streaming providers.
-    # BitTorrent (nyaa) is strictly opt-in via --torrent.
+    # In auto mode, query fast CDN streaming providers first.
     fallback_providers = ["local", "gogo", "hianime"]
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {
@@ -131,5 +130,19 @@ def resolve_streams(
             p_name, st = future.result()
             if st:
                 return st
+
+    # 5. Seamless P2P Swarm Failover:
+    # If all CDN providers are down/under maintenance, auto-failover to the healthiest P2P swarm
+    # so users are never blocked with a playback failure.
+    if provider_name == "auto":
+        try:
+            log_debug("CDN providers unavailable; auto-failing over to Nyaa P2P swarm")
+            torrent_res = PROVIDERS["nyaa"].get_streams(
+                episode_id, mode=mode, anime_slug=anime_slug, ep_num=ep_num
+            )
+            if torrent_res:
+                return torrent_res
+        except Exception as e:
+            log_debug(f"P2P auto-failover failed: {e}")
 
     return {}

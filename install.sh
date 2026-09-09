@@ -60,31 +60,37 @@ install_system_packages() {
     if [ "$IS_TERMUX" = true ] && command -v pkg &>/dev/null; then
         echo -e "  ${DIM}Detected Termux (Android) environment...${NC}"
         pkg update -y 2>/dev/null || true
-        pkg install -y fzf mpv yt-dlp chafa curl git ffmpeg python termux-api 2>/dev/null || \
-        pkg install -y fzf mpv chafa curl git ffmpeg python 2>/dev/null || true
+        pkg install -y fzf mpv yt-dlp chafa curl git ffmpeg python nodejs termux-api 2>/dev/null || \
+        pkg install -y fzf mpv chafa curl git ffmpeg python nodejs 2>/dev/null || true
     elif command -v pacman &>/dev/null; then
         echo -e "  ${DIM}Detected Arch Linux (pacman) package manager...${NC}"
-        $SUDO_CMD pacman -Sy --noconfirm --needed fzf mpv yt-dlp chafa curl git ffmpeg python python-pip python-requests python-tqdm python-pillow 2>/dev/null || true
+        $SUDO_CMD pacman -Sy --noconfirm --needed fzf mpv yt-dlp chafa curl git ffmpeg python python-pip python-requests python-tqdm python-pillow nodejs npm 2>/dev/null || true
     elif command -v apt-get &>/dev/null; then
         echo -e "  ${DIM}Detected Debian/Ubuntu (APT) package manager...${NC}"
         $SUDO_CMD apt-get update -y -qq || true
-        $SUDO_CMD apt-get install -y -qq fzf mpv yt-dlp chafa curl git ffmpeg python3 python3-pip python3-requests python3-tqdm python3-pil 2>/dev/null || \
-        $SUDO_CMD apt-get install -y -qq fzf mpv chafa curl git ffmpeg python3 python3-pip 2>/dev/null || true
+        $SUDO_CMD apt-get install -y -qq fzf mpv yt-dlp chafa curl git ffmpeg python3 python3-pip python3-requests python3-tqdm python3-pil nodejs npm 2>/dev/null || \
+        $SUDO_CMD apt-get install -y -qq fzf mpv chafa curl git ffmpeg python3 python3-pip nodejs npm 2>/dev/null || true
     elif command -v dnf &>/dev/null; then
         echo -e "  ${DIM}Detected Fedora/RHEL (DNF) package manager...${NC}"
-        $SUDO_CMD dnf install -y -q fzf mpv yt-dlp chafa curl git ffmpeg python3 python3-pip python3-requests python3-tqdm python3-pillow 2>/dev/null || true
+        $SUDO_CMD dnf install -y -q fzf mpv yt-dlp chafa curl git ffmpeg python3 python3-pip python3-requests python3-tqdm python3-pillow nodejs npm 2>/dev/null || true
     elif command -v zypper &>/dev/null; then
         echo -e "  ${DIM}Detected openSUSE (zypper) package manager...${NC}"
-        $SUDO_CMD zypper --non-interactive in fzf mpv yt-dlp chafa curl git ffmpeg python3 python3-pip python3-requests python3-tqdm 2>/dev/null || true
+        $SUDO_CMD zypper --non-interactive in fzf mpv yt-dlp chafa curl git ffmpeg python3 python3-pip python3-requests python3-tqdm nodejs npm 2>/dev/null || true
     elif command -v apk &>/dev/null; then
         echo -e "  ${DIM}Detected Alpine Linux (apk) package manager...${NC}"
-        $SUDO_CMD apk add --no-cache fzf mpv yt-dlp chafa curl git ffmpeg python3 py3-pip py3-requests py3-tqdm 2>/dev/null || true
+        $SUDO_CMD apk add --no-cache fzf mpv yt-dlp chafa curl git ffmpeg python3 py3-pip py3-requests py3-tqdm nodejs npm 2>/dev/null || true
     elif command -v brew &>/dev/null; then
         echo -e "  ${DIM}Detected macOS (Homebrew) package manager...${NC}"
-        brew install fzf mpv yt-dlp chafa curl git ffmpeg python3 2>/dev/null || true
+        brew install fzf mpv yt-dlp chafa curl git ffmpeg python3 node 2>/dev/null || true
     elif command -v xbps-install &>/dev/null; then
         echo -e "  ${DIM}Detected Void Linux (XBPS) package manager...${NC}"
-        $SUDO_CMD xbps-install -Sy fzf mpv yt-dlp chafa curl git ffmpeg python3 python3-pip python3-requests python3-tqdm 2>/dev/null || true
+        $SUDO_CMD xbps-install -Sy fzf mpv yt-dlp chafa curl git ffmpeg python3 python3-pip python3-requests python3-tqdm nodejs 2>/dev/null || true
+    fi
+
+    # Install peerflix globally for resilient P2P streaming
+    if command -v npm &>/dev/null && ! command -v peerflix &>/dev/null; then
+        echo -e "  ${DIM}Installing peerflix for P2P torrent streaming...${NC}"
+        npm install -g peerflix 2>/dev/null || $SUDO_CMD npm install -g peerflix 2>/dev/null || true
     fi
 }
 
