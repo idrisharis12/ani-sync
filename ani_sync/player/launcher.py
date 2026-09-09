@@ -197,6 +197,8 @@ def launch_player(
                 "8888",
                 "-i",
                 str(file_idx),
+                "-c",
+                "250",
                 "--remove",
             ]
             server_proc = subprocess.Popen(

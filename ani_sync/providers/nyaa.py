@@ -163,11 +163,20 @@ class NyaaProvider(BaseProvider):
                         items = root.findall("./channel/item")
                         rss_candidates = []
                         trackers = [
-                            "udp://open.stealth.si:80/announce",
                             "udp://tracker.opentrackr.org:1337/announce",
-                            "udp://exodus.desync.com:6969/announce",
+                            "udp://open.stealth.si:80/announce",
                             "udp://tracker.torrent.eu.org:451/announce",
+                            "udp://exodus.desync.com:6969/announce",
                             "udp://tracker.moeking.me:6969/announce",
+                            "udp://p4p.arenabg.com:1337/announce",
+                            "udp://tracker.cyberia.is:6969/announce",
+                            "udp://tracker.dler.org:6969/announce",
+                            "udp://explodie.org:6969/announce",
+                            "udp://open.tracker.cl:1337/announce",
+                            "udp://tracker.tiny-vps.com:6969/announce",
+                            "udp://retracker.hotplug.ru:2710/announce",
+                            "udp://tracker.altrosky.nl:6969/announce",
+                            "udp://tracker.bittor.pw:1337/announce",
                         ]
                         tr_params = "&".join(
                             [f"tr={urllib.parse.quote(tr)}" for tr in trackers]
