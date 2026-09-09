@@ -149,8 +149,18 @@ def launch_player(
                 subprocess.run(["pkill", "-f", "peerflix"], stderr=subprocess.DEVNULL)
             except Exception:
                 pass
-            shutil.rmtree("/tmp/torrent-stream", ignore_errors=True)
-            cmd = [torrent_streamer, target_path, "--mpv", "--remove"]
+            # Pass optimized streaming demuxer flags to peerflix's mpv instance
+            cmd = [
+                torrent_streamer,
+                target_path,
+                "--mpv",
+                "--remove",
+                "--",
+                "--demuxer-max-bytes=250M",
+                "--demuxer-readahead-secs=120",
+                "--cache=yes",
+                "--cache-secs=120",
+            ]
             try:
                 proc = subprocess.run(cmd)
                 return proc.returncode == 0

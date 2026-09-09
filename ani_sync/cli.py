@@ -4654,6 +4654,89 @@ def main():
         update_self(quiet=quiet)
         return
 
+    # Check for local scraper microservice management
+    if args and args[0] in ("--scraper", "scraper"):
+        action = args[1].lower() if len(args) >= 2 else "status"
+        if action == "start":
+            print(
+                f"\n{C_CYAN}🐳 Starting Local Anime Scraper Container on port 4000...{C_RESET}"
+            )
+            cmd = [
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                "anime-scraper",
+                "--restart",
+                "unless-stopped",
+                "-p",
+                "4000:4000",
+                "ghcr.io/ghoshrishi5/hianime-api:latest",
+            ]
+            try:
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                if res.returncode == 0:
+                    print(
+                        f"{C_GREEN}✓ Local anime scraper started successfully! (http://localhost:4000){C_RESET}"
+                    )
+                    print(
+                        f"{C_DIM}ani-sync will automatically route stream requests through local microservice with zero rate limits.{C_RESET}\n"
+                    )
+                else:
+                    if "Conflict" in res.stderr or "already in use" in res.stderr:
+                        subprocess.run(["docker", "start", "anime-scraper"])
+                        print(
+                            f"{C_GREEN}✓ Resumed existing anime-scraper container! (http://localhost:4000){C_RESET}\n"
+                        )
+                    else:
+                        print(
+                            f"{C_RED}Failed to start container: {res.stderr.strip()}{C_RESET}\n"
+                        )
+            except Exception as e:
+                print(f"{C_RED}Error running docker: {e}{C_RESET}\n")
+        elif action == "stop":
+            print(f"\n{C_YELLOW}Stopping anime-scraper container...{C_RESET}")
+            subprocess.run(
+                ["docker", "stop", "anime-scraper"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            subprocess.run(
+                ["docker", "rm", "anime-scraper"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            print(f"{C_GREEN}✓ Container stopped.{C_RESET}\n")
+        else:  # status
+            try:
+                res = subprocess.run(
+                    [
+                        "docker",
+                        "ps",
+                        "--filter",
+                        "name=anime-scraper",
+                        "--format",
+                        "{{.Status}}",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                status = res.stdout.strip()
+                if status:
+                    print(
+                        f"\n{C_GREEN}✓ Local Scraper Container is RUNNING:{C_RESET} {status} (http://localhost:4000)\n"
+                    )
+                else:
+                    print(
+                        f"\n{C_YELLOW}○ Local Scraper Container is NOT running.{C_RESET}"
+                    )
+                    print(
+                        f"Run {C_GREEN}ani-sync --scraper start{C_RESET} to launch it in Docker.\n"
+                    )
+            except Exception:
+                print(f"{C_YELLOW}Docker not accessible.{C_RESET}\n")
+        return
+
     # Check for library sync command
     if args and args[0] in ("sync", "import", "library", "pull", "--sync"):
         sync_all_libraries()

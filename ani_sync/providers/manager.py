@@ -8,11 +8,13 @@ from ani_sync.config import USER_AGENT, log_debug
 from ani_sync.providers.anidb import AniDBProvider
 from ani_sync.providers.gogo import GogoProvider
 from ani_sync.providers.hianime import HiAnimeProvider
+from ani_sync.providers.local import LocalProvider
 from ani_sync.providers.nyaa import NyaaProvider
 from ani_sync.config import get_config_dir
 import importlib.util
 
 PROVIDERS = {
+    "local": LocalProvider(),
     "anidb": AniDBProvider(),
     "gogo": GogoProvider(),
     "hianime": HiAnimeProvider(),
@@ -81,7 +83,18 @@ def resolve_streams(
         except Exception as e:
             log_debug(f"Selected provider {provider_name} failed: {e}")
 
-    # 2. Try primary AniDB provider first
+    # 2. Check local scraper container first (<50ms latency if running)
+    try:
+        local_res = PROVIDERS["local"].get_streams(
+            episode_id, mode=mode, anime_slug=anime_slug, ep_num=ep_num
+        )
+        if local_res:
+            log_debug("Streams resolved via LocalProvider (localhost microservice)")
+            return local_res
+    except Exception as e:
+        log_debug(f"LocalProvider attempt failed: {e}")
+
+    # 3. Try primary AniDB provider
     try:
         anidb_res = PROVIDERS["anidb"].get_streams(
             episode_id, mode=mode, anime_slug=anime_slug, ep_num=ep_num
@@ -92,7 +105,7 @@ def resolve_streams(
     except Exception as e:
         log_debug(f"Primary provider 'anidb' attempt failed: {e}")
 
-    # 3. Concurrent Failover: Run fallback providers (Gogo & HiAnime) in parallel
+    # 4. Concurrent Failover: Run fallback providers in parallel
     def _fetch_from_provider(p_name):
         try:
             p = PROVIDERS[p_name]
@@ -106,11 +119,10 @@ def resolve_streams(
             log_debug(f"Fallback provider '{p_name}' error: {e}")
         return p_name, None
 
-    # In auto mode, only query fast CDN streaming providers (gogo, hianime).
-    # BitTorrent (nyaa) is never used in auto mode to prevent slow/stalled playback.
-    # Torrent streaming is strictly opt-in via --torrent or --provider nyaa/torrent.
-    fallback_providers = ["gogo", "hianime"]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    # In auto mode, only query fast CDN streaming providers.
+    # BitTorrent (nyaa) is strictly opt-in via --torrent.
+    fallback_providers = ["local", "gogo", "hianime"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {
             executor.submit(_fetch_from_provider, p_name): p_name
             for p_name in fallback_providers

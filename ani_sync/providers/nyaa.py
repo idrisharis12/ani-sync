@@ -70,37 +70,47 @@ class NyaaProvider(BaseProvider):
                     req = urllib.request.Request(search_url, headers=headers)
                     with urllib.request.urlopen(req, timeout=4) as resp:
                         page_text = resp.read().decode("utf-8", errors="ignore")
-                        # Parse table rows to get both title and magnet link
-                        rows = re.findall(
-                            r'<tr class="[^"]*default[^"]*">.*?<a href="/view/\d+" title="([^"]+)".*?href=["\'](magnet:\?[^"\']+)["\']',
+                        # Parse table rows with title, magnet, and seeders
+                        # Typical row has <a href="/view/..." title="...">, magnet, and seeders count
+                        row_blocks = re.findall(
+                            r'<tr class="[^"]*default[^"]*">(.*?)</tr>',
                             page_text,
                             re.DOTALL,
                         )
-                        for t_title, mag in rows:
-                            if is_valid_match(t_title, clean_title):
-                                first_mag = html.unescape(mag)
-                                log_debug(
-                                    f"NyaaProvider verified match '{t_title}' for '{clean_title}'"
-                                )
-                                return {
-                                    "1080p": first_mag,
-                                    "720p": first_mag,
-                                    "default": first_mag,
-                                    "type": "torrent",
-                                }
-                        # Fallback to direct magnets if regex table match didn't catch rows
-                        if not rows:
-                            magnets = re.findall(
-                                r'href=["\'](magnet:\?[^"\']+)["\']', page_text
+                        matched_candidates = []
+                        for block in row_blocks:
+                            m_title = re.search(
+                                r'<a href="/view/\d+" title="([^"]+)"', block
                             )
-                            if magnets and f'"{clean_title}"' in q:
-                                first_mag = html.unescape(magnets[0])
-                                return {
-                                    "1080p": first_mag,
-                                    "720p": first_mag,
-                                    "default": first_mag,
-                                    "type": "torrent",
-                                }
+                            m_mag = re.search(
+                                r'href=["\'](magnet:\?[^"\']+)["\']', block
+                            )
+                            if m_title and m_mag:
+                                t_name = m_title.group(1)
+                                if is_valid_match(t_name, clean_title):
+                                    m_seeds = re.findall(
+                                        r'<td class="text-center"[^>]*>([0-9]+)</td>',
+                                        block,
+                                    )
+                                    seeds = int(m_seeds[0]) if m_seeds else 0
+                                    matched_candidates.append(
+                                        (seeds, t_name, html.unescape(m_mag.group(1)))
+                                    )
+
+                        if matched_candidates:
+                            matched_candidates.sort(key=lambda x: x[0], reverse=True)
+                            top_seeds, top_name, top_mag = matched_candidates[0]
+                            log_debug(
+                                f"NyaaProvider resolved healthiest swarm '{top_name}' with {top_seeds} seeders for '{clean_title}'"
+                            )
+                            return {
+                                "1080p": top_mag,
+                                "720p": top_mag,
+                                "default": top_mag,
+                                "type": "torrent",
+                                "seeders": top_seeds,
+                                "release_name": top_name,
+                            }
                 except Exception as e:
                     log_debug(f"NyaaProvider search on {base} failed: {e}")
 
@@ -112,30 +122,41 @@ class NyaaProvider(BaseProvider):
                         xml_data = resp.read()
                         root = ET.fromstring(xml_data)
                         items = root.findall("./channel/item")
-                        if items:
-                            # Parse seeders from custom element if present to pick top seeded item
-                            best_item = items[0]
-                            max_seeds = -1
-                            for it in items:
+                        rss_candidates = []
+                        for it in items:
+                            item_title = (
+                                it.find("title").text
+                                if it.find("title") is not None
+                                else ""
+                            )
+                            if is_valid_match(item_title, clean_title):
+                                s_count = 0
                                 for child in it:
                                     if "seeders" in child.tag:
                                         try:
                                             s_count = int(child.text or 0)
-                                            if s_count > max_seeds:
-                                                max_seeds = s_count
-                                                best_item = it
                                         except Exception:
                                             pass
                                         break
-                            torrent_url = best_item.find("link").text
+                                link_elem = it.find("link")
+                                if link_elem is not None and link_elem.text:
+                                    rss_candidates.append(
+                                        (s_count, item_title, link_elem.text)
+                                    )
+
+                        if rss_candidates:
+                            rss_candidates.sort(key=lambda x: x[0], reverse=True)
+                            top_seeds, top_name, top_url = rss_candidates[0]
                             log_debug(
-                                f"NyaaProvider resolved RSS item from {base} with {max_seeds} seeds for query '{q}'"
+                                f"NyaaProvider resolved RSS swarm '{top_name}' with {top_seeds} seeds for query '{q}'"
                             )
                             return {
-                                "1080p": torrent_url,
-                                "720p": torrent_url,
-                                "default": torrent_url,
+                                "1080p": top_url,
+                                "720p": top_url,
+                                "default": top_url,
                                 "type": "torrent",
+                                "seeders": top_seeds,
+                                "release_name": top_name,
                             }
                 except Exception as e:
                     log_debug(f"NyaaProvider RSS on {base} failed: {e}")
