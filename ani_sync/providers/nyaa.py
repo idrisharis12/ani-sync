@@ -47,6 +47,20 @@ class NyaaProvider(BaseProvider):
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
 
+        # Strict title boundary validation
+        def is_valid_match(torrent_name, target):
+            t_low = torrent_name.lower()
+            s_low = target.lower()
+            if s_low not in t_low:
+                return False
+            # Find the position of s_low
+            idx = t_low.find(s_low)
+            after = t_low[idx + len(s_low) :].strip()
+            # If followed immediately by 'with ', 'and ', or alphanumeric words before delimiters
+            if re.match(r"^(with\s+|and\s+|vs\.?\s+|at\s+)", after):
+                return False
+            return True
+
         for q in queries:
             encoded_q = urllib.parse.quote_plus(q)
             for base in mirrors:
@@ -56,20 +70,37 @@ class NyaaProvider(BaseProvider):
                     req = urllib.request.Request(search_url, headers=headers)
                     with urllib.request.urlopen(req, timeout=4) as resp:
                         page_text = resp.read().decode("utf-8", errors="ignore")
-                        magnets = re.findall(
-                            r'href=["\'](magnet:\?[^"\']+)["\']', page_text
+                        # Parse table rows to get both title and magnet link
+                        rows = re.findall(
+                            r'<tr class="[^"]*default[^"]*">.*?<a href="/view/\d+" title="([^"]+)".*?href=["\'](magnet:\?[^"\']+)["\']',
+                            page_text,
+                            re.DOTALL,
                         )
-                        if magnets:
-                            first_mag = html.unescape(magnets[0])
-                            log_debug(
-                                f"NyaaProvider resolved magnet from {base} for query '{q}'"
+                        for t_title, mag in rows:
+                            if is_valid_match(t_title, clean_title):
+                                first_mag = html.unescape(mag)
+                                log_debug(
+                                    f"NyaaProvider verified match '{t_title}' for '{clean_title}'"
+                                )
+                                return {
+                                    "1080p": first_mag,
+                                    "720p": first_mag,
+                                    "default": first_mag,
+                                    "type": "torrent",
+                                }
+                        # Fallback to direct magnets if regex table match didn't catch rows
+                        if not rows:
+                            magnets = re.findall(
+                                r'href=["\'](magnet:\?[^"\']+)["\']', page_text
                             )
-                            return {
-                                "1080p": first_mag,
-                                "720p": first_mag,
-                                "default": first_mag,
-                                "type": "torrent",
-                            }
+                            if magnets and f'"{clean_title}"' in q:
+                                first_mag = html.unescape(magnets[0])
+                                return {
+                                    "1080p": first_mag,
+                                    "720p": first_mag,
+                                    "default": first_mag,
+                                    "type": "torrent",
+                                }
                 except Exception as e:
                     log_debug(f"NyaaProvider search on {base} failed: {e}")
 

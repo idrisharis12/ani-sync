@@ -144,9 +144,18 @@ def launch_player(
         )
         if torrent_streamer:
             print(f"\n{C_CYAN}🧲 Streaming via BitTorrent (Nyaa fallback)...{C_RESET}")
-            cmd = [torrent_streamer, target_path, "--mpv"]
-            proc = subprocess.run(cmd)
-            return proc.returncode == 0
+            # Wipe stale torrent-stream cache to prevent resuming stalled/dead torrents
+            try:
+                subprocess.run(["pkill", "-f", "peerflix"], stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+            shutil.rmtree("/tmp/torrent-stream", ignore_errors=True)
+            cmd = [torrent_streamer, target_path, "--mpv", "--remove"]
+            try:
+                proc = subprocess.run(cmd)
+                return proc.returncode == 0
+            finally:
+                shutil.rmtree("/tmp/torrent-stream", ignore_errors=True)
         else:
             print(
                 f"\n{C_CYAN}{C_BOLD}🧲 Magnet stream resolved via Nyaa P2P Fallback:{C_RESET}"

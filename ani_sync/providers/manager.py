@@ -106,8 +106,11 @@ def resolve_streams(
             log_debug(f"Fallback provider '{p_name}' error: {e}")
         return p_name, None
 
-    fallback_providers = ["gogo", "hianime", "nyaa"]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+    # In auto mode, only query fast CDN streaming providers (gogo, hianime).
+    # BitTorrent (nyaa) is never used in auto mode to prevent slow/stalled playback.
+    # Torrent streaming is strictly opt-in via --torrent or --provider nyaa/torrent.
+    fallback_providers = ["gogo", "hianime"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         futures = {
             executor.submit(_fetch_from_provider, p_name): p_name
             for p_name in fallback_providers

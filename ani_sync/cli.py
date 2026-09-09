@@ -1738,7 +1738,15 @@ def search_anime(query):
     seen_titles = set()
 
     def add_item(
-        slug, title, image=None, score=None, episodes=None, status=None, synopsis=""
+        slug,
+        title,
+        image=None,
+        score=None,
+        episodes=None,
+        status=None,
+        synopsis="",
+        romaji_title=None,
+        english_title=None,
     ):
         if not title:
             return
@@ -1754,6 +1762,8 @@ def search_anime(query):
             {
                 "slug": s,
                 "title": title,
+                "romaji_title": romaji_title,
+                "english_title": english_title,
                 "image": image,
                 "score": score,
                 "episodes": episodes,
@@ -1801,10 +1811,15 @@ def search_anime(query):
         with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             media_items = data.get("data", {}).get("Page", {}).get("media", [])
+            q_clean = query.strip().lower()
             for m in media_items:
                 rom = m.get("title", {}).get("romaji") or ""
                 eng = m.get("title", {}).get("english") or ""
-                title = eng or rom
+                # If query matches Romaji better (e.g. 'ore' in 'Ore Monogatari!!'), prioritize Romaji title
+                if q_clean and q_clean in rom.lower() and q_clean not in eng.lower():
+                    title = rom
+                else:
+                    title = eng or rom
                 if not title:
                     continue
                 c_img = m.get("coverImage", {})
@@ -1822,6 +1837,8 @@ def search_anime(query):
                     episodes=m.get("episodes"),
                     status=m.get("status"),
                     synopsis=m.get("description", ""),
+                    romaji_title=rom,
+                    english_title=eng,
                 )
     except Exception as e:
         log_debug(f"AniList search error: {e}")
@@ -3530,14 +3547,15 @@ def play_loop(
         )
         if not streams:
             print(
-                f"{C_RED}❌ Could not resolve video streams for Episode {ep_num}.{C_RESET}"
+                f"{C_RED}❌ Could not resolve fast CDN streams for Episode {ep_num}.{C_RESET}"
             )
             print(
-                f"{C_YELLOW}⚠️  Note: Primary streaming provider (anidb.app) is currently under maintenance mode (HTTP 503).{C_RESET}"
+                f"{C_YELLOW}⚠️  Note: CDN streaming providers are currently undergoing maintenance or rate-limited.{C_RESET}"
             )
             print(
-                f"{C_DIM}💡 Check back shortly or try searching for another anime title.{C_RESET}\n"
+                f"{C_GREEN}💡 Tip: You can stream via P2P BitTorrent swarms using:{C_RESET}"
             )
+            print(f'   {C_CYAN}ani-sync "{title}" --torrent -e {ep_num}{C_RESET}\n')
             break
 
         # Quality Selection
@@ -4838,6 +4856,8 @@ def main():
             if i + 1 < len(args):
                 provider = args[i + 1].lower()
                 i += 1
+        elif arg == "--torrent":
+            provider = "torrent"
         elif arg in ("-v", "--volume"):
             if i + 1 < len(args):
                 volume = args[i + 1]
