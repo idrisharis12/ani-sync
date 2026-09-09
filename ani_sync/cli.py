@@ -1737,7 +1737,9 @@ def search_anime(query):
     seen_slugs = set()
     seen_titles = set()
 
-    def add_item(slug, title, image=None, score=None, episodes=None, status=None, synopsis=""):
+    def add_item(
+        slug, title, image=None, score=None, episodes=None, status=None, synopsis=""
+    ):
         if not title:
             return
         clean_t = re.sub(r"[^\w\s]", "", title.lower()).strip()
@@ -1782,7 +1784,9 @@ def search_anime(query):
           }
         }
         """
-        payload = json.dumps({"query": gql_query, "variables": {"search": query}}).encode("utf-8")
+        payload = json.dumps(
+            {"query": gql_query, "variables": {"search": query}}
+        ).encode("utf-8")
         req = urllib.request.Request(
             "https://graphql.anilist.co",
             data=payload,
@@ -1881,7 +1885,6 @@ def search_anime(query):
         pass
 
     return results
-
 
 
 def get_trending_anime():
@@ -2162,7 +2165,6 @@ def get_episode_streams(
         ep_num=ep_num,
         provider_name=provider,
     )
-
 
 
 # ----------------------------------------------------------------------
@@ -3609,19 +3611,24 @@ def play_loop(
         DiscordRPC.stop_activity()
 
         if not play_ok:
-            print(f"\n{C_YELLOW}⚠️ Playback could not be started or was cancelled.{C_RESET}")
+            print(
+                f"\n{C_YELLOW}⚠️ Playback could not be started or was cancelled.{C_RESET}"
+            )
             try:
-                fail_cmd = input(
-                    f"{C_BOLD}[r] Retry │ [s] Select Episode │ [x] Exit: {C_RESET}"
-                ).strip().lower()
+                fail_cmd = (
+                    input(
+                        f"{C_BOLD}[r] Retry │ [s] Select Episode │ [x] Exit: {C_RESET}"
+                    )
+                    .strip()
+                    .lower()
+                )
             except (KeyboardInterrupt, EOFError):
                 return
             if fail_cmd == "r":
                 continue
             elif fail_cmd == "s":
                 ep_menu = [
-                    f"Episode {e.get('number', i + 1)}"
-                    for i, e in enumerate(episodes)
+                    f"Episode {e.get('number', i + 1)}" for i, e in enumerate(episodes)
                 ]
                 chosen = pick_option("Select Episode", ep_menu)
                 if chosen:

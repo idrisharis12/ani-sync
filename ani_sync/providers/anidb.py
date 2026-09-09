@@ -36,12 +36,17 @@ class ErrorDetector:
             if match:
                 err_msg = match.group(1).strip()
                 if err_msg.lower() == "banned":
-                    raise PermissionError("AniDB client IP is currently banned or rate-limited.")
+                    raise PermissionError(
+                        "AniDB client IP is currently banned or rate-limited."
+                    )
                 elif "not found" in err_msg.lower():
                     raise FileNotFoundError(f"AniDB resource not found: {err_msg}")
                 else:
                     raise RuntimeError(f"AniDB API error: {err_msg}")
-        if "503 Service Unavailable" in response_text or "Just a moment..." in response_text:
+        if (
+            "503 Service Unavailable" in response_text
+            or "Just a moment..." in response_text
+        ):
             raise PermissionError("AniDB returned Cloudflare 503 Service Unavailable.")
 
 

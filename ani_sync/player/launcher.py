@@ -137,14 +137,14 @@ def launch_player(
 
     # Handle BitTorrent / Magnet Fallback
     if target_path.startswith("magnet:") or "torrent" in target_path:
-        webtorrent_bin = (
-            shutil.which("webtorrent")
+        torrent_streamer = (
+            shutil.which("peerflix")
+            or shutil.which("webtorrent")
             or shutil.which("webtorrent.cmd")
-            or shutil.which("peerflix")
         )
-        if webtorrent_bin:
+        if torrent_streamer:
             print(f"\n{C_CYAN}🧲 Streaming via BitTorrent (Nyaa fallback)...{C_RESET}")
-            cmd = [webtorrent_bin, target_path, "--mpv"]
+            cmd = [torrent_streamer, target_path, "--mpv"]
             proc = subprocess.run(cmd)
             return proc.returncode == 0
         else:

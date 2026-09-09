@@ -153,9 +153,9 @@ class TestPickOptionCancellation(unittest.TestCase):
         from unittest.mock import patch
         from ani_sync.cli import pick_option
 
-        with patch("ani_sync.cli._FZF_ENABLED", True), \
-             patch("ani_sync.cli._has_fzf", return_value=True), \
-             patch("ani_sync.cli._fzf_pick", return_value=None):
+        with patch("ani_sync.cli._FZF_ENABLED", True), patch(
+            "ani_sync.cli._has_fzf", return_value=True
+        ), patch("ani_sync.cli._fzf_pick", return_value=None):
             with self.assertRaises(SystemExit):
                 pick_option("Test Title", ["Opt 1", "Opt 2"])
 
@@ -163,6 +163,7 @@ class TestPickOptionCancellation(unittest.TestCase):
 class TestNyaaProvider(unittest.TestCase):
     def test_nyaa_provider_registry(self):
         from ani_sync.providers.nyaa import NyaaProvider
+
         provider = NyaaProvider()
         self.assertEqual(provider.name, "nyaa")
         self.assertEqual(provider.search("test"), [])
@@ -171,4 +172,3 @@ class TestNyaaProvider(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
