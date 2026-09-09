@@ -123,6 +123,16 @@ class NyaaProvider(BaseProvider):
                         root = ET.fromstring(xml_data)
                         items = root.findall("./channel/item")
                         rss_candidates = []
+                        trackers = [
+                            "http://nyaa.tracker.wf:7777/announce",
+                            "udp://open.stealth.si:80/announce",
+                            "udp://tracker.opentrackr.org:1337/announce",
+                            "udp://exodus.desync.com:6969/announce",
+                            "udp://tracker.torrent.eu.org:451/announce",
+                        ]
+                        tr_params = "&".join(
+                            [f"tr={urllib.parse.quote(tr)}" for tr in trackers]
+                        )
                         for it in items:
                             item_title = (
                                 it.find("title").text
@@ -131,29 +141,40 @@ class NyaaProvider(BaseProvider):
                             )
                             if is_valid_match(item_title, clean_title):
                                 s_count = 0
+                                info_hash = None
                                 for child in it:
                                     if "seeders" in child.tag:
                                         try:
                                             s_count = int(child.text or 0)
                                         except Exception:
                                             pass
-                                        break
-                                link_elem = it.find("link")
-                                if link_elem is not None and link_elem.text:
-                                    rss_candidates.append(
-                                        (s_count, item_title, link_elem.text)
-                                    )
+                                    elif "infoHash" in child.tag:
+                                        info_hash = (child.text or "").strip()
+
+                                if info_hash:
+                                    magnet = f"magnet:?xt=urn:btih:{info_hash}&dn={urllib.parse.quote(item_title)}&{tr_params}"
+                                    rss_candidates.append((s_count, item_title, magnet))
+                                else:
+                                    link_elem = it.find("link")
+                                    if (
+                                        link_elem is not None
+                                        and link_elem.text
+                                        and link_elem.text.startswith("magnet:")
+                                    ):
+                                        rss_candidates.append(
+                                            (s_count, item_title, link_elem.text)
+                                        )
 
                         if rss_candidates:
                             rss_candidates.sort(key=lambda x: x[0], reverse=True)
-                            top_seeds, top_name, top_url = rss_candidates[0]
+                            top_seeds, top_name, top_mag = rss_candidates[0]
                             log_debug(
-                                f"NyaaProvider resolved RSS swarm '{top_name}' with {top_seeds} seeds for query '{q}'"
+                                f"NyaaProvider resolved RSS magnet '{top_name}' with {top_seeds} seeds for query '{q}'"
                             )
                             return {
-                                "1080p": top_url,
-                                "720p": top_url,
-                                "default": top_url,
+                                "1080p": top_mag,
+                                "720p": top_mag,
+                                "default": top_mag,
                                 "type": "torrent",
                                 "seeders": top_seeds,
                                 "release_name": top_name,
