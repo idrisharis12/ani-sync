@@ -10,7 +10,36 @@ from ani_sync.config import USER_AGENT, log_debug
 from ani_sync.providers.base import BaseProvider
 
 
-class NyaaProvider(BaseProvider):
+GLOBAL_TRACKERS = [
+    "udp://tracker.opentrackr.org:1337/announce",
+    "udp://open.stealth.si:80/announce",
+    "udp://tracker.torrent.eu.org:451/announce",
+    "udp://exodus.desync.com:6969/announce",
+    "udp://tracker.moeking.me:6969/announce",
+    "udp://p4p.arenabg.com:1337/announce",
+    "udp://tracker.cyberia.is:6969/announce",
+    "udp://tracker.dler.org:6969/announce",
+    "udp://explodie.org:6969/announce",
+    "udp://open.tracker.cl:1337/announce",
+    "udp://tracker.tiny-vps.com:6969/announce",
+    "udp://retracker.hotplug.ru:2710/announce",
+    "udp://tracker.altrosky.nl:6969/announce",
+    "udp://tracker.bittor.pw:1337/announce",
+]
+GLOBAL_TR_PARAMS = "&".join(
+    [f"tr={urllib.parse.quote(tr)}" for tr in GLOBAL_TRACKERS]
+)
+
+
+def enrich_magnet(mag_url: str) -> str:
+    """Ensure all Tier-1 trackers are included in the magnet link."""
+    if not mag_url or not mag_url.startswith("magnet:"):
+        return mag_url
+    if "&tr=" not in mag_url:
+        delimiter = "&" if "?" in mag_url else "?"
+        return f"{mag_url}{delimiter}{GLOBAL_TR_PARAMS}"
+    return mag_url
+
     name = "nyaa"
 
     def search(self, query):
@@ -125,12 +154,22 @@ class NyaaProvider(BaseProvider):
                                         )
                                     )
                                     is_single = 1 if (has_ep and not is_batch) else 0
+                                    # Calculate health score:
+                                    # Healthy single episodes (>= 8 seeds) get a boost,
+                                    # but low-seeder/dead single episodes will not beat a healthy batch (>= 10 seeds).
+                                    if is_single and seeds >= 8:
+                                        score = seeds + 20
+                                    elif is_single and seeds >= 4:
+                                        score = seeds + 5
+                                    else:
+                                        score = seeds
+
                                     matched_candidates.append(
                                         (
-                                            is_single,
+                                            score,
                                             seeds,
                                             t_name,
-                                            html.unescape(m_mag.group(1)),
+                                            enrich_magnet(html.unescape(m_mag.group(1))),
                                         )
                                     )
 
@@ -162,25 +201,6 @@ class NyaaProvider(BaseProvider):
                         root = ET.fromstring(xml_data)
                         items = root.findall("./channel/item")
                         rss_candidates = []
-                        trackers = [
-                            "udp://tracker.opentrackr.org:1337/announce",
-                            "udp://open.stealth.si:80/announce",
-                            "udp://tracker.torrent.eu.org:451/announce",
-                            "udp://exodus.desync.com:6969/announce",
-                            "udp://tracker.moeking.me:6969/announce",
-                            "udp://p4p.arenabg.com:1337/announce",
-                            "udp://tracker.cyberia.is:6969/announce",
-                            "udp://tracker.dler.org:6969/announce",
-                            "udp://explodie.org:6969/announce",
-                            "udp://open.tracker.cl:1337/announce",
-                            "udp://tracker.tiny-vps.com:6969/announce",
-                            "udp://retracker.hotplug.ru:2710/announce",
-                            "udp://tracker.altrosky.nl:6969/announce",
-                            "udp://tracker.bittor.pw:1337/announce",
-                        ]
-                        tr_params = "&".join(
-                            [f"tr={urllib.parse.quote(tr)}" for tr in trackers]
-                        )
                         for it in items:
                             item_title = (
                                 it.find("title").text
@@ -216,12 +236,20 @@ class NyaaProvider(BaseProvider):
                                         low_title,
                                     )
                                 )
-                                is_sing = 1 if (has_e and not is_b) else 0
+                                is_s = 1 if (has_e and not is_b) else 0
+                                if is_s and s_count >= 8:
+                                    r_score = s_count + 20
+                                elif is_s and s_count >= 4:
+                                    r_score = s_count + 5
+                                else:
+                                    r_score = s_count
 
                                 if info_hash:
-                                    magnet = f"magnet:?xt=urn:btih:{info_hash}&dn={urllib.parse.quote(item_title)}&{tr_params}"
+                                    mag = enrich_magnet(
+                                        f"magnet:?xt=urn:btih:{info_hash}&dn={urllib.parse.quote(item_title)}"
+                                    )
                                     rss_candidates.append(
-                                        (is_sing, s_count, item_title, magnet)
+                                        (r_score, s_count, item_title, mag)
                                     )
                                 else:
                                     link_elem = it.find("link")
@@ -232,10 +260,10 @@ class NyaaProvider(BaseProvider):
                                     ):
                                         rss_candidates.append(
                                             (
-                                                is_sing,
+                                                r_score,
                                                 s_count,
                                                 item_title,
-                                                link_elem.text,
+                                                enrich_magnet(link_elem.text),
                                             )
                                         )
 

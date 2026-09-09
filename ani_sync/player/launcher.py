@@ -129,7 +129,7 @@ def get_torrent_episode_index(streamer_bin, target_path, ep_num):
             [streamer_bin, target_path, "--list"],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=15,
         )
         lines = proc.stdout.splitlines()
         ep_pats = [
@@ -177,9 +177,10 @@ def launch_player(
         )
         if torrent_streamer:
             print(f"\n{C_CYAN}🧲 Streaming via BitTorrent (Nyaa fallback)...{C_RESET}")
-            # Wipe stale torrent-stream cache to prevent resuming stalled/dead torrents
+            # Wipe stale torrent-stream cache and kill lingering server processes
             try:
                 subprocess.run(["pkill", "-f", "peerflix"], stderr=subprocess.DEVNULL)
+                subprocess.run(["fuser", "-k", "8888/tcp"], stderr=subprocess.DEVNULL)
             except Exception:
                 pass
 
