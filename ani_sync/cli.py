@@ -2366,17 +2366,31 @@ def launch_player(
 
     # Handle BitTorrent / Magnet Fallback
     if "torrent" in target_path or target_path.startswith("magnet:"):
-        webtorrent_bin = shutil.which("webtorrent") or shutil.which("webtorrent.cmd")
+        webtorrent_bin = (
+            shutil.which("webtorrent")
+            or shutil.which("webtorrent.cmd")
+            or shutil.which("peerflix")
+        )
         if not webtorrent_bin:
             print(
                 f"\n{C_RED}❌ webtorrent-cli is required to stream torrents!{C_RESET}"
             )
             print(f"{C_YELLOW}Install it via: npm install -g webtorrent-cli{C_RESET}")
-            return
-        print(f"\n{C_CYAN}🧲 Streaming via BitTorrent (Nyaa.si fallback)...{C_RESET}")
+            if shutil.which("wl-copy"):
+                try:
+                    subprocess.run(
+                        ["wl-copy"], input=target_path.encode("utf-8"), check=True
+                    )
+                    print(
+                        f"{C_GREEN}✓ Copied magnet link to system clipboard!{C_RESET}"
+                    )
+                except Exception:
+                    pass
+            return False
+        print(f"\n{C_CYAN}🧲 Streaming via BitTorrent (Nyaa fallback)...{C_RESET}")
         cmd = [webtorrent_bin, target_path, "--mpv"]
-        subprocess.run(cmd)
-        return
+        proc = subprocess.run(cmd)
+        return proc.returncode == 0
 
     # Check for Syncplay Watch Together Party mode
     if party_room:
@@ -3583,11 +3597,40 @@ def play_loop(
         )
 
         last_time_pos = 0
+        play_ok = True
         if isinstance(play_res, tuple):
-            _, last_time_pos = play_res
+            play_ok, last_time_pos = play_res
+        elif isinstance(play_res, bool):
+            play_ok = play_res
+        elif play_res is None:
+            play_ok = False
 
         # Stop Discord Rich Presence on player close
         DiscordRPC.stop_activity()
+
+        if not play_ok:
+            print(f"\n{C_YELLOW}⚠️ Playback could not be started or was cancelled.{C_RESET}")
+            try:
+                fail_cmd = input(
+                    f"{C_BOLD}[r] Retry │ [s] Select Episode │ [x] Exit: {C_RESET}"
+                ).strip().lower()
+            except (KeyboardInterrupt, EOFError):
+                return
+            if fail_cmd == "r":
+                continue
+            elif fail_cmd == "s":
+                ep_menu = [
+                    f"Episode {e.get('number', i + 1)}"
+                    for i, e in enumerate(episodes)
+                ]
+                chosen = pick_option("Select Episode", ep_menu)
+                if chosen:
+                    num_match = re.findall(r"\d+", chosen)
+                    if num_match:
+                        current_idx = int(num_match[0]) - 1
+                continue
+            else:
+                break
 
         # Record to local history with MPV IPC position
         save_history(
